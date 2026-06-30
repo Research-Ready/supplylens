@@ -1,0 +1,104 @@
+SUPPLIER PROFILE: ZF Friedrichshafen AG
+Country: Germany
+Sector: Automotive Components
+Tier: 1 (direct supplier to OEMs)
+Annual Revenue: ~43 billion EUR
+Employees: ~165,000 worldwide
+
+PRODUCTS SUPPLIED TO SCANIA:
+- 12-speed TraXon automatic gearboxes for heavy trucks
+- ZF EcoMat automatic transmissions for buses
+- Driveline components and axle systems
+
+SUPPLY CHAIN (Tier 2):
+ZF sources the following critical materials and components:
+1. Steel billets and forgings: Saarstahl AG (Saarbrücken, Germany)
+   - High-strength alloy steel for gear shafts
+   - Volume: ~180,000 tons/year
+2. Aluminium housings: Martinrea Honsel (Meschede, Germany)
+   - Die-cast aluminium transmission housings
+3. Electronic control units: Continental AG (Hannover, Germany)
+   - Transmission control modules (TCM)
+   - Sensors and actuators
+4. Bearings: Schaeffler AG (Herzogenaurach, Germany)
+   - INA brand needle bearings for planetary gear sets
+5. Seals and gaskets: Freudenberg (Weinheim, Germany)
+   - Elastomer seals for gearbox assemblies
+
+CERTIFICATIONS:
+- ISO 9001:2015 (Quality Management)
+- IATF 16949:2016 (Automotive Quality)
+- ISO 14001:2015 (Environmental)
+- REACH compliant
+
+RISK FLAGS:
+- SINGLE_SOURCE: Steel supply concentrated at Saarstahl (backup: ArcelorMittal)
+- GEOPOLITICAL_RISK: Some rare earth elements in electronics from CN
+
+---
+
+SUPPLIER PROFILE: SSAB AB
+Country: Sweden
+Sector: Steel Manufacturing
+Tier: 1 (direct supplier to Scania)
+Annual Revenue: ~8 billion EUR
+
+PRODUCTS SUPPLIED TO SCANIA:
+- Hardox wear plate for tipper bodies
+- Strenx high-strength structural steel for chassis rails
+- Docol advanced high-strength steel for cab components
+
+SUPPLY CHAIN (Tier 2):
+1. Iron ore pellets: LKAB (Kiruna, Sweden)
+   - LKAB iron ore pellets (DR-grade for electric arc furnace)
+   - Annual volume: ~5 million tons
+2. Coking coal: Carrington Coal (Australia) + Tata Steel (NL)
+   - For blast furnace operations (SSAB transitioning to hydrogen DRI)
+3. Limestone: Nordkalk (Pargas, Finland)
+   - Slag-forming agent in steelmaking
+4. Scrap steel: Various European scrap collectors
+   - 25-30% recycled content in EAF production
+5. Hydrogen (future): Vattenfall/H2GS joint venture
+   - Green hydrogen for HYBRIT fossil-free steel (pilot phase)
+6. Oxygen: Air Liquide (France)
+   - Industrial oxygen for steelmaking
+
+SUSTAINABILITY NOTE:
+SSAB HYBRIT pilot plant in Luleå producing fossil-free steel via direct reduced iron (DRI)
+using green hydrogen. Scania committed to fossil-free steel in chassis from 2030.
+
+---
+
+SUPPLIER PROFILE: AMS Buttons BV
+Country: Netherlands
+Sector: Fasteners / Haberdashery
+Tier: 1 (supplier to textile manufacturers)
+Annual Revenue: ~12 million EUR
+Employees: ~85
+
+PRODUCTS:
+- Plastic buttons (ABS, nylon, polyester): 12mm, 15mm, 20mm, 25mm
+- Metal snap fasteners: brass, steel, aluminium
+- Decorative buttons: resin, shell, wood composite
+
+SUPPLY CHAIN (Tier 2):
+1. ABS plastic granules: BASF SE (Ludwigshafen, Germany)
+   - Terluran GP-35 ABS resin
+   - Volume: ~180 tons/year
+2. Metal pins and backs: Shenzhen Metal Co (Shenzhen, China)
+   - Stamped steel and brass components
+   - Volume: ~2.5 million units/year
+3. Textile dye for dyeing plastic components: Archroma (India/Switzerland)
+   - Reactive and acid dyes for colour matching
+4. Mould release agents: Henkel AG (Düsseldorf, Germany)
+   - Loctite MR 5165 for injection moulding
+5. Packaging: Smurfit Kappa (Dublin, Ireland)
+   - Recycled cardboard packaging
+
+CERTIFICATIONS:
+- OEKO-TEX Standard 100
+- REACH compliant (no restricted substances)
+- ISO 9001:2015
+
+KEY CUSTOMERS:
+H&M, Zara (Inditex), C&A, Tommy Hilfiger, IKEA (home textiles)

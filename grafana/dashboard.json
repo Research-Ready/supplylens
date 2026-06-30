@@ -1,0 +1,220 @@
+{
+  "uid": "uc4-supplychain-ops",
+  "title": "UC4 — Supply Chain ERP View",
+  "tags": ["uc4", "supply-chain", "erp", "knopenkoning"],
+  "timezone": "browser",
+  "schemaVersion": 36,
+  "version": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Companies Mapped This Week",
+      "type": "stat",
+      "description": "Distinct companies whose supply chain was traversed in the last 7 days",
+      "gridPos": { "x": 0, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "Directus-PG" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "Directus-PG" },
+          "rawSql": "SELECT COUNT(DISTINCT unnest(input_companies)) FROM uc4_pipeline_runs WHERE started_at > NOW() - INTERVAL '7 days' AND status = 'success'",
+          "format": "table",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "green", "value": 5 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 2,
+      "title": "New Supplier Relationships Found Today",
+      "type": "stat",
+      "description": "Sum of relationships_found across all pipeline runs today",
+      "gridPos": { "x": 6, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "Directus-PG" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "Directus-PG" },
+          "rawSql": "SELECT COALESCE(SUM(relationships_found), 0) FROM uc4_pipeline_runs WHERE started_at > NOW() - INTERVAL '1 day' AND status = 'success'",
+          "format": "table",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "blue", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 3,
+      "title": "Data Freshness (days since last run)",
+      "type": "gauge",
+      "description": "Days since last successful supply chain pipeline run. Green < 2 days, red > 7.",
+      "gridPos": { "x": 12, "y": 0, "w": 6, "h": 4 },
+      "datasource": { "type": "postgres", "uid": "Directus-PG" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "Directus-PG" },
+          "rawSql": "SELECT EXTRACT(EPOCH FROM (NOW() - MAX(started_at))) / 86400.0 AS days_since_last FROM uc4_pipeline_runs WHERE status = 'success'",
+          "format": "table",
+          "refId": "C"
+        }
+      ],
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "minVizWidth": 75,
+        "minVizHeight": 75
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "d",
+          "min": 0,
+          "max": 14,
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 2 },
+              { "color": "red", "value": 7 }
+            ]
+          }
+        },
+        "overrides": []
+      }
+    },
+    {
+      "id": 4,
+      "title": "Supply Chain Tiers Distribution",
+      "type": "piechart",
+      "description": "Count of supplier nodes per tier in the Neo4j graph (Tier 1 = direct, Tier 2 = sub-supplier, Tier 3 = raw material origin)",
+      "gridPos": { "x": 18, "y": 0, "w": 6, "h": 8 },
+      "datasource": { "type": "postgres", "uid": "Directus-PG" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "Directus-PG" },
+          "rawSql": "SELECT tier_label, node_count FROM uc4_tier_summary ORDER BY tier_order",
+          "format": "table",
+          "refId": "D"
+        }
+      ],
+      "options": {
+        "pieType": "donut",
+        "legendDisplayMode": "table",
+        "placement": "right",
+        "tooltipMode": "single"
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "Tier 1 (Direct)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#73BF69", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Tier 2 (Sub-supplier)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#5794F2", "mode": "fixed" } }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "Tier 3 (Raw Material)" },
+            "properties": [{ "id": "color", "value": { "fixedColor": "#FF9830", "mode": "fixed" } }]
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "title": "Recent Mapping Jobs",
+      "type": "table",
+      "description": "Last 20 supply chain pipeline runs with key metrics",
+      "gridPos": { "x": 0, "y": 4, "w": 18, "h": 10 },
+      "datasource": { "type": "postgres", "uid": "Directus-PG" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "Directus-PG" },
+          "rawSql": "SELECT started_at, array_to_string(input_companies, ', ') AS input_companies, relationships_found, nodes_created, ROUND(duration_s::numeric, 1) AS duration_s, status FROM uc4_pipeline_runs ORDER BY started_at DESC LIMIT 20",
+          "format": "table",
+          "refId": "E"
+        }
+      ],
+      "options": {
+        "sortBy": [{ "displayName": "started_at", "desc": true }],
+        "footer": { "show": false }
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "status" },
+            "properties": [
+              {
+                "id": "custom.displayMode",
+                "value": "color-background"
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  { "type": "value", "options": { "success": { "text": "success", "color": "green" } } },
+                  { "type": "value", "options": { "failed": { "text": "failed", "color": "red" } } }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "duration_s" },
+            "properties": [{ "id": "unit", "value": "s" }]
+          },
+          {
+            "matcher": { "id": "byName", "options": "started_at" },
+            "properties": [{ "id": "unit", "value": "time:YYYY-MM-DD HH:mm" }]
+          }
+        ]
+      }
+    }
+  ],
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "_notes": [
+    "Data source uid 'Directus-PG' must be configured in Grafana pointing to CT100 PostgreSQL.",
+    "Required table: uc4_pipeline_runs (started_at, input_companies text[], relationships_found int, nodes_created int, duration_s float, status text)",
+    "Required view: uc4_tier_summary (tier_order int, tier_label text, node_count int) — populated from Neo4j sync job or LangGraph writes.",
+    "If using Grafana provisioning: place this file at /etc/grafana/provisioning/dashboards/uc4-supplychain-ops.json"
+  ]
+}
