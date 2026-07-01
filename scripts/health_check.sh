@@ -42,8 +42,8 @@ check "Tika CT115"                    "http://10.0.1.115:9998/tika"         "200
 # Qdrant
 check "Qdrant CT102"                  "http://10.0.1.102:6333/healthz"      "200"
 
-# LiteLLM
-check "LiteLLM CT205"                 "http://10.0.2.205:4000/health"       "200"
+# LiteLLM — /health requires auth; /health/liveliness is unauthenticated
+check "LiteLLM CT205"                 "http://10.0.2.205:4000/health/liveliness" "200"
 
 # Superset
 check "Superset CT206"                "http://10.0.2.206:8088/health"       "200"

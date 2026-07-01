@@ -4,16 +4,15 @@
 # Requires VPN active and Proxmox quorum
 
 set -euo pipefail
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../../" && pwd)"
-UC4_DIR="$REPO_ROOT/usecases/uc4-supply-chain"
+UC4_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 PASS=0
 FAIL=0
 ERRORS=()
 
 log()  { echo "[$(date '+%H:%M:%S')] $*"; }
-ok()   { log "PASS: $1"; ((PASS++)); }
-fail() { log "FAIL: $1"; ((FAIL++)); ERRORS+=("$1"); }
+ok()   { log "PASS: $1"; PASS=$((PASS+1)); }
+fail() { log "FAIL: $1"; FAIL=$((FAIL+1)); ERRORS+=("$1"); }
 
 # ---------------------------------------------------------------------------
 # Credentials from UC4 passwords.kdbx (master: SupplyChainBaby100!)
@@ -53,9 +52,12 @@ log "Credentials loaded from passwords.kdbx"
 # ---------------------------------------------------------------------------
 log "=== PRE-FLIGHT CHECK ==="
 
+BASTION="root@10.0.0.16"
+
 check_http() {
     local name="$1" url="$2" expected="$3"
-    code=$(curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 "$url" 2>/dev/null || echo "000")
+    code=$(ssh -o StrictHostKeyChecking=accept-new "$BASTION" \
+        "curl -s -o /dev/null -w '%{http_code}' --connect-timeout 5 '$url'" 2>/dev/null || echo "000")
     if [[ "$code" == "$expected" ]]; then
         ok "Pre-flight $name ($code)"
     else
@@ -70,7 +72,7 @@ check_http "Browserless-acc"        "http://10.0.3.106:3500/health"     "200"
 check_http "Unstructured"           "http://10.0.1.117:8000/health"     "200"
 check_http "Tika"                   "http://10.0.1.115:9998/tika"       "200"
 check_http "Qdrant"                 "http://10.0.1.102:6333/healthz"    "200"
-check_http "LiteLLM"                "http://10.0.2.205:4000/health"     "200"
+check_http "LiteLLM"                "http://10.0.2.205:4000/health/liveliness" "200"
 check_http "Superset"               "http://10.0.2.206:8088/health"     "200"
 check_http "Metabase"               "http://10.0.2.202:3000/api/health" "200"
 
@@ -115,7 +117,7 @@ log "=== STEP 2: Neo4j traversal ==="
 
 TRAVERSE_RESULT=$(ssh -o StrictHostKeyChecking=accept-new -o ProxyJump=root@10.0.0.16 root@10.0.1.114 "python3 << 'PYEOF'
 import urllib.request, json, base64
-auth = base64.b64encode(b'neo4j:$NEO4J_PW'.encode()).decode()
+auth = base64.b64encode('neo4j:$NEO4J_PW'.encode()).decode()
 query = 'MATCH path = (p:Product {sku: \"BTN-001\"})-[:SUPPLIED_BY|SOURCED_FROM*1..5]->(n) RETURN [node in nodes(path) | coalesce(node.name, node.sku)] AS chain, length(path) AS depth ORDER BY depth'
 req = urllib.request.Request(
     'http://localhost:7474/db/neo4j/tx/commit',
@@ -143,21 +145,32 @@ fi
 # ---------------------------------------------------------------------------
 log "=== STEP 3: Browserless scrape ==="
 
-SCRAPE_RESULT=$(ssh -i ~/.ssh/proxmox_node3 -o StrictHostKeyChecking=accept-new root@10.0.0.18 \
-    "pct exec 400 -- python3 -c \"
+SCRAPE_RESULT="SSH_FAIL"
+for _attempt in 1 2 3; do
+    _try=$(ssh -i ~/.ssh/proxmox_node3 -o StrictHostKeyChecking=accept-new root@10.0.0.18 \
+        "pct exec 400 -- python3 -c \"
 import urllib.request, json
 req = urllib.request.Request(
     'http://localhost:3500/scrape',
-    data=json.dumps({'url': 'https://example.com', 'wait_for': 1000}).encode(),
+    data=json.dumps({'url': 'https://example.com'}).encode(),
     headers={'Content-Type': 'application/json'},
     method='POST'
 )
-r = urllib.request.urlopen(req, timeout=35)
-d = json.loads(r.read())
-html = d.get('html', '')
-print('SCRAPE_OK' if 'Example Domain' in html else 'CONTENT_FAIL')
-print(f'CHARS:{len(html)}')
-\"" 2>/dev/null || echo "SSH_FAIL")
+try:
+    r = urllib.request.urlopen(req, timeout=35)
+    d = json.loads(r.read())
+    html = d.get('html', '')
+    print('SCRAPE_OK' if 'Example Domain' in html else 'CONTENT_FAIL')
+    print(f'CHARS:{len(html)}')
+except Exception as e:
+    print(f'RETRY:{e}')
+\"" 2>/dev/null || true)
+    if [[ "$_try" == *"SCRAPE_OK"* ]]; then
+        SCRAPE_RESULT="$_try"
+        break
+    fi
+    log "Step 3 attempt $_attempt failed, retrying..."
+done
 
 if [[ "$SCRAPE_RESULT" == *"SCRAPE_OK"* ]]; then
     CHARS=$(echo "$SCRAPE_RESULT" | grep -o 'CHARS:[0-9]*' | cut -d: -f2 || echo "0")
@@ -217,14 +230,20 @@ fi
 # ---------------------------------------------------------------------------
 log "=== STEP 5: LiteLLM inference ==="
 
-LLM_RESULT=$(curl -s --connect-timeout 30 http://10.0.2.205:4000/v1/chat/completions \
-  -H "Authorization: Bearer $LITELLM_KEY" \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "model": "researcher-llm",
-    "messages": [{"role": "user", "content": "Supplier: AMS Buttons BV (Netherlands). Makes plastic buttons using ABS plastic from BASF Germany and metal pins from Shenzhen. What 3 other raw materials are likely in their supply chain? JSON array only with keys: name, origin, material_type"}],
-    "max_tokens": 300
-  }' 2>/dev/null || echo '{"error":"curl_fail"}')
+LLM_RESULT=$(ssh -o StrictHostKeyChecking=accept-new "$BASTION" "python3 -c \"
+import urllib.request, json
+req = urllib.request.Request(
+    'http://10.0.2.205:4000/v1/chat/completions',
+    data=json.dumps({'model':'researcher-llm','messages':[{'role':'user','content':'Supplier: AMS Buttons BV (Netherlands). Makes plastic buttons using ABS plastic from BASF Germany and metal pins from Shenzhen. What 3 other raw materials are likely in their supply chain? JSON array only with keys: name, origin, material_type'}],'max_tokens':300}).encode(),
+    headers={'Authorization':'Bearer $LITELLM_KEY','Content-Type':'application/json'},
+    method='POST'
+)
+try:
+    r = urllib.request.urlopen(req, timeout=120)
+    print(r.read().decode())
+except Exception as e:
+    print(json.dumps({'error':str(e)}))
+\"" 2>/dev/null || echo '{"error":"ssh_fail"}')
 
 if echo "$LLM_RESULT" | python3 -c "import json,sys; d=json.load(sys.stdin); assert 'choices' in d" 2>/dev/null; then
     ok "Step 5 LiteLLM inference"
@@ -242,7 +261,7 @@ import urllib.request, json, base64
 auth = base64.b64encode(b'neo4j:$NEO4J_PW').decode()
 base = 'http://localhost:7474/db/neo4j/tx/commit'
 headers = {'Content-Type': 'application/json', 'Authorization': 'Basic ' + auth}
-q = 'MERGE (r:RawMaterial {name: \\\"Textile Dye\\\", origin: \\\"India\\\", material_type: \\\"Chemical\\\", inferred: true}) MATCH (s:Supplier {name: \\\"AMS Buttons BV\\\"}) MERGE (s)-[:SOURCED_FROM {confidence: 0.7, source: \\\"LLM inference\\\"}]->(r)'
+q = 'MERGE (r:RawMaterial {name: \\\"Textile Dye\\\", origin: \\\"India\\\", material_type: \\\"Chemical\\\", inferred: true}) WITH r MATCH (s:Supplier {name: \\\"AMS Buttons BV\\\"}) MERGE (s)-[:SOURCED_FROM {confidence: 0.7, source: \\\"LLM inference\\\"}]->(r)'
 req = urllib.request.Request(base,
     data=json.dumps({'statements': [{'statement': q}]}).encode(),
     headers=headers, method='POST')
@@ -286,10 +305,21 @@ fi
 # ---------------------------------------------------------------------------
 log "=== STEP 8: Superset dashboard login ==="
 
-SUPERSET_TOKEN=$(curl -s --connect-timeout 10 -X POST http://10.0.2.206:8088/api/v1/security/login \
-  -H 'Content-Type: application/json' \
-  -d "{\"username\":\"admin\",\"password\":\"$SUPERSET_PW\",\"provider\":\"db\"}" \
-  2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('access_token','FAIL'))" 2>/dev/null || echo "FAIL")
+SUPERSET_TOKEN=$(ssh -o StrictHostKeyChecking=accept-new "$BASTION" "python3 -c \"
+import urllib.request, json
+req = urllib.request.Request(
+    'http://10.0.2.206:8088/api/v1/security/login',
+    data=json.dumps({'username':'admin','password':'$SUPERSET_PW','provider':'db'}).encode(),
+    headers={'Content-Type':'application/json'},
+    method='POST'
+)
+try:
+    r = urllib.request.urlopen(req, timeout=10)
+    d = json.loads(r.read())
+    print(d.get('access_token','FAIL'))
+except Exception as e:
+    print('FAIL')
+\"" 2>/dev/null || echo "FAIL")
 
 if [[ "$SUPERSET_TOKEN" != "FAIL" && ${#SUPERSET_TOKEN} -gt 10 ]]; then
     ok "Step 8 Superset login (token ${SUPERSET_TOKEN:0:15}...)"
