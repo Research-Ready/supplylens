@@ -210,3 +210,14 @@ If missing: `ansible-playbook -i inventory/hosts.yml playbooks/05_platform.yml -
 | Keys | vault: `langfuse_public_key` + `langfuse_api_key` |
 
 Used to trace all LiteLLM calls for cost monitoring and debugging inference failures.
+
+## Outbound email (SMTP)
+
+Use Mailcow CT310. Full guide: `InstallLocalAiPackage/docs/mailcow-smtp-guide.md`
+
+| Setting | Value |
+|---------|-------|
+| Host | `10.0.3.110` |
+| Port | `587` (STARTTLS) |
+| User | `noreply@research-ready.nl` |
+| Password | KeePass: CT310 Mailcow → noreply@research-ready.nl |
