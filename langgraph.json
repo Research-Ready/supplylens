@@ -1,0 +1,7 @@
+{
+  "dependencies": ["./src"],
+  "graphs": {
+    "supply-chain-enrichment": "./src/agent.py:graph"
+  },
+  "env": ".env"
+}

@@ -1,0 +1,160 @@
+{
+  "name": "UC4 Supply Chain Weekly Refresh",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Monday 06:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtWeekDay": [1],
+              "triggerAtHour": 6,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Enrich Scania",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.1.119:8000/runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "{\"assistant_id\": \"supply-chain-enrichment\", \"input\": {\"product\": \"Scania R-series Heavy Truck\", \"company\": \"Scania AB\", \"depth\": 2}}",
+        "options": {
+          "timeout": 300000,
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Enrich AMS Buttons",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 420],
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.1.119:8000/runs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "{\"assistant_id\": \"supply-chain-enrichment\", \"input\": {\"product\": \"Button 12mm\", \"company\": \"AMS Buttons BV\", \"depth\": 2}}",
+        "options": {
+          "timeout": 300000,
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0004-4000-8000-000000000004",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [720, 300],
+      "parameters": {
+        "mode": "append"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0005-4000-8000-000000000005",
+      "name": "Query Neo4j Stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 300],
+      "notes": "Basic auth: set Authorization header to 'Basic <base64(neo4j:PASSWORD)>'. Password from KeePass -> Neo4j.",
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.1.114:7474/db/neo4j/tx/commit",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Authorization", "value": "Basic {{ $env.NEO4J_AUTH_B64 }}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "{\"statements\": [{\"statement\": \"MATCH (n) WHERE n.demo = true RETURN labels(n)[0] AS type, count(n) AS count ORDER BY count DESC\"}]}",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0006-4000-8000-000000000006",
+      "name": "Sync to PostgreSQL",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1200, 300],
+      "notes": "Runs postgres_sync.py from the repo checkout on CT104 or via SSH. Adjust command to match deployment path.",
+      "parameters": {
+        "command": "cd /opt/uc4-supply-chain && python3 src/postgres_sync.py 2>&1"
+      }
+    }
+  ],
+  "connections": {
+    "Monday 06:00": {
+      "main": [
+        [
+          { "node": "Enrich Scania",      "type": "main", "index": 0 },
+          { "node": "Enrich AMS Buttons", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Enrich Scania": {
+      "main": [
+        [{ "node": "Merge Results", "type": "main", "index": 0 }]
+      ]
+    },
+    "Enrich AMS Buttons": {
+      "main": [
+        [{ "node": "Merge Results", "type": "main", "index": 1 }]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [{ "node": "Query Neo4j Stats", "type": "main", "index": 0 }]
+      ]
+    },
+    "Query Neo4j Stats": {
+      "main": [
+        [{ "node": "Sync to PostgreSQL", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": ["uc4", "supply-chain", "weekly"],
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "notes": "Before activating: set NEO4J_AUTH_B64 env var in n8n (base64 of 'neo4j:PASSWORD'). Ensure LangGraph graph 'supply-chain-enrichment' is deployed on CT119."
+  }
+}

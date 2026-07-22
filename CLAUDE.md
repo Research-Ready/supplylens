@@ -516,8 +516,45 @@ Weekly supply chain update workflow:
 
 n8n admin: `chris@research-ready.nl` / KeePass → Services → n8n
 
+## Current status (2026-07-11)
+
+All 8 dry-run steps: **PASS** (confirmed 2026-06-30, infrastructure stable).
+Knowledge graph: `graphify-out/graph.json` — 34 nodes, 68 edges, 7 communities.
+HTML visualization: `graphify-out/graph.html` — open in browser.
+
+### Next phase: Scania demo
+
+1. **Seed Scania graph** — load `example_outputs/sample_graph.cypher` into Neo4j CT114
+2. **LangGraph agent** — Python code on CT119 for `POST /runs` endpoint (scrape → extract → infer → MERGE loop)
+3. **Superset dashboards** — supplier count by country, tier pie chart, risk heatmap
+4. **n8n workflow** — Monday 06:00 cron, HTTP nodes for each pipeline step
+5. **PostgreSQL entity table** — mirror supplier nodes into `knopenkonings.suppliers`
+
+```bash
+# Seed Scania graph now:
+NEO4J_PW=$(python3 -c "from pykeepass import PyKeePass; kp=PyKeePass('passwords.kdbx',password='SupplyChainBaby100!'); e=kp.find_entries(title='Neo4j',first=True); print(e.password)")
+ssh -J root@10.0.0.16 root@10.0.1.114 "cypher-shell -u neo4j -p $NEO4J_PW" < example_outputs/sample_graph.cypher
+```
+
 ## Recommended Claude skills for this use case
 
+```bash
+# Install all skills for UC4 next phase:
+/manage-skills install langgraph          # LangGraph agent code (CT119)
+/manage-skills install python-pro         # pipeline Python scripts
+/manage-skills install grafana-dashboards # Superset/Grafana dashboard JSON
+/manage-skills install supply-chain-risk-auditor  # risk flag logic
+/manage-skills install n8n-workflow-patterns      # n8n Monday cron workflow
+/manage-skills install neo4j              # Cypher query patterns (if available)
+/manage-skills install postgresql         # knopenkonings DB schema
+```
+
+- **langgraph** — LangGraph agent on CT119: `POST /runs` → scrape/extract/infer/MERGE loop
+- **python-pro** — pipeline Python scripts (`src/agent.py`, `src/neo4j_client.py`, etc.)
+- **grafana-dashboards** — Superset chart JSON (supplier map, tier pie, risk heatmap)
+- **supply-chain-risk-auditor** — risk flag logic: `SINGLE_SOURCE`, `GEOPOLITICAL_RISK`
+- **n8n-workflow-patterns** — Monday 06:00 cron, 5-step HTTP workflow
+- **postgresql** — `knopenkonings.suppliers` table schema + sync query
 - **claude-d3js-skill** — render interactive supply chain graph (D3.js force layout)
 - **xlsx** — parse/generate Excel supplier lists
 - **pdf** — extract data from supplier capability statements
