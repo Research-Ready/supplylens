@@ -68,7 +68,7 @@ check_http() {
 check_http "Neo4j"                  "http://10.0.1.114:7474/"           "200"
 check_http "LangGraph"              "http://10.0.1.119:8000/health"     "200"
 check_http "Browserless-prod"       "http://10.0.5.100:3500/health"     "200"
-check_http "Browserless-acc"        "http://10.0.3.106:3500/health"     "200"
+# CT306 (Browserless-acc) not provisioned — pipeline uses CT400 (prod) for all scraping
 check_http "Unstructured"           "http://10.0.1.117:8000/health"     "200"
 check_http "Tika"                   "http://10.0.1.115:9998/tika"       "200"
 check_http "Qdrant"                 "http://10.0.1.102:6333/healthz"    "200"

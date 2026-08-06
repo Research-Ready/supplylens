@@ -1,5 +1,9 @@
 # UC4 — Supply Chain Visualization (Knopenkoning)
 
+## Dry-run status (2026-08-06)
+
+**17/17 PASS** (re-verified 2026-08-06 session-17). CT306 Browserless-acc not provisioned — removed from pre-flight check; CT400 (prod) handles all scraping.
+
 ## Dry-run status (2026-06-30)
 
 | Step | Service | Status | Note |
