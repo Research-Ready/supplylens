@@ -508,7 +508,136 @@ MATCH (r:RawMaterial {name:'Cobalt Hydroxide'}), (e:Event {name:'DRC Artisanal M
 MERGE (r)-[:AFFECTED_BY {demo:true}]->(e);
 
 // ============================================================
-// VERIFICATION (extended v3)
+// FINANCIAL & OPERATIONAL DATA (v4 — 2026-08-12)
+// Adds contract_value_eur, lead_time_days, annual_volume_eur to key relationships
+// Adds annual_revenue_eur, employee_count, founded_year to supplier nodes
+// ============================================================
+
+// ── Supplier financial profiles ───────────────────────────────────────────────
+MATCH (s:Supplier {name:'ZF Friedrichshafen'})
+SET s.annual_revenue_eur = 46600000000, s.employee_count = 165000,
+    s.founded_year = 1915, s.headquarters = 'Friedrichshafen, DE';
+
+MATCH (s:Supplier {name:'Bosch'})
+SET s.annual_revenue_eur = 91600000000, s.employee_count = 421000,
+    s.founded_year = 1886, s.headquarters = 'Stuttgart, DE';
+
+MATCH (s:Supplier {name:'SSAB'})
+SET s.annual_revenue_eur = 9800000000, s.employee_count = 16800,
+    s.founded_year = 1978, s.headquarters = 'Stockholm, SE';
+
+MATCH (s:Supplier {name:'Michelin'})
+SET s.annual_revenue_eur = 28600000000, s.employee_count = 132000,
+    s.founded_year = 1889, s.headquarters = 'Clermont-Ferrand, FR';
+
+MATCH (s:Supplier {name:'Dana Incorporated'})
+SET s.annual_revenue_eur = 9700000000, s.employee_count = 37000,
+    s.founded_year = 1904, s.headquarters = 'Maumee, OH, US',
+    s.risk_flags = ['SINGLE_SOURCE'];
+
+MATCH (s:Supplier {name:'Saarstahl AG'})
+SET s.annual_revenue_eur = 2800000000, s.employee_count = 6700,
+    s.founded_year = 1881, s.headquarters = 'Völklingen, DE';
+
+MATCH (s:Supplier {name:'Infineon Technologies'})
+SET s.annual_revenue_eur = 16300000000, s.employee_count = 58000,
+    s.founded_year = 1999, s.headquarters = 'Neubiberg, DE';
+
+MATCH (s:Supplier {name:'LKAB'})
+SET s.annual_revenue_eur = 4200000000, s.employee_count = 5000,
+    s.founded_year = 1890, s.headquarters = 'Luleå, SE';
+
+MATCH (s:Supplier {name:'China Rare Earth Group'})
+SET s.annual_revenue_eur = 8900000000, s.employee_count = 140000,
+    s.founded_year = 2021, s.headquarters = 'Nanchang, CN',
+    s.state_owned = true;
+
+MATCH (s:Supplier {name:'Vale SA'})
+SET s.annual_revenue_eur = 38500000000, s.employee_count = 96000,
+    s.founded_year = 1942, s.headquarters = 'Rio de Janeiro, BR';
+
+MATCH (s:Supplier {name:'Glencore'})
+SET s.annual_revenue_eur = 255000000000, s.employee_count = 135000,
+    s.founded_year = 1974, s.headquarters = 'Baar, CH';
+
+// ── SUPPLIED_BY financial properties (Tier 1 contracts) ──────────────────────
+// ZF gearbox: est. €1.2B/year for Scania, 90-day lead time, sole-source
+MATCH (p:Product {sku:'SCANIA-R-500'})-[r:SUPPLIED_BY]->(s:Supplier {name:'ZF Friedrichshafen'})
+SET r.contract_value_eur = 1200000000, r.lead_time_days = 90,
+    r.annual_volume_eur = 1200000000, r.single_source = true,
+    r.contract_end = '2028-12-31', r.risk_flags = ['SINGLE_SOURCE'];
+
+// Bosch fuel injection + ECU
+MATCH (p:Product {sku:'SCANIA-R-500'})-[r:SUPPLIED_BY]->(s:Supplier {name:'Bosch'})
+SET r.contract_value_eur = 800000000, r.lead_time_days = 60,
+    r.annual_volume_eur = 800000000, r.contract_end = '2027-06-30';
+
+// SSAB steel
+MATCH (p:Product {sku:'SCANIA-R-500'})-[r:SUPPLIED_BY]->(s:Supplier {name:'SSAB'})
+SET r.contract_value_eur = 320000000, r.lead_time_days = 30,
+    r.annual_volume_eur = 320000000, r.volume_tonnes_year = 140000;
+
+// Michelin tyres
+MATCH (p:Product {sku:'SCANIA-R-500'})-[r:SUPPLIED_BY]->(s:Supplier {name:'Michelin'})
+SET r.contract_value_eur = 180000000, r.lead_time_days = 21,
+    r.annual_volume_eur = 180000000, r.volume_units_year = 540000;
+
+// Dana driveshafts
+MATCH (p:Product {sku:'SCANIA-R-500'})-[r:SUPPLIED_BY]->(s:Supplier {name:'Dana Incorporated'})
+SET r.contract_value_eur = 420000000, r.lead_time_days = 75,
+    r.annual_volume_eur = 420000000, r.single_source = true,
+    r.risk_flags = ['SINGLE_SOURCE'];
+
+// ── SOURCED_FROM financial properties ─────────────────────────────────────────
+// Saarstahl steel billets to ZF
+MATCH (s1:Supplier {name:'ZF Friedrichshafen'})-[r:SOURCED_FROM]->(s2:Supplier {name:'Saarstahl AG'})
+SET r.contract_value_eur = 85000000, r.lead_time_days = 45,
+    r.volume_kg_year = 180000;
+
+// Infineon semiconductors to Bosch
+MATCH (s1:Supplier {name:'Bosch'})-[r:SOURCED_FROM]->(s2:Supplier {name:'Infineon Technologies'})
+SET r.contract_value_eur = 340000000, r.lead_time_days = 180,
+    r.annual_volume_eur = 340000000;
+
+// LKAB iron ore to SSAB
+MATCH (s1:Supplier {name:'SSAB'})-[r:SOURCED_FROM]->(s2:Supplier {name:'LKAB'})
+SET r.contract_value_eur = 960000000, r.lead_time_days = 14,
+    r.volume_kg_year = 5000000;
+
+// ── Annual revenue updates ────────────────────────────────────────────────────
+// Add employee_count + certification flags to remaining key suppliers
+MATCH (s:Supplier {name:'Voith GmbH'})
+SET s.annual_revenue_eur = 4700000000, s.employee_count = 20000, s.founded_year = 1867;
+
+MATCH (s:Supplier {name:'SKF Group'})
+SET s.annual_revenue_eur = 9400000000, s.employee_count = 40000, s.founded_year = 1907;
+
+MATCH (s:Supplier {name:'Norsk Hydro'})
+SET s.annual_revenue_eur = 22300000000, s.employee_count = 33000, s.founded_year = 1905;
+
+MATCH (s:Supplier {name:'Siltronic AG'})
+SET s.annual_revenue_eur = 1850000000, s.employee_count = 4800, s.founded_year = 1968;
+
+MATCH (s:Supplier {name:'AVX Tantalum'})
+SET s.annual_revenue_eur = 1600000000, s.employee_count = 14000, s.founded_year = 1972;
+
+// ── AMS Buttons financials ────────────────────────────────────────────────────
+MATCH (s:Supplier {name:'AMS Buttons BV'})
+SET s.annual_revenue_eur = 12000000, s.employee_count = 45, s.founded_year = 1987,
+    s.headquarters = 'Almere, NL';
+
+MATCH (p:Product {sku:'BTN-001'})-[r:SUPPLIED_BY]->(s:Supplier {name:'AMS Buttons BV'})
+SET r.contract_value_eur = 850000, r.lead_time_days = 14,
+    r.annual_volume_eur = 850000, r.volume_units_year = 5700000;
+
+// ============================================================
+// VERIFICATION (extended v4)
 // MATCH (n) WHERE n.demo = true RETURN labels(n)[0] AS type, count(n) AS count ORDER BY count DESC;
-// Expected: Supplier ~30, RawMaterial ~17, Certificate ~9, Company ~6, Product ~5, Event ~4
+// Expected: Supplier ~30+, RawMaterial ~17, Certificate ~9, Company ~6, Product ~5, Event ~4
+//
+// Check financial data loaded:
+// MATCH (p)-[r:SUPPLIED_BY]->(s) WHERE r.contract_value_eur IS NOT NULL
+// RETURN p.name, s.name, r.contract_value_eur ORDER BY r.contract_value_eur DESC;
+//
+// Top contract: ZF Friedrichshafen €1.2B — single source, T1
 // ============================================================

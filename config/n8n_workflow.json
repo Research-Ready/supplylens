@@ -1,12 +1,12 @@
 {
-  "name": "UC4 Supply Chain Weekly Refresh",
+  "name": "UC4 Supply Chain Weekly Refresh + Kotaemon + Risk Alerts",
   "nodes": [
     {
       "id": "a1b2c3d4-0001-4000-8000-000000000001",
       "name": "Monday 06:00",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [240, 300],
+      "position": [120, 360],
       "parameters": {
         "rule": {
           "interval": [
@@ -25,7 +25,7 @@
       "name": "Enrich Scania",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [480, 200],
+      "position": [360, 240],
       "parameters": {
         "method": "POST",
         "url": "http://10.0.1.119:8000/runs",
@@ -49,7 +49,7 @@
       "name": "Enrich AMS Buttons",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [480, 420],
+      "position": [360, 480],
       "parameters": {
         "method": "POST",
         "url": "http://10.0.1.119:8000/runs",
@@ -70,12 +70,23 @@
     },
     {
       "id": "a1b2c3d4-0004-4000-8000-000000000004",
-      "name": "Merge Results",
+      "name": "Merge LangGraph Results",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [720, 300],
+      "position": [600, 360],
       "parameters": {
         "mode": "append"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0010-4000-8000-000000000010",
+      "name": "Ingest Docs to Kotaemon",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [840, 360],
+      "notes": "Uploads synthetic supplier profiles + scraped pages to Kotaemon RAG on CT120. Requires CT120 running (provision_ct120.sh). Use --skip-scrape for faster run.",
+      "parameters": {
+        "command": "cd /opt/uc4-supply-chain && python3 scripts/ingest_kotaemon.py --skip-scrape 2>&1 | tail -20"
       }
     },
     {
@@ -83,7 +94,7 @@
       "name": "Query Neo4j Stats",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [960, 300],
+      "position": [1080, 240],
       "notes": "Basic auth: set Authorization header to 'Basic <base64(neo4j:PASSWORD)>'. Password from KeePass -> Neo4j.",
       "parameters": {
         "method": "POST",
@@ -104,15 +115,155 @@
       }
     },
     {
+      "id": "a1b2c3d4-0011-4000-8000-000000000011",
+      "name": "Query High Risk Suppliers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 480],
+      "notes": "Query Neo4j for suppliers with risk_score >= 0.6 to detect new HIGH/CRITICAL flags.",
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.1.114:7474/db/neo4j/tx/commit",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Authorization", "value": "Basic {{ $env.NEO4J_AUTH_B64 }}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "{\"statements\": [{\"statement\": \"MATCH (s:Supplier) WHERE s.risk_score >= 0.6 RETURN s.name AS name, s.country AS country, s.tier AS tier, s.risk_score AS score, s.risk_summary AS flags ORDER BY s.risk_score DESC LIMIT 10\"}]}",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0012-4000-8000-000000000012",
+      "name": "Run Risk Scorer",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [1080, 600],
+      "notes": "Re-scores all suppliers and writes risk_score back to Neo4j nodes.",
+      "parameters": {
+        "command": "cd /opt/uc4-supply-chain && NEO4J_URL=http://10.0.1.114:7474 NEO4J_PASSWORD=$NEO4J_PASS python3 src/risk_scorer.py 2>&1 | tail -20"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0013-4000-8000-000000000013",
+      "name": "Check Single-Source Risks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 480],
+      "notes": "Find all SINGLE_SOURCE relationships — these are maximum disruption risk points.",
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.1.114:7474/db/neo4j/tx/commit",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Authorization", "value": "Basic {{ $env.NEO4J_AUTH_B64 }}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "{\"statements\": [{\"statement\": \"MATCH (p)-[r:SUPPLIED_BY|SOURCED_FROM]->(s:Supplier) WHERE 'SINGLE_SOURCE' IN r.risk_flags OR 'SINGLE_SOURCE' IN s.risk_flags RETURN p.name AS customer, s.name AS supplier, s.tier AS tier, s.country AS country ORDER BY s.tier\"}]}",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0014-4000-8000-000000000014",
+      "name": "Build Alert Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 480],
+      "parameters": {
+        "jsCode": "// Build risk alert summary from Neo4j query results\nconst highRiskData = $('Query High Risk Suppliers').first()?.json;\nconst singleSourceData = $('Check Single-Source Risks').first()?.json;\n\nconst highRisk = highRiskData?.results?.[0]?.data || [];\nconst singleSource = singleSourceData?.results?.[0]?.data || [];\n\nconst cols1 = highRiskData?.results?.[0]?.columns || [];\nconst cols2 = singleSourceData?.results?.[0]?.columns || [];\n\nconst hrRows = highRisk.map(r => Object.fromEntries(cols1.map((c,i)=>[c,r.row[i]])));\nconst ssRows = singleSource.map(r => Object.fromEntries(cols2.map((c,i)=>[c,r.row[i]])));\n\nconst criticalCount = hrRows.filter(r => (r.score||0) >= 0.8).length;\nconst highCount    = hrRows.filter(r => (r.score||0) >= 0.6 && (r.score||0) < 0.8).length;\n\nlet summary = `UC4 Supply Chain Weekly Risk Report\\n`;\nsummary += `Generated: ${new Date().toISOString()}\\n\\n`;\nsummary += `CRITICAL suppliers: ${criticalCount}\\n`;\nsummary += `HIGH risk suppliers: ${highCount}\\n`;\nsummary += `Single-source dependencies: ${ssRows.length}\\n\\n`;\n\nif (hrRows.length > 0) {\n  summary += `Top HIGH/CRITICAL risks:\\n`;\n  hrRows.slice(0,5).forEach(r => {\n    summary += `  [${(r.score*100).toFixed(0)}%] ${r.name} (${r.country||'?'}, T${r.tier||'?'}) ${r.flags||''}\\n`;\n  });\n}\n\nif (ssRows.length > 0) {\n  summary += `\\nSingle-source risks:\\n`;\n  ssRows.slice(0,5).forEach(r => {\n    summary += `  ${r.customer} -> ${r.supplier} (T${r.tier||'?'}, ${r.country||'?'})\\n`;\n  });\n}\n\nconst hasAlerts = criticalCount > 0 || ssRows.length > 0;\n\nreturn [{\n  json: {\n    summary,\n    criticalCount,\n    highCount,\n    singleSourceCount: ssRows.length,\n    hasAlerts,\n    highRiskSuppliers: hrRows,\n    singleSourceRisks: ssRows,\n  }\n}];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0015-4000-8000-000000000015",
+      "name": "IF Has Alerts",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1800, 480],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "id": "alert-check",
+              "leftValue": "={{ $json.hasAlerts }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0016-4000-8000-000000000016",
+      "name": "Email Risk Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2040, 360],
+      "notes": "Configure SMTP in n8n credentials (Mailcow on CT207). From: noreply@research-ready.nl",
+      "parameters": {
+        "fromEmail": "noreply@research-ready.nl",
+        "toEmail": "chris@research-ready.nl",
+        "subject": "UC4 Supply Chain Risk Alert — {{ $('Build Alert Summary').first().json.criticalCount }} CRITICAL",
+        "emailType": "text",
+        "message": "={{ $('Build Alert Summary').first().json.summary }}"
+      }
+    },
+    {
       "id": "a1b2c3d4-0006-4000-8000-000000000006",
       "name": "Sync to PostgreSQL",
       "type": "n8n-nodes-base.executeCommand",
       "typeVersion": 1,
-      "position": [1200, 300],
-      "notes": "Runs postgres_sync.py from the repo checkout on CT104 or via SSH. Adjust command to match deployment path.",
+      "position": [1320, 240],
+      "notes": "Syncs Neo4j Supplier nodes into knopenkonings.suppliers table on CT100. Requires schema created first (scripts/create_pg_schema.sh).",
       "parameters": {
-        "command": "cd /opt/uc4-supply-chain && python3 src/postgres_sync.py 2>&1"
+        "command": "cd /opt/uc4-supply-chain && NEO4J_URL=http://10.0.1.114:7474 NEO4J_PASSWORD=$NEO4J_PASS python3 src/postgres_sync.py 2>&1 | tail -10"
       }
+    },
+    {
+      "id": "a1b2c3d4-0017-4000-8000-000000000017",
+      "name": "Update KPI Snapshot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 240],
+      "notes": "Write KPI snapshot to knopenkonings.kpi_snapshots via PostgreSQL REST (or via execute command). Uses HTTP POST to Neo4j to gather counts first.",
+      "parameters": {
+        "method": "POST",
+        "url": "http://10.0.1.114:7474/db/neo4j/tx/commit",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type",  "value": "application/json" },
+            { "name": "Authorization", "value": "Basic {{ $env.NEO4J_AUTH_B64 }}" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "{\"statements\": [{\"statement\": \"MATCH (s:Supplier) RETURN count(s) AS total, count(s.risk_score) AS scored, avg(s.risk_score) AS avg_score, count(DISTINCT s.country) AS countries, count(s) WHERE s.tier=1 AS t1, count(s) WHERE s.tier=2 AS t2, count(s) WHERE s.tier=3 AS t3, count(s) WHERE s.tier=4 AS t4\"}]}",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0018-4000-8000-000000000018",
+      "name": "Done",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1800, 240],
+      "parameters": {}
     }
   ],
   "connections": {
@@ -126,22 +277,72 @@
     },
     "Enrich Scania": {
       "main": [
-        [{ "node": "Merge Results", "type": "main", "index": 0 }]
+        [{ "node": "Merge LangGraph Results", "type": "main", "index": 0 }]
       ]
     },
     "Enrich AMS Buttons": {
       "main": [
-        [{ "node": "Merge Results", "type": "main", "index": 1 }]
+        [{ "node": "Merge LangGraph Results", "type": "main", "index": 1 }]
       ]
     },
-    "Merge Results": {
+    "Merge LangGraph Results": {
       "main": [
-        [{ "node": "Query Neo4j Stats", "type": "main", "index": 0 }]
+        [{ "node": "Ingest Docs to Kotaemon", "type": "main", "index": 0 }]
+      ]
+    },
+    "Ingest Docs to Kotaemon": {
+      "main": [
+        [
+          { "node": "Query Neo4j Stats",        "type": "main", "index": 0 },
+          { "node": "Query High Risk Suppliers", "type": "main", "index": 0 },
+          { "node": "Run Risk Scorer",           "type": "main", "index": 0 }
+        ]
       ]
     },
     "Query Neo4j Stats": {
       "main": [
         [{ "node": "Sync to PostgreSQL", "type": "main", "index": 0 }]
+      ]
+    },
+    "Sync to PostgreSQL": {
+      "main": [
+        [{ "node": "Update KPI Snapshot", "type": "main", "index": 0 }]
+      ]
+    },
+    "Update KPI Snapshot": {
+      "main": [
+        [{ "node": "Done", "type": "main", "index": 0 }]
+      ]
+    },
+    "Query High Risk Suppliers": {
+      "main": [
+        [{ "node": "Check Single-Source Risks", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Single-Source Risks": {
+      "main": [
+        [{ "node": "Build Alert Summary", "type": "main", "index": 0 }]
+      ]
+    },
+    "Run Risk Scorer": {
+      "main": [
+        [{ "node": "Build Alert Summary", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Alert Summary": {
+      "main": [
+        [{ "node": "IF Has Alerts", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Has Alerts": {
+      "main": [
+        [{ "node": "Email Risk Alert", "type": "main", "index": 0 }],
+        [{ "node": "Done", "type": "main", "index": 0 }]
+      ]
+    },
+    "Email Risk Alert": {
+      "main": [
+        [{ "node": "Done", "type": "main", "index": 0 }]
       ]
     }
   },
@@ -152,9 +353,9 @@
     "errorWorkflow": ""
   },
   "staticData": null,
-  "tags": ["uc4", "supply-chain", "weekly"],
+  "tags": ["uc4", "supply-chain", "weekly", "kotaemon", "risk-alerts"],
   "meta": {
     "templateCredsSetupCompleted": false,
-    "notes": "Before activating: set NEO4J_AUTH_B64 env var in n8n (base64 of 'neo4j:PASSWORD'). Ensure LangGraph graph 'supply-chain-enrichment' is deployed on CT119."
+    "notes": "Before activating:\n1. Set NEO4J_AUTH_B64 env var (base64 of 'neo4j:PASSWORD')\n2. Set NEO4J_PASS env var (plain password for CLI scripts)\n3. Deploy /opt/uc4-supply-chain on CT104 (or wherever n8n runs Execute Command)\n4. Create knopenkonings schema: bash scripts/create_pg_schema.sh\n5. Deploy Kotaemon: bash scripts/provision_ct120.sh\n6. Configure SMTP credentials for Email Risk Alert node (Mailcow CT207)\n7. Deploy LangGraph: cd CT119, langgraph up\n\nSchedule: Every Monday 06:00\nDuration: ~15-20 min per run (LangGraph scrape + Kotaemon ingest + risk scoring)"
   }
 }
