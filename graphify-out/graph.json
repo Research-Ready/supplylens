@@ -1,0 +1,1275 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "uc4_pipeline_services",
+        "label": "UC4 core pipeline services \u2014 LangGraph orchestrates Neo4j, Browserless, Unstructured, Tika, Qdrant, LiteLLM",
+        "nodes": [
+          "docs_architecture",
+          "docs_services",
+          "concept_langgraph_enrichment_loop",
+          "concept_supply_chain_graph",
+          "concept_nomic_embed"
+        ],
+        "relation": "implement",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "docs/architecture.md"
+      },
+      {
+        "id": "uc4_dry_run_validation",
+        "label": "Dry-run validation set \u2014 CLAUDE.md procedures verified by test-results, documented in services.md and recovery.md",
+        "nodes": [
+          "uc4_supply_chain_claude",
+          "test_results_readme",
+          "docs_services",
+          "docs_recovery",
+          "concept_dry_run_8_steps"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "test-results/README.md"
+      },
+      {
+        "id": "uc4_known_gotchas",
+        "label": "UC4 operational gotchas cluster \u2014 multipart requirement, /scrape endpoint, nomic-embed, pct exec, Groq key corruption, Superset rollback",
+        "nodes": [
+          "concept_multipart_unstructured",
+          "concept_browserless_scrape_endpoint",
+          "concept_nomic_embed",
+          "concept_pct_exec_ct400",
+          "concept_groq_key_corruption",
+          "concept_superset_pending_rollback"
+        ],
+        "relation": "participate_in",
+        "confidence": "INFERRED",
+        "confidence_score": 0.95,
+        "source_file": "CLAUDE.md"
+      },
+      {
+        "id": "uc4_demo_scenarios",
+        "label": "UC4 demo scenarios \u2014 Scania AB (trucks) and Knopenkoning (buttons) both exercise the same pipeline",
+        "nodes": [
+          "concept_scania_demo",
+          "concept_knopenkoning_demo",
+          "data_sample_supplier_text",
+          "concept_supply_chain_graph"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "README.md"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "dry_run.sh",
+      "file_type": "code",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "_origin": "ast",
+      "id": "scripts_dry_run",
+      "community": 1,
+      "norm_label": "dry_run.sh"
+    },
+    {
+      "label": "dry_run.sh script",
+      "file_type": "code",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "_origin": "ast",
+      "id": "home_chris_nextcloud_github_uc4_supply_chain_scripts_dry_run_sh__entry",
+      "community": 1,
+      "norm_label": "dry_run.sh script"
+    },
+    {
+      "label": "log()",
+      "file_type": "code",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L13",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "scripts_dry_run_log",
+      "community": 1,
+      "norm_label": "log()"
+    },
+    {
+      "label": "ok()",
+      "file_type": "code",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L14",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "scripts_dry_run_ok",
+      "community": 1,
+      "norm_label": "ok()"
+    },
+    {
+      "label": "fail()",
+      "file_type": "code",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L15",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "scripts_dry_run_fail",
+      "community": 1,
+      "norm_label": "fail()"
+    },
+    {
+      "label": "check_http()",
+      "file_type": "code",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L57",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "scripts_dry_run_check_http",
+      "community": 1,
+      "norm_label": "check_http()"
+    },
+    {
+      "label": "health_check.sh",
+      "file_type": "code",
+      "source_file": "scripts/health_check.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "file"
+      },
+      "_origin": "ast",
+      "id": "scripts_health_check",
+      "community": 6,
+      "norm_label": "health_check.sh"
+    },
+    {
+      "label": "health_check.sh script",
+      "file_type": "code",
+      "source_file": "scripts/health_check.sh",
+      "source_location": "L1",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_entrypoint"
+      },
+      "_origin": "ast",
+      "id": "home_chris_nextcloud_github_uc4_supply_chain_scripts_health_check_sh__entry",
+      "community": 6,
+      "norm_label": "health_check.sh script"
+    },
+    {
+      "label": "check()",
+      "file_type": "code",
+      "source_file": "scripts/health_check.sh",
+      "source_location": "L11",
+      "metadata": {
+        "language": "bash",
+        "kind": "bash_function"
+      },
+      "_origin": "ast",
+      "id": "scripts_health_check_check",
+      "community": 6,
+      "norm_label": "check()"
+    },
+    {
+      "label": "UC4 CLAUDE.md \u2014 dry-run runbook, pipeline config, service credentials, common fixes",
+      "file_type": "document",
+      "source_file": "CLAUDE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-06-30",
+      "author": null,
+      "contributor": null,
+      "id": "uc4_supply_chain_claude",
+      "community": 5,
+      "norm_label": "uc4 claude.md \u2014 dry-run runbook, pipeline config, service credentials, common fixes"
+    },
+    {
+      "label": "UC4 README.md \u2014 pipeline overview, mermaid flowchart, quick-start, credentials summary",
+      "file_type": "document",
+      "source_file": "README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-06-30",
+      "author": null,
+      "contributor": null,
+      "id": "uc4_supply_chain_readme",
+      "community": 0,
+      "norm_label": "uc4 readme.md \u2014 pipeline overview, mermaid flowchart, quick-start, credentials summary"
+    },
+    {
+      "label": "Sample supplier text \u2014 ZF Friedrichshafen, SSAB AB, AMS Buttons BV supplier profiles",
+      "file_type": "document",
+      "source_file": "data/sample_supplier_text.txt",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "data_sample_supplier_text",
+      "community": 0,
+      "norm_label": "sample supplier text \u2014 zf friedrichshafen, ssab ab, ams buttons bv supplier profiles"
+    },
+    {
+      "label": "UC4 Architecture \u2014 component roles, data flow sequence, risk flag logic, network requirements",
+      "file_type": "document",
+      "source_file": "docs/architecture.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "docs_architecture",
+      "community": 0,
+      "norm_label": "uc4 architecture \u2014 component roles, data flow sequence, risk flag logic, network requirements"
+    },
+    {
+      "label": "UC4 Recovery Playbook \u2014 service-specific fixes and full stack restart order",
+      "file_type": "document",
+      "source_file": "docs/recovery.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "docs_recovery",
+      "community": 2,
+      "norm_label": "uc4 recovery playbook \u2014 service-specific fixes and full stack restart order"
+    },
+    {
+      "label": "UC4 Services Reference \u2014 per-service config, ports, auth, health check commands",
+      "file_type": "document",
+      "source_file": "docs/services.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "docs_services",
+      "community": 3,
+      "norm_label": "uc4 services reference \u2014 per-service config, ports, auth, health check commands"
+    },
+    {
+      "label": "UC4 Example Outputs README \u2014 sample_graph.cypher usage and running log schema",
+      "file_type": "document",
+      "source_file": "example_outputs/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "example_outputs_readme",
+      "community": 4,
+      "norm_label": "uc4 example outputs readme \u2014 sample_graph.cypher usage and running log schema"
+    },
+    {
+      "label": "UC4 Running Logs README \u2014 JSONL log schema, field descriptions, n8n trigger schedule",
+      "file_type": "document",
+      "source_file": "running_logs/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "running_logs_readme",
+      "community": 4,
+      "norm_label": "uc4 running logs readme \u2014 jsonl log schema, field descriptions, n8n trigger schedule"
+    },
+    {
+      "label": "UC4 Test Results README \u2014 8-step dry-run PASS/FAIL tracking and run generation instructions",
+      "file_type": "document",
+      "source_file": "test-results/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "test_results_readme",
+      "community": 5,
+      "norm_label": "uc4 test results readme \u2014 8-step dry-run pass/fail tracking and run generation instructions"
+    },
+    {
+      "label": "Supply Chain Graph \u2014 directed Neo4j graph with SUPPLIED_BY and SOURCED_FROM relationships across tiers",
+      "file_type": "concept",
+      "source_file": "docs/architecture.md",
+      "source_location": "Component Roles / Neo4j section",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_supply_chain_graph",
+      "community": 0,
+      "norm_label": "supply chain graph \u2014 directed neo4j graph with supplied_by and sourced_from relationships across tiers"
+    },
+    {
+      "label": "LLM-inferred supply chain link \u2014 edges written to Neo4j with inferred:true and confidence score from LiteLLM inference",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "Step 6 \u2014 Store inferred links back to Neo4j",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_llm_inferred_link",
+      "community": 0,
+      "norm_label": "llm-inferred supply chain link \u2014 edges written to neo4j with inferred:true and confidence score from litellm inference"
+    },
+    {
+      "label": "Supply chain risk flags \u2014 SINGLE_SOURCE and GEOPOLITICAL_RISK written to Supplier nodes by LangGraph agent",
+      "file_type": "rationale",
+      "source_file": "docs/architecture.md",
+      "source_location": "Risk Flag Logic section",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_risk_flags",
+      "community": 0,
+      "norm_label": "supply chain risk flags \u2014 single_source and geopolitical_risk written to supplier nodes by langgraph agent"
+    },
+    {
+      "label": "Unstructured multipart/form-data requirement \u2014 plain text/html body returns 422; files field required",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "Step 4 \u2014 Unstructured extracts supplier document data / Fixes applied 2026-06-30",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_multipart_unstructured",
+      "community": 3,
+      "norm_label": "unstructured multipart/form-data requirement \u2014 plain text/html body returns 422; files field required"
+    },
+    {
+      "label": "ollama/nomic-embed-text embedding model \u2014 768-dim vectors via LiteLLM; text-embedding-3-small not configured",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "Step 7 \u2014 Qdrant semantic search / Fixes applied 2026-06-30",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_nomic_embed",
+      "community": 0,
+      "norm_label": "ollama/nomic-embed-text embedding model \u2014 768-dim vectors via litellm; text-embedding-3-small not configured"
+    },
+    {
+      "label": "Browserless /scrape endpoint \u2014 custom Playwright server; /chromium/content is invalid; port 3500 on both CT400 and CT306",
+      "file_type": "rationale",
+      "source_file": "CLAUDE.md",
+      "source_location": "Step 3 notes and Fixes applied 2026-06-30",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_browserless_scrape_endpoint",
+      "community": 2,
+      "norm_label": "browserless /scrape endpoint \u2014 custom playwright server; /chromium/content is invalid; port 3500 on both ct400 and ct306"
+    },
+    {
+      "label": "n8n weekly supply chain refresh \u2014 cron every Monday 06:00; scrape \u2192 extract \u2192 infer \u2192 MERGE pipeline",
+      "file_type": "concept",
+      "source_file": "CLAUDE.md",
+      "source_location": "n8n scheduled refresh section",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_n8n_weekly_refresh",
+      "community": 4,
+      "norm_label": "n8n weekly supply chain refresh \u2014 cron every monday 06:00; scrape \u2192 extract \u2192 infer \u2192 merge pipeline"
+    },
+    {
+      "label": "LangGraph enrichment loop \u2014 orchestrates iterative scrape/extract/infer/store cycle until depth limit or no new nodes",
+      "file_type": "concept",
+      "source_file": "docs/architecture.md",
+      "source_location": "Component Roles / LangGraph section",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_langgraph_enrichment_loop",
+      "community": 0,
+      "norm_label": "langgraph enrichment loop \u2014 orchestrates iterative scrape/extract/infer/store cycle until depth limit or no new nodes"
+    },
+    {
+      "label": "knopenkonings database \u2014 PostgreSQL structured entity table for supply chain data on CT100",
+      "file_type": "concept",
+      "source_file": "CLAUDE.md",
+      "source_location": "Services & credentials table",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_knopenkonings_db",
+      "community": 3,
+      "norm_label": "knopenkonings database \u2014 postgresql structured entity table for supply chain data on ct100"
+    },
+    {
+      "label": "pct exec 400 access pattern \u2014 CT400 has no SSH keys; access only via pct exec on node-4 (root@10.0.0.18)",
+      "file_type": "rationale",
+      "source_file": "docs/services.md",
+      "source_location": "Browserless (prod) CT400 section",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_pct_exec_ct400",
+      "community": 2,
+      "norm_label": "pct exec 400 access pattern \u2014 ct400 has no ssh keys; access only via pct exec on node-4 (root@10.0.0.18)"
+    },
+    {
+      "label": "Groq API key corruption fix \u2014 box-drawing chars (\\xe2\\x94\\x80) appended to gsk_ key in /etc/litellm/config.yaml line 230",
+      "file_type": "rationale",
+      "source_file": "docs/architecture.md",
+      "source_location": "LiteLLM section",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_groq_key_corruption",
+      "community": 2,
+      "norm_label": "groq api key corruption fix \u2014 box-drawing chars (\\xe2\\x94\\x80) appended to gsk_ key in /etc/litellm/config.yaml line 230"
+    },
+    {
+      "label": "Superset PendingRollbackError fix \u2014 SQLAlchemy connection state after idle; resolved by systemctl restart superset",
+      "file_type": "rationale",
+      "source_file": "docs/recovery.md",
+      "source_location": "Superset 401 / 500 on login section",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_superset_pending_rollback",
+      "community": 3,
+      "norm_label": "superset pendingrollbackerror fix \u2014 sqlalchemy connection state after idle; resolved by systemctl restart superset"
+    },
+    {
+      "label": "Scania AB demo scenario \u2014 tier 1/2/3 supplier graph for R-series heavy truck including ZF, Bosch, SSAB, Michelin, Dana, Cummins",
+      "file_type": "concept",
+      "source_file": "CLAUDE.md",
+      "source_location": "Demo scenario section",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_scania_demo",
+      "community": 0,
+      "norm_label": "scania ab demo scenario \u2014 tier 1/2/3 supplier graph for r-series heavy truck including zf, bosch, ssab, michelin, dana, cummins"
+    },
+    {
+      "label": "Knopenkoning demo scenario \u2014 BTN-001 button supply chain: AMS Buttons BV \u2192 Shenzhen Metal Co \u2192 raw materials",
+      "file_type": "concept",
+      "source_file": "CLAUDE.md",
+      "source_location": "Step 1 dry-run and Demo scenario section",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_knopenkoning_demo",
+      "community": 0,
+      "norm_label": "knopenkoning demo scenario \u2014 btn-001 button supply chain: ams buttons bv \u2192 shenzhen metal co \u2192 raw materials"
+    },
+    {
+      "label": "UC4 dry-run 8-step test procedure \u2014 verifies full pipeline from Neo4j seed through Superset JWT login",
+      "file_type": "concept",
+      "source_file": "test-results/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": "2026-06-30",
+      "author": null,
+      "contributor": null,
+      "id": "concept_dry_run_8_steps",
+      "community": 5,
+      "norm_label": "uc4 dry-run 8-step test procedure \u2014 verifies full pipeline from neo4j seed through superset jwt login"
+    },
+    {
+      "label": "Pipeline running log schema \u2014 JSONL with timestamp, input_companies, relationships_found, nodes_created, duration_s, status",
+      "file_type": "concept",
+      "source_file": "running_logs/README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "concept_running_log_schema",
+      "community": 4,
+      "norm_label": "pipeline running log schema \u2014 jsonl with timestamp, input_companies, relationships_found, nodes_created, duration_s, status"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "scripts_dry_run",
+      "target": "home_chris_nextcloud_github_uc4_supply_chain_scripts_dry_run_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L57",
+      "weight": 1.0,
+      "source": "scripts_dry_run",
+      "target": "scripts_dry_run_check_http",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "scripts_dry_run",
+      "target": "scripts_dry_run_fail",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "scripts_dry_run",
+      "target": "scripts_dry_run_log",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "scripts_dry_run",
+      "target": "scripts_dry_run_ok",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L68",
+      "weight": 1.0,
+      "context": "call",
+      "source": "home_chris_nextcloud_github_uc4_supply_chain_scripts_dry_run_sh__entry",
+      "target": "scripts_dry_run_check_http",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L111",
+      "weight": 1.0,
+      "context": "call",
+      "source": "home_chris_nextcloud_github_uc4_supply_chain_scripts_dry_run_sh__entry",
+      "target": "scripts_dry_run_fail",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L48",
+      "weight": 1.0,
+      "context": "call",
+      "source": "home_chris_nextcloud_github_uc4_supply_chain_scripts_dry_run_sh__entry",
+      "target": "scripts_dry_run_log",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L111",
+      "weight": 1.0,
+      "context": "call",
+      "source": "home_chris_nextcloud_github_uc4_supply_chain_scripts_dry_run_sh__entry",
+      "target": "scripts_dry_run_ok",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_dry_run_fail",
+      "target": "scripts_dry_run_log",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L14",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_dry_run_ok",
+      "target": "scripts_dry_run_log",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L62",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_dry_run_check_http",
+      "target": "scripts_dry_run_ok",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/dry_run.sh",
+      "source_location": "L64",
+      "weight": 1.0,
+      "context": "call",
+      "source": "scripts_dry_run_check_http",
+      "target": "scripts_dry_run_fail",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/health_check.sh",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "scripts_health_check",
+      "target": "home_chris_nextcloud_github_uc4_supply_chain_scripts_health_check_sh__entry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "defines",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/health_check.sh",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "scripts_health_check",
+      "target": "scripts_health_check_check",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "source_file": "scripts/health_check.sh",
+      "source_location": "L27",
+      "weight": 1.0,
+      "context": "call",
+      "source": "home_chris_nextcloud_github_uc4_supply_chain_scripts_health_check_sh__entry",
+      "target": "scripts_health_check_check",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test-results/README.md",
+      "source_location": "Current status: 'See CLAUDE.md for details'",
+      "weight": 1.0,
+      "source": "test_results_readme",
+      "target": "uc4_supply_chain_claude"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "Step 3 NOTEs and Port correction note",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_claude",
+      "target": "concept_browserless_scrape_endpoint"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "Dry-run status table and Dry-run test procedure section",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_claude",
+      "target": "concept_dry_run_8_steps"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "Step 1 dry-run seed: BTN-001 \u2192 AMS Buttons BV",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_claude",
+      "target": "concept_knopenkoning_demo"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "Services table: PostgreSQL DB knopenkonings",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_claude",
+      "target": "concept_knopenkonings_db"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "Step 6 \u2014 Store inferred links back to Neo4j",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_claude",
+      "target": "concept_llm_inferred_link"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "Step 4 NOTE and Fixes applied 2026-06-30",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_claude",
+      "target": "concept_multipart_unstructured"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "n8n scheduled refresh section",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_claude",
+      "target": "concept_n8n_weekly_refresh"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "Step 7 NOTE and Fixes applied 2026-06-30",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_claude",
+      "target": "concept_nomic_embed"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "Demo scenario section",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_claude",
+      "target": "concept_scania_demo"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "Neo4j supply chain schema section",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_claude",
+      "target": "concept_supply_chain_graph"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "CLAUDE.md",
+      "source_location": "Pipeline architecture section mirrors docs/architecture.md",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_claude",
+      "target": "docs_architecture"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "Common failures & fixes section duplicated in docs/recovery.md",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_claude",
+      "target": "docs_recovery"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "Services & credentials table",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_claude",
+      "target": "docs_services"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "Critical Notes section: 'See CLAUDE.md for full dry-run procedures'",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_readme",
+      "target": "uc4_supply_chain_claude"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/architecture.md",
+      "source_location": "Both describe the same pipeline components and data flow",
+      "weight": 0.8,
+      "source": "docs_architecture",
+      "target": "uc4_supply_chain_readme"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "Secondary demo: Knopenkoning (buttons)",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_readme",
+      "target": "concept_knopenkoning_demo"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md",
+      "source_location": "Primary demo: Scania AB (heavy trucks)",
+      "weight": 1.0,
+      "source": "uc4_supply_chain_readme",
+      "target": "concept_scania_demo"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "data/sample_supplier_text.txt",
+      "source_location": "AMS Buttons BV supplier profile",
+      "weight": 1.0,
+      "source": "data_sample_supplier_text",
+      "target": "concept_knopenkoning_demo"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "data/sample_supplier_text.txt",
+      "source_location": "ZF Friedrichshafen RISK FLAGS: SINGLE_SOURCE, GEOPOLITICAL_RISK",
+      "weight": 1.0,
+      "source": "data_sample_supplier_text",
+      "target": "concept_risk_flags"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "data/sample_supplier_text.txt",
+      "source_location": "ZF Friedrichshafen profile \u2014 'PRODUCTS SUPPLIED TO SCANIA'",
+      "weight": 1.0,
+      "source": "data_sample_supplier_text",
+      "target": "concept_scania_demo"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "data/sample_supplier_text.txt",
+      "source_location": "Supplier profiles are representative input data for the pipeline described in architecture.md",
+      "weight": 0.7,
+      "source": "data_sample_supplier_text",
+      "target": "docs_architecture"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture.md",
+      "source_location": "LiteLLM section: 'Common issue: Groq API key corruption'",
+      "weight": 1.0,
+      "source": "docs_architecture",
+      "target": "concept_groq_key_corruption"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture.md",
+      "source_location": "Component Roles / LangGraph section \u2014 iterative loop description",
+      "weight": 1.0,
+      "source": "docs_architecture",
+      "target": "concept_langgraph_enrichment_loop"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture.md",
+      "source_location": "Data Flow step 7: inferred edges carry {inferred: true, confidence: 0.8, source: LLM}",
+      "weight": 1.0,
+      "source": "docs_architecture",
+      "target": "concept_llm_inferred_link"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture.md",
+      "source_location": "Qdrant section: 'Embedding model: ollama/nomic-embed-text via LiteLLM (768 dimensions)'",
+      "weight": 1.0,
+      "source": "docs_architecture",
+      "target": "concept_nomic_embed"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture.md",
+      "source_location": "Risk Flag Logic section",
+      "weight": 1.0,
+      "source": "docs_architecture",
+      "target": "concept_risk_flags"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture.md",
+      "source_location": "Neo4j section \u2014 graph schema and Cypher traversal pattern",
+      "weight": 1.0,
+      "source": "docs_architecture",
+      "target": "concept_supply_chain_graph"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture.md",
+      "source_location": "Component Roles section \u2014 each service references same containers and ports as services.md",
+      "weight": 1.0,
+      "source": "docs_architecture",
+      "target": "docs_services"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/recovery.md",
+      "source_location": "Browserless 404 on POST section",
+      "weight": 1.0,
+      "source": "docs_recovery",
+      "target": "concept_browserless_scrape_endpoint"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/recovery.md",
+      "source_location": "LiteLLM 429 / corrupt Groq key section",
+      "weight": 1.0,
+      "source": "docs_recovery",
+      "target": "concept_groq_key_corruption"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/recovery.md",
+      "source_location": "Unstructured HTTP 422 section",
+      "weight": 1.0,
+      "source": "docs_recovery",
+      "target": "concept_multipart_unstructured"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/recovery.md",
+      "source_location": "CT400 SSH denied section",
+      "weight": 1.0,
+      "source": "docs_recovery",
+      "target": "concept_pct_exec_ct400"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/recovery.md",
+      "source_location": "Superset 401 / 500 on login section",
+      "weight": 1.0,
+      "source": "docs_recovery",
+      "target": "concept_superset_pending_rollback"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/recovery.md",
+      "source_location": "Fix commands reference same IPs and service names",
+      "weight": 1.0,
+      "source": "docs_recovery",
+      "target": "docs_services"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/services.md",
+      "source_location": "PostgreSQL knopenkonings CT100 section",
+      "weight": 1.0,
+      "source": "docs_services",
+      "target": "concept_knopenkonings_db"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/services.md",
+      "source_location": "Unstructured CT117 CRITICAL note",
+      "weight": 1.0,
+      "source": "docs_services",
+      "target": "concept_multipart_unstructured"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/services.md",
+      "source_location": "n8n CT104 section: 'UC4 Cron trigger: every Monday 06:00 \u2192 full supply chain refresh'",
+      "weight": 1.0,
+      "source": "docs_services",
+      "target": "concept_n8n_weekly_refresh"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/services.md",
+      "source_location": "Qdrant CT102 section: 'Embed model: ollama/nomic-embed-text (768 dims) via LiteLLM'",
+      "weight": 1.0,
+      "source": "docs_services",
+      "target": "concept_nomic_embed"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/services.md",
+      "source_location": "Browserless (prod) CT400 section: 'CT400 has NO SSH keys \u2014 use pct exec 400 --'",
+      "weight": 1.0,
+      "source": "docs_services",
+      "target": "concept_pct_exec_ct400"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/services.md",
+      "source_location": "Superset CT206 section: 'Login issue fix: systemctl restart superset'",
+      "weight": 1.0,
+      "source": "docs_services",
+      "target": "concept_superset_pending_rollback"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "example_outputs/README.md",
+      "source_location": "Running Logs Format section",
+      "weight": 1.0,
+      "source": "example_outputs_readme",
+      "target": "concept_running_log_schema"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "example_outputs/README.md",
+      "source_location": "Running Logs Format section: 'Logs are stored in ../running_logs/'",
+      "weight": 1.0,
+      "source": "example_outputs_readme",
+      "target": "running_logs_readme"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "running_logs/README.md",
+      "source_location": "n8n trigger section: 'UC4 pipeline is triggered weekly (Monday 06:00) by n8n workflow on CT104'",
+      "weight": 1.0,
+      "source": "running_logs_readme",
+      "target": "concept_n8n_weekly_refresh"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "running_logs/README.md",
+      "source_location": "Format section",
+      "weight": 1.0,
+      "source": "running_logs_readme",
+      "target": "concept_running_log_schema"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test-results/README.md",
+      "source_location": "8-step list and current status",
+      "weight": 1.0,
+      "source": "test_results_readme",
+      "target": "concept_dry_run_8_steps"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture.md",
+      "source_location": "Data Flow Sequence \u2014 loop writes to Neo4j graph",
+      "weight": 1.0,
+      "source": "concept_langgraph_enrichment_loop",
+      "target": "concept_supply_chain_graph"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/architecture.md",
+      "source_location": "Qdrant embeddings feed semantic retrieval that informs LLM which then enriches the graph",
+      "weight": 0.7,
+      "source": "concept_nomic_embed",
+      "target": "concept_supply_chain_graph"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture.md",
+      "source_location": "Data Flow step 6-7: LLM infers then MERGE to Neo4j",
+      "weight": 1.0,
+      "source": "concept_langgraph_enrichment_loop",
+      "target": "concept_llm_inferred_link"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "Step 6: Textile Dye inferred link stored for AMS Buttons BV",
+      "weight": 1.0,
+      "source": "concept_llm_inferred_link",
+      "target": "concept_knopenkoning_demo"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "CLAUDE.md",
+      "source_location": "Demo scenario: risk flags SINGLE_SOURCE (gearboxes) and GEOPOLITICAL_RISK (China)",
+      "weight": 1.0,
+      "source": "concept_risk_flags",
+      "target": "concept_scania_demo"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "test-results/README.md",
+      "source_location": "Dry-run steps 1-8 exercise the same stages as the enrichment loop",
+      "weight": 0.7,
+      "source": "concept_dry_run_8_steps",
+      "target": "concept_langgraph_enrichment_loop"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "uc4_pipeline_services",
+      "label": "UC4 core pipeline services \u2014 LangGraph orchestrates Neo4j, Browserless, Unstructured, Tika, Qdrant, LiteLLM",
+      "nodes": [
+        "docs_architecture",
+        "docs_services",
+        "concept_langgraph_enrichment_loop",
+        "concept_supply_chain_graph",
+        "concept_nomic_embed"
+      ],
+      "relation": "implement",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/architecture.md"
+    },
+    {
+      "id": "uc4_dry_run_validation",
+      "label": "Dry-run validation set \u2014 CLAUDE.md procedures verified by test-results, documented in services.md and recovery.md",
+      "nodes": [
+        "uc4_supply_chain_claude",
+        "test_results_readme",
+        "docs_services",
+        "docs_recovery",
+        "concept_dry_run_8_steps"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "test-results/README.md"
+    },
+    {
+      "id": "uc4_known_gotchas",
+      "label": "UC4 operational gotchas cluster \u2014 multipart requirement, /scrape endpoint, nomic-embed, pct exec, Groq key corruption, Superset rollback",
+      "nodes": [
+        "concept_multipart_unstructured",
+        "concept_browserless_scrape_endpoint",
+        "concept_nomic_embed",
+        "concept_pct_exec_ct400",
+        "concept_groq_key_corruption",
+        "concept_superset_pending_rollback"
+      ],
+      "relation": "participate_in",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "CLAUDE.md"
+    },
+    {
+      "id": "uc4_demo_scenarios",
+      "label": "UC4 demo scenarios \u2014 Scania AB (trucks) and Knopenkoning (buttons) both exercise the same pipeline",
+      "nodes": [
+        "concept_scania_demo",
+        "concept_knopenkoning_demo",
+        "data_sample_supplier_text",
+        "concept_supply_chain_graph"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "README.md"
+    }
+  ],
+  "built_at_commit": "60268782bf989eaf43c1fa71847cddc9261e91b9"
+}
