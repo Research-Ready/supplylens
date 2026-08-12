@@ -1,0 +1,20 @@
+---
+# Kotaemon RAG UI — defaults
+kotaemon_ct_id: 120
+kotaemon_port: 8501
+kotaemon_image: "ghcr.io/cinnamon/kotaemon:latest"
+kotaemon_data_dir: /var/lib/kotaemon
+kotaemon_admin_user: "admin@research-ready.nl"
+
+# LLM backend — point at LiteLLM proxy (CT205)
+kotaemon_llm_api_base: "http://10.0.2.205:4000/v1"
+kotaemon_llm_model: "researcher-llm"
+
+# Embedding backend — nomic-embed-text via LiteLLM
+kotaemon_embed_api_base: "http://10.0.2.205:4000/v1"
+kotaemon_embed_model: "ollama/nomic-embed-text"
+
+# Qdrant for vector storage
+kotaemon_qdrant_host: "10.0.1.102"
+kotaemon_qdrant_port: 6333
+kotaemon_qdrant_collection: "kotaemon_supplier_docs"

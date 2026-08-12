@@ -1,0 +1,32 @@
+---
+# Deploy Kotaemon RAG UI to CT120
+# Usage: ansible-playbook -i inventory/hosts.yml playbooks/deploy_kotaemon.yml
+#
+# Prereqs:
+#   - CT120 provisioned on node-1 (Debian 12, Docker installed)
+#   - vault.yml contains: kotaemon_password, litellm_master_key, qdrant_api_key
+#   - VPN active
+
+- name: Deploy Kotaemon to CT120
+  hosts: kotaemon
+  become: true
+  vars_files:
+    - ../inventory/group_vars/vault.yml
+  roles:
+    - kotaemon
+  post_tasks:
+    - name: Create admin user via CLI
+      community.docker.docker_container_exec:
+        container: kotaemon
+        command: >
+          python -c "
+          from ktem.app import App
+          app = App()
+          app.user_manager.create_user(
+              username='admin@research-ready.nl',
+              password='{{ kotaemon_password }}',
+              role='admin'
+          )
+          print('Admin user created')
+          "
+      ignore_errors: true  # may already exist on re-runs

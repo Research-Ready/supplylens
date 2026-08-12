@@ -107,6 +107,9 @@ LangGraph (CT119)            ← orchestrates multi-step graph enrichment
   ├─► LiteLLM (CT205)        ← LLM infers missing supply chain links
   │     → OpenRouter: analyze supplier relationships from text
   │
+  ├─► Kotaemon (CT120)        ← RAG: chat with supplier PDFs/annual reports
+  │     (hybrid search over ingested documents, returns cited excerpts)
+  │
   └─► Neo4j (CT114)          ← write enriched graph (MERGE nodes + rels)
           │
           ▼
@@ -135,6 +138,7 @@ LangGraph (CT119)            ← orchestrates multi-step graph enrichment
 | n8n | CT104 | 10.0.1.104:5678 | Scheduled refresh pipeline | API key | `ssh root@10.0.1.104 "cat /root/.credentials/n8n.txt"` |
 | Langfuse | CT112 | 10.0.1.112:3000 | LLM tracing | Public+Secret key | vault: `langfuse_public_key` + `langfuse_api_key` |
 | MongoDB | CT121 | 10.0.1.121:27017 | Document store (raw scraped data) | Password | vault: `mongodb_root_password` |
+| Kotaemon | CT120 | 10.0.1.120:8501 | RAG over supplier docs (PDFs, annual reports) | Password | vault: `kotaemon_password`; admin: `admin@research-ready.nl` |
 
 ## Credentials lookup
 
@@ -204,6 +208,7 @@ ssh root@10.0.1.100 "curl -s -o /dev/null -w '%{http_code}' --connect-timeout 3 
 for svc in \
   "10.0.1.114:7474/ neo4j" \
   "10.0.1.102:6333/healthz qdrant" \
+  "10.0.1.120:8501/ kotaemon" \
   "10.0.5.100:3500/ browserless-prod" \
   "10.0.3.106:3500/ browserless-acc" \
   "10.0.1.117:8000/health unstructured" \

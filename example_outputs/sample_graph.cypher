@@ -163,3 +163,186 @@ MERGE (s)-[:OWNED_BY {demo: true}]->(c);
 // RETURN [node IN nodes(path) | coalesce(node.name, node.sku)] AS chain,
 //        length(path) AS depth
 // ORDER BY depth;
+
+// ============================================================
+// ADVANCED GRAPH EXTENSION (2026-08-12)
+// Tier 3 suppliers, deeper corporate structure, more risk flags
+// ============================================================
+
+// ---- Tier 3 Suppliers ----
+MERGE (lkab_mine:Supplier {name: 'LKAB Kiruna Mine', country: 'SE', tier: 3,
+  website: 'https://www.lkab.com/kiruna', demo: true,
+  risk_flags: ['CLIMATE_RISK', 'ARCTIC_OPERATIONS']});
+
+MERGE (vale:Supplier {name: 'Vale SA', country: 'BR', tier: 3,
+  website: 'https://www.vale.com', demo: true,
+  risk_flags: ['ESG_RISK', 'TAILINGS_RISK']});
+
+MERGE (codelco:Supplier {name: 'Codelco', country: 'CL', tier: 3,
+  website: 'https://www.codelco.com', demo: true});
+
+MERGE (tantalum_trader:Supplier {name: 'AVX Tantalum', country: 'US', tier: 3,
+  website: 'https://www.avx.com', demo: true,
+  risk_flags: ['CONFLICT_MINERAL']});
+
+MERGE (rare_earth:Supplier {name: 'China Rare Earth Group', country: 'CN', tier: 3,
+  website: 'https://www.chinarareearth.com', demo: true,
+  risk_flags: ['GEOPOLITICAL_RISK', 'SINGLE_SOURCE', 'SANCTIONS_RISK']});
+
+MERGE (basf_chem:Supplier {name: 'BASF SE', country: 'DE', tier: 3,
+  website: 'https://www.basf.com', demo: true});
+
+MERGE (thai_rubber:Supplier {name: 'Sri Trang Agro-Industry', country: 'TH', tier: 3,
+  website: 'https://www.sritranggroup.com', demo: true,
+  risk_flags: ['DEFORESTATION_RISK']});
+
+MERGE (cabot_carbon:Supplier {name: 'Cabot Corporation', country: 'US', tier: 3,
+  website: 'https://www.cabotcorp.com', demo: true});
+
+// ---- Additional Tier 1 for Scania ----
+MERGE (cummins:Supplier {name: 'Cummins Inc', country: 'US', tier: 1,
+  website: 'https://www.cummins.com', demo: true,
+  risk_flags: ['SINGLE_SOURCE']});
+
+MERGE (continental:Supplier {name: 'Continental AG', country: 'DE', tier: 1,
+  website: 'https://www.continental.com', demo: true});
+
+// ---- Tier 2 additions ----
+MERGE (outokumpu:Supplier {name: 'Outokumpu Oyj', country: 'FI', tier: 2,
+  website: 'https://www.outokumpu.com', demo: true});
+
+MERGE (ams_osram:Supplier {name: 'ams-OSRAM', country: 'AT', tier: 2,
+  website: 'https://www.ams-osram.com', demo: true});
+
+// ---- Additional Raw Materials ----
+MERGE (r_tantalum:RawMaterial {name: 'Tantalum Ore', origin: 'CD',
+  material_type: 'Metal', demo: true,
+  risk_flags: ['CONFLICT_MINERAL', 'DODD_FRANK_REPORTABLE']});
+
+MERGE (r_cobalt:RawMaterial {name: 'Cobalt', origin: 'CD',
+  material_type: 'Metal', demo: true,
+  risk_flags: ['CONFLICT_MINERAL', 'CHILD_LABOUR_RISK']});
+
+MERGE (r_rareearth:RawMaterial {name: 'Rare Earth Elements', origin: 'CN',
+  material_type: 'Mineral', demo: true,
+  risk_flags: ['GEOPOLITICAL_RISK', 'SINGLE_SOURCE']});
+
+MERGE (r_copper:RawMaterial {name: 'Copper Cathode', origin: 'CL',
+  material_type: 'Metal', demo: true});
+
+MERGE (r_ironore2:RawMaterial {name: 'Iron Ore Pellets (Brazil)', origin: 'BR',
+  material_type: 'Mineral', demo: true,
+  risk_flags: ['ESG_RISK']});
+
+MERGE (r_abs:RawMaterial {name: 'ABS Plastic Resin', origin: 'DE',
+  material_type: 'Polymer', demo: true});
+
+MERGE (r_graphite:RawMaterial {name: 'Synthetic Graphite', origin: 'CN',
+  material_type: 'Carbon', demo: true,
+  risk_flags: ['GEOPOLITICAL_RISK']});
+
+// ---- Additional Certificates ----
+MERGE (iso14001:Certificate {name: 'ISO 14001:2015', issuer: 'TUV', valid_until: '2027-06-30',
+  demo: true});
+MERGE (conflict_free:Certificate {name: 'Conflict Minerals Free (CFSI)', issuer: 'RBA',
+  valid_until: '2026-12-31', demo: true});
+MERGE (rba:Certificate {name: 'RBA Code of Conduct', issuer: 'Responsible Business Alliance',
+  valid_until: '2027-01-01', demo: true});
+
+// ---- Additional Companies ----
+MERGE (infineon_co:Company {name: 'Infineon Technologies AG', country: 'DE',
+  industry: 'Semiconductors', demo: true});
+MERGE (michelin_co:Company {name: 'Compagnie Générale des Établissements Michelin',
+  country: 'FR', industry: 'Tyres/Rubber', demo: true});
+MERGE (scania_parent:Company {name: 'Volkswagen Truck & Bus', country: 'DE',
+  industry: 'Automotive', demo: true});
+
+// ---- Corporate ownership ----
+MATCH (s:Supplier {name: 'Scania AB'}), (c:Company {name: 'Volkswagen Truck & Bus'})
+MERGE (s)-[:OWNED_BY {demo: true}]->(c);
+
+MATCH (s:Supplier {name: 'Infineon Technologies'}), (c:Company {name: 'Infineon Technologies AG'})
+MERGE (s)-[:OWNED_BY {demo: true}]->(c);
+
+MATCH (s:Supplier {name: 'Michelin'}), (c:Company {name: 'Compagnie Générale des Établissements Michelin'})
+MERGE (s)-[:OWNED_BY {demo: true}]->(c);
+
+// ---- Scania Tier 1 additions ----
+MATCH (p:Product {sku: 'SCANIA-R-500'}), (s:Supplier {name: 'Cummins Inc'})
+MERGE (p)-[:SUPPLIED_BY {since: '2019-01-01', component: 'Euro6 engine variants', demo: true,
+  risk_flags: ['SINGLE_SOURCE']}]->(s);
+
+MATCH (p:Product {sku: 'SCANIA-R-500'}), (s:Supplier {name: 'Continental AG'})
+MERGE (p)-[:SUPPLIED_BY {since: '2021-06-01', component: 'ADAS sensors and braking', demo: true}]->(s);
+
+// ---- Tier 1 → Tier 2 additional ----
+MATCH (s1:Supplier {name: 'Continental AG'}), (s2:Supplier {name: 'ams-OSRAM'})
+MERGE (s1)-[:SOURCED_FROM {component: 'Optical sensors for LiDAR', demo: true}]->(s2);
+
+MATCH (s1:Supplier {name: 'ZF Friedrichshafen'}), (s2:Supplier {name: 'Outokumpu Oyj'})
+MERGE (s1)-[:SOURCED_FROM {component: 'Stainless steel for housings', demo: true}]->(s2);
+
+// ---- Tier 2 → Tier 3 ----
+MATCH (s1:Supplier {name: 'LKAB'}), (s2:Supplier {name: 'LKAB Kiruna Mine'})
+MERGE (s1)-[:SOURCED_FROM {component: 'Iron ore extraction (Kiruna deposit)', demo: true}]->(s2);
+
+MATCH (s1:Supplier {name: 'LKAB'}), (s2:Supplier {name: 'Vale SA'})
+MERGE (s1)-[:SOURCED_FROM {component: 'Supplemental iron ore', demo: true}]->(s2);
+
+MATCH (s1:Supplier {name: 'Infineon Technologies'}), (s2:Supplier {name: 'China Rare Earth Group'})
+MERGE (s1)-[:SOURCED_FROM {component: 'Rare earth for magnets and phosphors', demo: true,
+  risk_flags: ['GEOPOLITICAL_RISK', 'SINGLE_SOURCE']}]->(s2);
+
+MATCH (s1:Supplier {name: 'Infineon Technologies'}), (s2:Supplier {name: 'AVX Tantalum'})
+MERGE (s1)-[:SOURCED_FROM {component: 'Tantalum capacitors for ECU', demo: true}]->(s2);
+
+MATCH (s1:Supplier {name: 'AMS Buttons BV'}), (s2:Supplier {name: 'BASF SE'})
+MERGE (s1)-[:SOURCED_FROM {component: 'ABS resin for button bodies', demo: true}]->(s2);
+
+MATCH (s1:Supplier {name: 'Michelin'}), (s2:Supplier {name: 'Sri Trang Agro-Industry'})
+MERGE (s1)-[:SOURCED_FROM {component: 'Natural rubber sheets', demo: true}]->(s2);
+
+MATCH (s1:Supplier {name: 'Michelin'}), (s2:Supplier {name: 'Cabot Corporation'})
+MERGE (s1)-[:SOURCED_FROM {component: 'Carbon black reinforcement', demo: true}]->(s2);
+
+// ---- Tier 3 → Raw materials ----
+MATCH (s:Supplier {name: 'AVX Tantalum'}), (r:RawMaterial {name: 'Tantalum Ore'})
+MERGE (s)-[:SOURCED_FROM {demo: true, risk_flags: ['CONFLICT_MINERAL']}]->(r);
+
+MATCH (s:Supplier {name: 'China Rare Earth Group'}), (r:RawMaterial {name: 'Rare Earth Elements'})
+MERGE (s)-[:SOURCED_FROM {demo: true}]->(r);
+
+MATCH (s:Supplier {name: 'China Rare Earth Group'}), (r:RawMaterial {name: 'Synthetic Graphite'})
+MERGE (s)-[:SOURCED_FROM {demo: true, risk_flags: ['GEOPOLITICAL_RISK']}]->(r);
+
+MATCH (s:Supplier {name: 'Vale SA'}), (r:RawMaterial {name: 'Iron Ore Pellets (Brazil)'})
+MERGE (s)-[:SOURCED_FROM {demo: true}]->(r);
+
+MATCH (s:Supplier {name: 'Codelco'}), (r:RawMaterial {name: 'Copper Cathode'})
+MERGE (s)-[:SOURCED_FROM {demo: true}]->(r);
+
+MATCH (s:Supplier {name: 'BASF SE'}), (r:RawMaterial {name: 'ABS Plastic Resin'})
+MERGE (s)-[:SOURCED_FROM {demo: true}]->(r);
+
+MATCH (s:Supplier {name: 'Sri Trang Agro-Industry'}), (r:RawMaterial {name: 'Natural Rubber'})
+MERGE (s)-[:SOURCED_FROM {demo: true, risk_flags: ['DEFORESTATION_RISK']}]->(r);
+
+// ---- Certifications (additional) ----
+MATCH (s:Supplier {name: 'Infineon Technologies'}), (c:Certificate {name: 'RBA Code of Conduct'})
+MERGE (s)-[:CERTIFIED_BY {demo: true}]->(c);
+
+MATCH (s:Supplier {name: 'AVX Tantalum'}), (c:Certificate {name: 'Conflict Minerals Free (CFSI)'})
+MERGE (s)-[:CERTIFIED_BY {demo: true}]->(c);
+
+MATCH (s:Supplier {name: 'SSAB'}), (c:Certificate {name: 'ISO 14001:2015'})
+MERGE (s)-[:CERTIFIED_BY {demo: true}]->(c);
+
+MATCH (s:Supplier {name: 'Michelin'}), (c:Certificate {name: 'ISO 14001:2015'})
+MERGE (s)-[:CERTIFIED_BY {demo: true}]->(c);
+
+// ============================================================
+// VERIFICATION (extended)
+// MATCH (n) WHERE n.demo = true RETURN labels(n)[0] AS type, count(n) AS count
+// ORDER BY count DESC;
+// Expected: Supplier ~18, RawMaterial ~12, Certificate ~6, Company ~6, Product ~2
+// ============================================================
