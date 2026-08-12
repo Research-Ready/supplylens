@@ -930,3 +930,377 @@ MERGE (s)-[:AFFECTED_BY {demo:true}]->(e);
 // Alternative supplier check:
 // MATCH (s1)-[:ALT_SOURCE]->(s2) RETURN s1.name, s2.name, s2.tags;
 // ============================================================
+
+// ============================================================
+// SUPPLY CHAIN v6 — Electric/BEV variant + multi-product + compliance (2026-08-12)
+// Adds: SCANIA-L-340 (BEV), SCANIA-G-410 (construction), full EV battery supply chain
+// Battery supply chain is the most geopolitically sensitive addition
+// ============================================================
+
+// ---- New products ----
+MERGE (bev:Product {sku:'SCANIA-L-340-BEV', name:'Scania L-series BEV Long-Haul',
+  category:'Electric Commercial Vehicles', demo:true,
+  description:'100% electric long-haul truck; 620km range; 230kWh battery pack'});
+
+MERGE (constr:Product {sku:'SCANIA-G-410', name:'Scania G-series Construction Truck',
+  category:'Construction Vehicles', demo:true,
+  description:'Off-road capable, 8x4 axle configuration, tipper body'});
+
+MERGE (eng_dc09:Product {sku:'SCANIA-ENG-DC09', name:'Scania DC09 Engine (Euro7)',
+  category:'Powertrain', demo:true,
+  description:'5-cylinder 9L diesel, Euro7 compliant, for P/G-series'});
+
+// ---- EV-specific Tier 1 suppliers ----
+MERGE (catl:Supplier {name:'CATL', country:'CN', tier:1,
+  website:'https://www.catl.com', demo:true,
+  annual_revenue_eur:38000000000, employee_count:180000, founded_year:2011,
+  headquarters:'Ningde, Fujian, CN',
+  risk_flags:['GEOPOLITICAL_RISK','SINGLE_SOURCE','UFLPA_RISK'],
+  kotaemon_docs:['catl_battery_spec_lmfp.pdf','catl_sustainability_report_2023.pdf'],
+  state_owned:false});
+
+MERGE (nidec:Supplier {name:'Nidec Corporation', country:'JP', tier:1,
+  website:'https://www.nidec.com', demo:true,
+  annual_revenue_eur:18200000000, employee_count:110000, founded_year:1973,
+  headquarters:'Kyoto, JP',
+  risk_flags:['GEOPOLITICAL_RISK']});
+
+MERGE (abb_charger:Supplier {name:'ABB E-mobility', country:'CH', tier:1,
+  website:'https://www.abb.com/emobility', demo:true,
+  annual_revenue_eur:1200000000, employee_count:4000, founded_year:2022,
+  headquarters:'Zurich, CH'});
+
+MERGE (samsung_sdi:Supplier {name:'Samsung SDI', country:'KR', tier:1,
+  website:'https://www.samsungsdi.com', demo:true,
+  annual_revenue_eur:16800000000, employee_count:26000, founded_year:1970,
+  headquarters:'Yongin, KR',
+  tags:['ALTERNATIVE_SUPPLIER'],
+  risk_flags:['GEOPOLITICAL_RISK']});
+
+// ---- BEV product → T1 relationships ----
+MATCH (p:Product {sku:'SCANIA-L-340-BEV'}), (s:Supplier {name:'CATL'})
+MERGE (p)-[:SUPPLIED_BY {since:'2024-01-01', component:'230kWh LFP battery pack',
+  contract_value_eur:820000000, lead_time_days:180, single_source:true,
+  risk_flags:['SINGLE_SOURCE','GEOPOLITICAL_RISK'], demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-L-340-BEV'}), (s:Supplier {name:'Nidec Corporation'})
+MERGE (p)-[:SUPPLIED_BY {since:'2024-01-01', component:'e-axle (electric motor + gearbox)',
+  contract_value_eur:340000000, lead_time_days:120, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-L-340-BEV'}), (s:Supplier {name:'ABB E-mobility'})
+MERGE (p)-[:SUPPLIED_BY {since:'2024-01-01', component:'HPC charging system (150kW CCS)',
+  contract_value_eur:85000000, lead_time_days:60, demo:true}]->(s);
+
+// BEV also uses Bosch (BMS, ADAS), Knorr-Bremse (regenerative braking), Continental
+MATCH (p:Product {sku:'SCANIA-L-340-BEV'}), (s:Supplier {name:'Bosch'})
+MERGE (p)-[:SUPPLIED_BY {since:'2024-01-01', component:'Battery management system + ADAS',
+  contract_value_eur:195000000, lead_time_days:60, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-L-340-BEV'}), (s:Supplier {name:'Knorr-Bremse AG'})
+MERGE (p)-[:SUPPLIED_BY {since:'2024-01-01', component:'Regenerative braking + EBS',
+  contract_value_eur:120000000, lead_time_days:45, demo:true}]->(s);
+
+// ---- G-series (construction) shares most T1 with R-series ----
+MATCH (p:Product {sku:'SCANIA-G-410'}), (s:Supplier {name:'ZF Friedrichshafen'})
+MERGE (p)-[:SUPPLIED_BY {component:'ZF-Ecomat automatic gearbox', demo:true,
+  contract_value_eur:280000000, lead_time_days:90}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-G-410'}), (s:Supplier {name:'Bosch'})
+MERGE (p)-[:SUPPLIED_BY {component:'Fuel injection + off-road ECU',
+  contract_value_eur:145000000, lead_time_days:60, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-G-410'}), (s:Supplier {name:'Dana Incorporated'})
+MERGE (p)-[:SUPPLIED_BY {component:'Heavy-duty off-road axles',
+  contract_value_eur:230000000, lead_time_days:75, single_source:true,
+  risk_flags:['SINGLE_SOURCE'], demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-G-410'}), (s:Supplier {name:'SSAB'})
+MERGE (p)-[:SUPPLIED_BY {component:'Hardox wear-resistant steel (tipper body)',
+  contract_value_eur:110000000, lead_time_days:30, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-G-410'}), (s:Supplier {name:'Knorr-Bremse AG'})
+MERGE (p)-[:SUPPLIED_BY {component:'Air brakes for heavy off-road use',
+  contract_value_eur:78000000, lead_time_days:45, demo:true}]->(s);
+
+// ---- Battery supply chain (T2 under CATL) ----
+MERGE (umicore2:Supplier {name:'Umicore Battery Materials', country:'BE', tier:2,
+  website:'https://www.umicore.com/battery-materials', demo:true,
+  annual_revenue_eur:4200000000, employee_count:14800, founded_year:1989,
+  headquarters:'Brussels, BE'});
+
+MERGE (basf_battery:Supplier {name:'BASF Battery Materials', country:'DE', tier:2,
+  website:'https://www.basf.com/battery-materials', demo:true,
+  annual_revenue_eur:1800000000, employee_count:6000, founded_year:2018,
+  headquarters:'Ludwigshafen, DE'});
+
+MERGE (shanjin:Supplier {name:'Shanshan Advanced Materials', country:'CN', tier:2,
+  website:'https://www.shanshan.com', demo:true,
+  annual_revenue_eur:2100000000, employee_count:16000, founded_year:1992,
+  risk_flags:['GEOPOLITICAL_RISK','UFLPA_RISK'],
+  headquarters:'Shanghai, CN'});
+
+MERGE (sumitomo_metal:Supplier {name:'Sumitomo Metal Mining', country:'JP', tier:2,
+  website:'https://www.smmco.jp', demo:true,
+  annual_revenue_eur:8900000000, employee_count:24000, founded_year:1590,
+  headquarters:'Tokyo, JP'});
+
+MERGE (sk_enpulse:Supplier {name:'SK Enpulse', country:'KR', tier:2,
+  website:'https://www.skenpulse.com', demo:true,
+  annual_revenue_eur:1400000000, employee_count:4500, founded_year:2022,
+  risk_flags:['GEOPOLITICAL_RISK']});
+
+MATCH (s1:Supplier {name:'CATL'}), (s2:Supplier {name:'Umicore Battery Materials'})
+MERGE (s1)-[:SOURCED_FROM {component:'NMC cathode active material (high-Ni)',
+  contract_value_eur:380000000, lead_time_days:90, demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'CATL'}), (s2:Supplier {name:'Shanshan Advanced Materials'})
+MERGE (s1)-[:SOURCED_FROM {component:'Graphite anode material',
+  contract_value_eur:120000000, lead_time_days:60,
+  risk_flags:['GEOPOLITICAL_RISK'], demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'CATL'}), (s2:Supplier {name:'Sumitomo Metal Mining'})
+MERGE (s1)-[:SOURCED_FROM {component:'Nickel-Cobalt-Manganese (NCM) precursor',
+  contract_value_eur:290000000, lead_time_days:120, demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'CATL'}), (s2:Supplier {name:'SK Enpulse'})
+MERGE (s1)-[:SOURCED_FROM {component:'Lithium iron phosphate (LFP) separator film',
+  contract_value_eur:95000000, lead_time_days:45,
+  risk_flags:['GEOPOLITICAL_RISK'], demo:true}]->(s2);
+
+// ---- EV motor supply chain (T2 under Nidec) ----
+MERGE (proterial:Supplier {name:'Proterial Ltd', country:'JP', tier:2,
+  website:'https://www.proterial.com', demo:true,
+  annual_revenue_eur:3800000000, employee_count:19000, founded_year:2023,
+  headquarters:'Tokyo, JP',
+  note:'Formerly Hitachi Metals — NdFeB magnets for motors'});
+
+MERGE (vacuumschmelze:Supplier {name:'Vacuumschmelze GmbH', country:'DE', tier:2,
+  website:'https://www.vacuumschmelze.com', demo:true,
+  annual_revenue_eur:680000000, employee_count:4200, founded_year:1923,
+  headquarters:'Hanau, DE',
+  tags:['ALTERNATIVE_SUPPLIER']});
+
+MATCH (s1:Supplier {name:'Nidec Corporation'}), (s2:Supplier {name:'Proterial Ltd'})
+MERGE (s1)-[:SOURCED_FROM {component:'NdFeB sintered magnets for traction motor',
+  contract_value_eur:155000000, lead_time_days:120, single_source:true,
+  risk_flags:['SINGLE_SOURCE','GEOPOLITICAL_RISK'], demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Nidec Corporation'}), (s2:Supplier {name:'China Rare Earth Group'})
+MERGE (s1)-[:SOURCED_FROM {component:'Neodymium for magnet production',
+  contract_value_eur:88000000, lead_time_days:90,
+  risk_flags:['GEOPOLITICAL_RISK','SINGLE_SOURCE','SANCTIONS_RISK'], demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Proterial Ltd'}), (s2:Supplier {name:'Vacuumschmelze GmbH'})
+MERGE (s1)-[:ALT_SOURCE {component:'European-sourced NdFeB magnets',
+  qualification_status:'QUALIFIED', demo:true,
+  note:'Strategic EU alternative — 3x cost, same performance'}]->(s2);
+
+// ---- Battery raw materials (T3) ----
+MERGE (sqm:Supplier {name:'SQM', country:'CL', tier:3,
+  website:'https://www.sqm.com', demo:true,
+  annual_revenue_eur:9200000000, employee_count:7000, founded_year:1968,
+  headquarters:'Santiago, CL',
+  risk_flags:['WATER_STRESS','ESG_RISK']});
+
+MERGE (albemarle:Supplier {name:'Albemarle Corporation', country:'US', tier:3,
+  website:'https://www.albemarle.com', demo:true,
+  annual_revenue_eur:9600000000, employee_count:8000, founded_year:1887,
+  headquarters:'Charlotte, NC, US'});
+
+MERGE (ganfeng:Supplier {name:'Ganfeng Lithium', country:'CN', tier:3,
+  website:'https://www.ganfenglithium.com', demo:true,
+  annual_revenue_eur:7300000000, employee_count:18000, founded_year:2000,
+  headquarters:'Xinyu, Jiangxi, CN',
+  risk_flags:['GEOPOLITICAL_RISK','SANCTIONS_RISK']});
+
+MERGE (norilsk:Supplier {name:'Norilsk Nickel', country:'RU', tier:3,
+  website:'https://www.nornickel.com', demo:true,
+  annual_revenue_eur:17200000000, employee_count:79000, founded_year:1935,
+  headquarters:'Moscow, RU',
+  risk_flags:['SANCTIONS_RISK','GEOPOLITICAL_RISK','ESG_RISK']});
+
+MERGE (eramet:Supplier {name:'Eramet SA', country:'FR', tier:3,
+  website:'https://www.eramet.com', demo:true,
+  annual_revenue_eur:3700000000, employee_count:13000, founded_year:1880,
+  headquarters:'Paris, FR'});
+
+MATCH (s1:Supplier {name:'Umicore Battery Materials'}), (s2:Supplier {name:'SQM'})
+MERGE (s1)-[:SOURCED_FROM {component:'Lithium hydroxide for cathode precursor',
+  contract_value_eur:195000000, lead_time_days:120, demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Umicore Battery Materials'}), (s2:Supplier {name:'Albemarle Corporation'})
+MERGE (s1)-[:SOURCED_FROM {component:'Battery-grade lithium carbonate',
+  contract_value_eur:140000000, lead_time_days:90, demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Sumitomo Metal Mining'}), (s2:Supplier {name:'Norilsk Nickel'})
+MERGE (s1)-[:SOURCED_FROM {component:'Nickel sulfate feedstock',
+  contract_value_eur:320000000, lead_time_days:45,
+  risk_flags:['SANCTIONS_RISK','GEOPOLITICAL_RISK'], demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Sumitomo Metal Mining'}), (s2:Supplier {name:'Eramet SA'})
+MERGE (s1)-[:SOURCED_FROM {component:'Manganese sulfate (alternative to Norilsk)',
+  contract_value_eur:85000000, lead_time_days:60, demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Shanshan Advanced Materials'}), (s2:Supplier {name:'Ganfeng Lithium'})
+MERGE (s1)-[:SOURCED_FROM {component:'Lithium-ion for anode lithiation',
+  risk_flags:['GEOPOLITICAL_RISK'], demo:true}]->(s2);
+
+// ---- Battery raw materials ----
+MERGE (r_li:RawMaterial {name:'Lithium Carbonate (battery-grade)', origin:'CL',
+  material_type:'Metal', demo:true,
+  risk_flags:['WATER_STRESS','SUPPLY_CONCENTRATION'],
+  description:'60% global production in Chile/Argentina Lithium Triangle'});
+
+MERGE (r_nickel:RawMaterial {name:'Class I Nickel (>99.8%)', origin:'RU',
+  material_type:'Metal', demo:true,
+  risk_flags:['SANCTIONS_RISK','GEOPOLITICAL_RISK'],
+  description:'Battery-grade nickel; Russia = 10% global supply'});
+
+MERGE (r_graphite:RawMaterial {name:'Natural Graphite (battery-grade)', origin:'CN',
+  material_type:'Carbon', demo:true,
+  risk_flags:['GEOPOLITICAL_RISK','SUPPLY_CONCENTRATION'],
+  description:'China controls 70%+ of global natural graphite supply'});
+
+MERGE (r_cobalt2:RawMaterial {name:'Cobalt Sulfate', origin:'CD',
+  material_type:'Metal', demo:true,
+  risk_flags:['CONFLICT_MINERAL','CHILD_LABOUR_RISK','ESG_RISK'],
+  description:'DRC = 70% global cobalt; artisanal mining child labour risk'});
+
+MERGE (r_lithium_brine:RawMaterial {name:'Lithium Brine (Atacama)', origin:'CL',
+  material_type:'Mineral', demo:true,
+  risk_flags:['WATER_STRESS','INDIGENOUS_RIGHTS'],
+  description:'Salar de Atacama; 2M litres water per tonne Li; indigenous land rights'});
+
+MATCH (s:Supplier {name:'SQM'}), (r:RawMaterial {name:'Lithium Brine (Atacama)'})
+MERGE (s)-[:SOURCED_FROM {demo:true, risk_flags:['WATER_STRESS']}]->(r);
+
+MATCH (s:Supplier {name:'Albemarle Corporation'}), (r:RawMaterial {name:'Lithium Carbonate (battery-grade)'})
+MERGE (s)-[:SOURCED_FROM {demo:true}]->(r);
+
+MATCH (s:Supplier {name:'Norilsk Nickel'}), (r:RawMaterial {name:'Class I Nickel (>99.8%)'})
+MERGE (s)-[:SOURCED_FROM {demo:true, risk_flags:['SANCTIONS_RISK']}]->(r);
+
+MATCH (s:Supplier {name:'Ganfeng Lithium'}), (r:RawMaterial {name:'Natural Graphite (battery-grade)'})
+MERGE (s)-[:SOURCED_FROM {demo:true}]->(r);
+
+MATCH (s:Supplier {name:'Glencore'}), (r:RawMaterial {name:'Cobalt Sulfate'})
+MERGE (s)-[:SOURCED_FROM {demo:true, risk_flags:['CONFLICT_MINERAL']}]->(r);
+
+// ---- Compliance flags on suppliers ----
+// CBAM (Carbon Border Adjustment — affects steel, aluminium imports to EU)
+MATCH (s:Supplier {name:'SSAB'})
+SET s.cbam_applicable = true, s.cbam_product = 'Steel',
+    s.cbam_risk = 'medium', s.cbam_co2_intensity_kg_per_tonne = 610;
+
+MATCH (s:Supplier {name:'Saarstahl AG'})
+SET s.cbam_applicable = true, s.cbam_product = 'Steel',
+    s.cbam_risk = 'high', s.cbam_co2_intensity_kg_per_tonne = 1850;
+
+MATCH (s:Supplier {name:'Norsk Hydro'})
+SET s.cbam_applicable = true, s.cbam_product = 'Aluminium',
+    s.cbam_risk = 'low', s.cbam_co2_intensity_kg_per_tonne = 2100;
+
+// UFLPA (Uyghur Forced Labor Prevention Act — US import ban)
+MATCH (s:Supplier {name:'Xinjiang Polysilicon Co'})
+SET s.uflpa_listed = true, s.uflpa_entity = true, s.cbam_applicable = false,
+    s.compliance_notes = 'On UFLPA entity list — US imports blocked; EU review pending';
+
+MATCH (s:Supplier {name:'Shanshan Advanced Materials'})
+SET s.uflpa_risk = true, s.uflpa_notes = 'Anode material production has Xinjiang supply links',
+    s.compliance_notes = 'UFLPA supply chain due diligence required';
+
+// LkSG (German Supply Chain Act — mandatory for companies >1000 employees)
+MATCH (s:Supplier {name:'Glencore'})
+SET s.lksg_applicable = true, s.lksg_risk = 'high',
+    s.lksg_issues = ['child labour risk DRC cobalt', 'environmental violations'];
+
+MATCH (s:Supplier {name:'Vale SA'})
+SET s.lksg_applicable = true, s.lksg_risk = 'high',
+    s.lksg_issues = ['Brumadinho tailings dam collapse 2019', 'deforestation risk'];
+
+MATCH (s:Supplier {name:'China Rare Earth Group'})
+SET s.lksg_applicable = true, s.lksg_risk = 'critical',
+    s.lksg_issues = ['forced labour risk', 'state-controlled entity', 'Xinjiang links'];
+
+// ---- New regulatory events ----
+MERGE (evt7:Event {name:'EU Critical Raw Materials Act 2024 — Implementation',
+  date:'2024-05-23', type:'REGULATORY', demo:true,
+  affected_material:'Lithium/Nickel/Cobalt/Rare Earths',
+  impact:'HIGH',
+  description:'EU mandates 10% domestic extraction, 40% processing, 15% recycling of critical raw materials by 2030.',
+  lesson:'Diversify battery raw material sourcing; invest in EU recycling partnerships'});
+
+MERGE (evt8:Event {name:'UFLPA Expanded Entity List 2024',
+  date:'2024-06-14', type:'REGULATORY', demo:true,
+  affected_material:'Polysilicon/Graphite',
+  impact:'HIGH',
+  description:'US Customs added 6 Chinese polysilicon/solar manufacturers. EU reviewing similar measures.',
+  lesson:'Audit Tier 3+ supply chain for Xinjiang-linked entities; file UFLPA rebuttable presumption docs'});
+
+MERGE (evt9:Event {name:'Norilsk Nickel Sanctions Escalation 2024',
+  date:'2024-04-12', type:'SANCTIONS', demo:true,
+  affected_material:'Class I Nickel',
+  impact:'HIGH',
+  description:'US and UK expanded sanctions on Russian metals; London Metal Exchange debate on Russian nickel.',
+  lesson:'Switch to Indonesia/Australia nickel sources; Eramet/Wyloo qualify as alternatives'});
+
+MATCH (r:RawMaterial {name:'Class I Nickel (>99.8%)'}), (e:Event {name:'Norilsk Nickel Sanctions Escalation 2024'})
+MERGE (r)-[:AFFECTED_BY {demo:true}]->(e);
+
+MATCH (r:RawMaterial {name:'Natural Graphite (battery-grade)'}), (e:Event {name:'UFLPA Expanded Entity List 2024'})
+MERGE (r)-[:AFFECTED_BY {demo:true}]->(e);
+
+MATCH (r:RawMaterial {name:'Lithium Carbonate (battery-grade)'}), (e:Event {name:'EU Critical Raw Materials Act 2024 — Implementation'})
+MERGE (r)-[:AFFECTED_BY {demo:true}]->(e);
+
+// ---- Alternative supplier for Samsung SDI as backup to CATL ----
+MATCH (p:Product {sku:'SCANIA-L-340-BEV'}), (s:Supplier {name:'Samsung SDI'})
+MERGE (p)-[:ALT_SOURCE {component:'Battery pack (alternative to CATL)',
+  qualification_status:'UNDER_REVIEW', demo:true,
+  note:'Korean-sourced; avoids CN geopolitical risk; 15% cost premium'}]->(s);
+
+// ---- CATL Nidec financial profiles ----
+MATCH (s:Supplier {name:'CATL'})
+SET s.resilience_note = 'CN state-strategic; subject to export controls; no credible Western alternative at scale';
+
+MATCH (s:Supplier {name:'Nidec Corporation'})
+SET s.kotaemon_docs = ['nidec_electric_axle_spec.pdf','nidec_ev_strategy_2025.pdf'];
+
+// ---- DC09 engine from SCANIA-ENG-DC09 ----
+MERGE (bosal:Supplier {name:'Bosal Group', country:'BE', tier:1,
+  website:'https://www.bosal.com', demo:true,
+  annual_revenue_eur:890000000, employee_count:6500, founded_year:1923,
+  headquarters:'Lummen, BE'});
+
+MATCH (p:Product {sku:'SCANIA-ENG-DC09'}), (s:Supplier {name:'Bosch'})
+MERGE (p)-[:SUPPLIED_BY {component:'Common rail injection system Euro7',
+  contract_value_eur:145000000, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-ENG-DC09'}), (s:Supplier {name:'Bosal Group'})
+MERGE (p)-[:SUPPLIED_BY {component:'Exhaust aftertreatment (SCR+DPF+EGR)',
+  contract_value_eur:88000000, lead_time_days:45, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-ENG-DC09'}), (s:Supplier {name:'Knorr-Bremse AG'})
+MERGE (p)-[:SUPPLIED_BY {component:'Engine braking system',
+  contract_value_eur:35000000, demo:true}]->(s);
+
+// ============================================================
+// VERIFICATION (v6)
+// Products: 8 (R-500, T-500, BUS-K, ENG-DC13, ENG-DC09, G-410, L-340-BEV, BTN-001)
+// Suppliers: ~62+ (added: CATL, Nidec, ABB, Samsung SDI, Umicore BM, BASF BM,
+//            Shanshan, Sumitomo MM, SK Enpulse, SQM, Albemarle, Ganfeng,
+//            Norilsk, Eramet, Proterial, Vacuumschmelze, Bosal)
+// Raw materials: ~26+ (added: Li carbonate, Ni, graphite, cobalt sulfate, Li brine)
+// Events: 9 (added: EU CRM Act, UFLPA expansion, Norilsk sanctions)
+//
+// Key new risk vectors:
+//   CATL single-source for BEV battery (€820M) — highest new single-source risk
+//   Norilsk Nickel (sanctioned) in battery supply chain
+//   Ganfeng Lithium + Shanshan: Chinese supply chain dominance
+//   Proterial magnets: single-source rare earth dependency for EV motors
+//
+// Battery supply chain query:
+// MATCH path=(p:Product {sku:'SCANIA-L-340-BEV'})-[:SUPPLIED_BY|SOURCED_FROM*1..5]->(n)
+// RETURN [node IN nodes(path) | coalesce(node.name,node.sku)] AS chain, length(path) AS depth
+// ORDER BY depth;
+// ============================================================
