@@ -150,6 +150,12 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; colo
   <div class="tab" onclick="switchTab('events')" id="tab-events">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2v5l3 2"/></svg> Events &amp; Risks
   </div>
+  <div class="tab" onclick="switchTab('disruption')" id="tab-disruption">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l2 5h5l-4 3 2 5-5-3-5 3 2-5-4-3h5z"/></svg> Disruption
+  </div>
+  <div class="tab" onclick="switchTab('finance')" id="tab-finance">
+    <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="10" width="3" height="5"/><rect x="6" y="6" width="3" height="9"/><rect x="11" y="2" width="3" height="13"/></svg> Financials
+  </div>
   <div class="header-right">
     <div class="status-pill ok" id="neo4j-status"><span class="dot"></span>Neo4j</div>
     <div class="status-pill err" id="kotaemon-status"><span class="dot"></span>Kotaemon</div>
@@ -219,6 +225,16 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; colo
   <div class="panel" id="events-panel">
     <div class="loading-overlay" id="events-loading"><div class="spinner"></div>Loading events…</div>
     <div id="events-list"></div>
+  </div>
+
+  <!-- DISRUPTION IMPACT -->
+  <div class="panel" id="disruption-panel">
+    <iframe src="disruption_impact.html" id="disruption-iframe" style="width:100%;height:100%;border:none"></iframe>
+  </div>
+
+  <!-- FINANCIALS -->
+  <div class="panel" id="finance-panel">
+    <iframe src="financial_exposure.html" id="finance-iframe" style="width:100%;height:100%;border:none"></iframe>
   </div>
 
 </div>
