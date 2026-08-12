@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supplier Intelligence — UC4</title>
+<style>
+:root {
+  --bg: #0f1117; --card: #1a1d27; --border: #2a2d3e; --text: #e2e8f0;
+  --sub: #718096; --accent: #4299e1; --green: #48bb78; --red: #fc8181;
+  --orange: #f6ad55; --yellow: #f6e05e; --purple: #9f7aea;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font: 14px/1.5 'Inter',sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── header ── */
+#hdr { display: flex; align-items: center; gap: 16px; padding: 10px 20px; background: var(--card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+#hdr h1 { font-size: 16px; font-weight: 700; color: var(--accent); }
+#sup-search { flex: 0 0 280px; position: relative; }
+#sup-search input { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; color: var(--text); font-size: 13px; outline: none; }
+#sup-search input:focus { border-color: var(--accent); }
+#sup-dropdown { position: absolute; top: 100%; left: 0; right: 0; background: var(--card); border: 1px solid var(--border); border-radius: 6px; max-height: 280px; overflow-y: auto; z-index: 100; display: none; }
+#sup-dropdown.open { display: block; }
+.dd-item { padding: 8px 12px; cursor: pointer; font-size: 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.dd-item:hover { background: #2a2d3e; }
+.dd-item .tier-badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: var(--accent); color: #fff; flex-shrink: 0; }
+.dd-item .country { color: var(--sub); font-size: 11px; margin-left: auto; }
+
+#status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+#neo4j-label { font-size: 12px; color: var(--sub); }
+
+/* ── kpi bar ── */
+#kpibar { display: flex; gap: 0; background: var(--card); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.kpi { flex: 1; padding: 8px 16px; border-right: 1px solid var(--border); }
+.kpi:last-child { border-right: none; }
+.kpi-v { font-size: 20px; font-weight: 700; }
+.kpi-l { font-size: 11px; color: var(--sub); margin-top: 2px; }
+.kpi-v.blue { color: var(--accent); }
+.kpi-v.green { color: var(--green); }
+.kpi-v.red { color: var(--red); }
+.kpi-v.orange { color: var(--orange); }
+.kpi-v.purple { color: var(--purple); }
+
+/* ── main content ── */
+#main { display: grid; grid-template-columns: 340px 1fr 320px; gap: 0; flex: 1; overflow: hidden; }
+.col { display: flex; flex-direction: column; gap: 0; overflow-y: auto; border-right: 1px solid var(--border); padding: 16px; }
+.col:last-child { border-right: none; }
+
+/* ── cards ── */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 12px; }
+.card h3 { font-size: 12px; font-weight: 600; color: var(--sub); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+
+/* ── risk flags ── */
+.flag { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 3px 8px; border-radius: 4px; margin: 2px; font-weight: 600; }
+.flag.high { background: #742a2a; color: var(--red); }
+.flag.med { background: #7b4a1a; color: var(--orange); }
+.flag.low { background: #1a4731; color: var(--green); }
+.flag.info { background: #1a2d4f; color: var(--accent); }
+
+/* ── sanctions badge ── */
+.sanctions-ok { background: #1a4731; color: var(--green); border-radius: 6px; padding: 8px 12px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.sanctions-warn { background: #742a2a; color: var(--red); border-radius: 6px; padding: 8px 12px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.sanctions-unknown { background: #2a2d3e; color: var(--sub); border-radius: 6px; padding: 8px 12px; font-size: 12px; font-weight: 600; }
+
+/* ── cert list ── */
+.cert-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.cert-row:last-child { border-bottom: none; }
+.cert-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.cert-dot.valid { background: var(--green); }
+.cert-dot.expiring { background: var(--orange); }
+.cert-dot.expired { background: var(--red); }
+.cert-name { flex: 1; }
+.cert-date { font-size: 11px; color: var(--sub); }
+
+/* ── contract table ── */
+.ctable { width: 100%; font-size: 12px; border-collapse: collapse; }
+.ctable th { text-align: left; padding: 5px 8px; color: var(--sub); font-weight: 600; border-bottom: 1px solid var(--border); font-size: 11px; }
+.ctable td { padding: 6px 8px; border-bottom: 1px solid #232635; }
+.ctable tr:last-child td { border-bottom: none; }
+.ss-badge { font-size: 10px; background: #742a2a; color: var(--red); padding: 1px 5px; border-radius: 3px; font-weight: 700; }
+
+/* ── supply chain position ── */
+#chain-svg { width: 100%; height: 200px; }
+.chain-label { fill: var(--text); font-size: 11px; }
+.chain-node { cursor: pointer; }
+.chain-link { stroke: var(--border); stroke-width: 1.5; fill: none; }
+
+/* ── alt suppliers ── */
+.alt-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.alt-row:last-child { border-bottom: none; }
+.alt-status { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 600; }
+.alt-status.qualified { background: #1a4731; color: var(--green); }
+.alt-status.review { background: #7b4a1a; color: var(--orange); }
+
+/* ── kotaemon panel ── */
+#kotaemon-col { display: flex; flex-direction: column; padding: 16px; gap: 12px; }
+#rag-header { display: flex; align-items: center; gap: 8px; }
+#rag-header h2 { font-size: 14px; font-weight: 700; }
+.rag-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; background: var(--purple); color: #fff; }
+#rag-docs { font-size: 12px; color: var(--sub); margin-bottom: 4px; }
+#rag-docs span { color: var(--accent); }
+#rag-messages { flex: 1; overflow-y: auto; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+.msg { max-width: 92%; font-size: 12px; line-height: 1.6; }
+.msg.user { align-self: flex-end; background: #1e3a5f; padding: 8px 12px; border-radius: 8px 8px 2px 8px; }
+.msg.assistant { align-self: flex-start; background: var(--card); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px 8px 8px 2px; }
+.msg.system { align-self: center; color: var(--sub); font-size: 11px; font-style: italic; }
+.msg .src { font-size: 10px; color: var(--accent); margin-top: 4px; }
+#rag-input-row { display: flex; gap: 8px; }
+#rag-input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: 13px; outline: none; resize: none; height: 60px; font-family: inherit; }
+#rag-input:focus { border-color: var(--purple); }
+#rag-send { background: var(--purple); color: #fff; border: none; border-radius: 6px; padding: 8px 14px; cursor: pointer; font-size: 13px; font-weight: 600; align-self: flex-end; }
+#rag-send:hover { background: #805ad5; }
+#rag-send:disabled { opacity: .4; cursor: not-allowed; }
+.suggest-btn { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--text); font-size: 11px; cursor: pointer; text-align: left; }
+.suggest-btn:hover { border-color: var(--purple); color: var(--purple); }
+#suggestions { display: flex; flex-direction: column; gap: 4px; }
+
+.loading { color: var(--sub); font-size: 12px; font-style: italic; }
+.empty { color: var(--sub); font-size: 12px; text-align: center; padding: 20px; }
+
+/* ── risk score arc ── */
+.arc-wrap { display: flex; align-items: center; gap: 12px; }
+.arc-wrap svg { flex-shrink: 0; }
+.score-details { flex: 1; }
+.score-row { display: flex; justify-content: space-between; font-size: 11px; padding: 2px 0; }
+.score-bar { height: 4px; border-radius: 2px; margin-top: 1px; }
+</style>
+</head>
+<body>
+
+<!-- header -->
+<div id="hdr">
+  <h1>Supplier Intelligence</h1>
+  <div id="sup-search">
+    <input type="text" id="search-input" placeholder="Search supplier…" autocomplete="off">
+    <div id="sup-dropdown"></div>
+  </div>
+  <div id="status-dot"></div>
+  <span id="neo4j-label">Neo4j</span>
+  <span style="margin-left:auto;font-size:11px;color:var(--sub)" id="last-updated">—</span>
+</div>
+
+<!-- kpi bar -->
+<div id="kpibar">
+  <div class="kpi"><div class="kpi-v blue" id="k-tier">—</div><div class="kpi-l">Tier</div></div>
+  <div class="kpi"><div class="kpi-v blue" id="k-country">—</div><div class="kpi-l">Country</div></div>
+  <div class="kpi"><div class="kpi-v blue" id="k-employees">—</div><div class="kpi-l">Employees</div></div>
+  <div class="kpi"><div class="kpi-v blue" id="k-revenue">—</div><div class="kpi-l">Annual Revenue</div></div>
+  <div class="kpi"><div class="kpi-v" id="k-risk" style="color:var(--sub)">—</div><div class="kpi-l">Risk Score</div></div>
+  <div class="kpi"><div class="kpi-v blue" id="k-certs">—</div><div class="kpi-l">Certifications</div></div>
+  <div class="kpi"><div class="kpi-v blue" id="k-contracts">—</div><div class="kpi-l">Contract Value</div></div>
+</div>
+
+<!-- main grid -->
+<div id="main">
+
+  <!-- left: risk + compliance -->
+  <div class="col" id="col-left">
+    <div class="card" id="card-risk">
+      <h3>Risk Profile</h3>
+      <div id="risk-arc" class="arc-wrap">
+        <svg width="80" height="80" viewBox="0 0 80 80" id="score-arc-svg">
+          <path id="arc-bg" d="" stroke="#2a2d3e" stroke-width="8" fill="none"/>
+          <path id="arc-fill" d="" stroke-width="8" fill="none" stroke-linecap="round"/>
+          <text id="arc-score" x="40" y="44" text-anchor="middle" font-size="18" font-weight="700" fill="var(--text)">—</text>
+          <text id="arc-label" x="40" y="58" text-anchor="middle" font-size="9" fill="var(--sub)">SCORE</text>
+        </svg>
+        <div class="score-details" id="risk-detail">Select a supplier</div>
+      </div>
+    </div>
+
+    <div class="card" id="card-flags">
+      <h3>Risk Flags</h3>
+      <div id="flags-list"><span class="empty">No supplier selected</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Sanctions Status</h3>
+      <div id="sanctions-badge" class="sanctions-unknown">Not checked</div>
+    </div>
+
+    <div class="card">
+      <h3>Supply Chain Position</h3>
+      <div id="chain-position"><span class="empty">—</span></div>
+      <svg id="chain-svg"></svg>
+    </div>
+
+    <div class="card">
+      <h3>Alternative Suppliers</h3>
+      <div id="alt-list"><span class="empty">—</span></div>
+    </div>
+  </div>
+
+  <!-- center: supply chain -->
+  <div class="col" id="col-center">
+    <div class="card">
+      <h3>Upstream Suppliers (sources from)</h3>
+      <div id="upstream-list"><span class="empty">Select a supplier</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Downstream Customers (supplies to)</h3>
+      <div id="downstream-list"><span class="empty">—</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Certifications</h3>
+      <div id="cert-list"><span class="empty">—</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Recent Disruption Events</h3>
+      <div id="events-list"><span class="empty">—</span></div>
+    </div>
+
+    <div class="card">
+      <h3>Financial Profile</h3>
+      <div id="fin-profile"><span class="empty">—</span></div>
+    </div>
+  </div>
+
+  <!-- right: kotaemon RAG -->
+  <div id="kotaemon-col">
+    <div id="rag-header">
+      <h2>Kotaemon AI</h2>
+      <span class="rag-badge">RAG</span>
+      <span id="kotaemon-status-dot" style="width:8px;height:8px;border-radius:50%;background:var(--sub);margin-left:auto"></span>
+    </div>
+    <div id="rag-docs">Indexed docs: <span id="doc-count">—</span></div>
+
+    <div id="suggestions">
+      <div style="font-size:11px;color:var(--sub);margin-bottom:4px">Suggested questions:</div>
+    </div>
+
+    <div id="rag-messages">
+      <div class="msg system">Select a supplier to start querying their documents</div>
+    </div>
+
+    <textarea id="rag-input" placeholder="Ask about this supplier's documents…" disabled></textarea>
+    <div id="rag-input-row">
+      <button id="rag-send" disabled onclick="sendRag()">Ask Kotaemon</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ───────────────────────────────────────────────────────────────────
+const NEO4J    = "http://10.0.1.114:7474";
+const KOTAEMON = "http://10.0.1.120:8501";
+const USER     = "neo4j";
+let PASS = sessionStorage.getItem("neo4j_pass") || "";
+
+let currentSupplier = null;
+let allSuppliers = [];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+async function neo4j(cypher, params={}) {
+  if (!PASS) {
+    PASS = prompt("Neo4j password:") || "";
+    sessionStorage.setItem("neo4j_pass", PASS);
+  }
+  const auth = btoa(`${USER}:${PASS}`);
+  const r = await fetch(`${NEO4J}/db/neo4j/tx/commit`, {
+    method: "POST",
+    headers: { "Content-Type":"application/json", "Authorization":"Basic "+auth },
+    body: JSON.stringify({ statements:[{ statement:cypher, parameters:params }] })
+  });
+  const d = await r.json();
+  if (d.errors?.length) throw new Error(d.errors[0].message);
+  return d.results[0]?.data || [];
+}
+
+function fmt(n) {
+  if (!n) return "—";
+  if (n >= 1e9) return "€" + (n/1e9).toFixed(1) + "B";
+  if (n >= 1e6) return "€" + (n/1e6).toFixed(0) + "M";
+  if (n >= 1e3) return "€" + (n/1e3).toFixed(0) + "K";
+  return "€" + n;
+}
+
+function fmtNum(n) {
+  if (!n) return "—";
+  if (n >= 1e6) return (n/1e6).toFixed(1)+"M";
+  if (n >= 1e3) return (n/1e3).toFixed(0)+"K";
+  return n.toString();
+}
+
+function riskColor(score) {
+  if (!score && score !== 0) return "var(--sub)";
+  if (score >= 0.7) return "var(--red)";
+  if (score >= 0.4) return "var(--orange)";
+  return "var(--green)";
+}
+
+function riskLabel(score) {
+  if (!score && score !== 0) return "Unknown";
+  if (score >= 0.7) return "HIGH";
+  if (score >= 0.4) return "MEDIUM";
+  return "LOW";
+}
+
+function certStatus(dateStr) {
+  if (!dateStr) return "unknown";
+  const d = new Date(dateStr);
+  const now = new Date();
+  const days = (d - now) / 86400000;
+  if (days < 0) return "expired";
+  if (days < 180) return "expiring";
+  return "valid";
+}
+
+// ── Arc SVG ──────────────────────────────────────────────────────────────────
+function polarToXY(cx,cy,r,angleDeg) {
+  const rad = (angleDeg - 90) * Math.PI/180;
+  return { x: cx + r*Math.cos(rad), y: cy + r*Math.sin(rad) };
+}
+function arcPath(cx,cy,r,startDeg,endDeg) {
+  const s = polarToXY(cx,cy,r,startDeg);
+  const e = polarToXY(cx,cy,r,endDeg);
+  const large = (endDeg - startDeg) > 180 ? 1 : 0;
+  return `M ${s.x} ${s.y} A ${r} ${r} 0 ${large} 1 ${e.x} ${e.y}`;
+}
+function updateArc(score) {
+  const cx=40,cy=40,r=30;
+  document.getElementById("arc-bg").setAttribute("d", arcPath(cx,cy,r,-135,135));
+  const endDeg = -135 + 270 * (score||0);
+  const color = riskColor(score);
+  const fill = document.getElementById("arc-fill");
+  fill.setAttribute("d", arcPath(cx,cy,r,-135,endDeg));
+  fill.setAttribute("stroke", color);
+  const scoreEl = document.getElementById("arc-score");
+  scoreEl.textContent = score != null ? Math.round(score*100) : "—";
+  scoreEl.setAttribute("fill", color);
+  document.getElementById("arc-label").textContent = riskLabel(score);
+}
+
+// ── Flag rendering ───────────────────────────────────────────────────────────
+const FLAG_SEVERITY = {
+  SANCTIONS_RISK:"high", FORCED_LABOUR_RISK:"high", CONFLICT_MINERAL:"high",
+  GEOPOLITICAL_RISK:"high", SINGLE_SOURCE:"med", CLIMATE_RISK:"med",
+  ESG_RISK:"med", WATER_STRESS:"med", ENERGY_RISK:"med", TAILINGS_RISK:"high",
+  DEFORESTATION_RISK:"med", CHILD_LABOUR_RISK:"high", DODD_FRANK_REPORTABLE:"med",
+  ARCTIC_OPERATIONS:"low", SANCTIONS_WATCHLIST:"med"
+};
+function renderFlags(flags) {
+  if (!flags?.length) return '<span style="color:var(--sub);font-size:12px">No flags</span>';
+  return flags.map(f => {
+    const sev = FLAG_SEVERITY[f] || "info";
+    return `<span class="flag ${sev}">${f.replace(/_/g," ")}</span>`;
+  }).join("");
+}
+
+// ── Load supplier list ───────────────────────────────────────────────────────
+async function loadSupplierList() {
+  try {
+    const rows = await neo4j(`
+      MATCH (s:Supplier)
+      RETURN s.name AS name, s.country AS country, s.tier AS tier, s.risk_score AS risk
+      ORDER BY s.tier, s.name
+    `);
+    allSuppliers = rows.map(r => r.row ? {name:r.row[0],country:r.row[1],tier:r.row[2],risk:r.row[3]} : {});
+    document.getElementById("neo4j-label").textContent = "Neo4j ✓";
+    document.getElementById("status-dot").style.background = "var(--green)";
+    document.getElementById("last-updated").textContent = "Loaded " + allSuppliers.length + " suppliers";
+  } catch(e) {
+    document.getElementById("status-dot").style.background = "var(--red)";
+    document.getElementById("neo4j-label").textContent = "Neo4j offline — demo";
+    allSuppliers = DEMO_SUPPLIERS;
+  }
+  renderDropdown(allSuppliers);
+}
+
+function renderDropdown(items) {
+  const dd = document.getElementById("sup-dropdown");
+  dd.innerHTML = items.slice(0,60).map(s => `
+    <div class="dd-item" onclick="selectSupplier('${s.name?.replace(/'/g,"\\'")}')">
+      <span class="tier-badge">T${s.tier||"?"}</span>
+      <span>${s.name||"?"}</span>
+      <span class="country">${s.country||""}</span>
+    </div>
+  `).join("");
+}
+
+document.getElementById("search-input").addEventListener("input", function() {
+  const q = this.value.toLowerCase();
+  const filtered = q ? allSuppliers.filter(s => s.name?.toLowerCase().includes(q)) : allSuppliers;
+  renderDropdown(filtered);
+  document.getElementById("sup-dropdown").classList.add("open");
+});
+document.getElementById("search-input").addEventListener("focus", () => {
+  document.getElementById("sup-dropdown").classList.add("open");
+});
+document.addEventListener("click", e => {
+  if (!e.target.closest("#sup-search")) document.getElementById("sup-dropdown").classList.remove("open");
+});
+
+// ── Select + load supplier ───────────────────────────────────────────────────
+async function selectSupplier(name) {
+  currentSupplier = name;
+  document.getElementById("search-input").value = name;
+  document.getElementById("sup-dropdown").classList.remove("open");
+  document.getElementById("rag-input").disabled = false;
+  document.getElementById("rag-send").disabled = false;
+
+  try {
+    await Promise.all([
+      loadSupplierProfile(name),
+      loadUpstream(name),
+      loadDownstream(name),
+      loadCerts(name),
+      loadContracts(name),
+      loadEvents(name),
+      loadAlternatives(name),
+    ]);
+    updateSuggestedQuestions(name);
+  } catch(e) {
+    console.error("Load failed:", e);
+    loadDemoSupplier(name);
+  }
+}
+
+async function loadSupplierProfile(name) {
+  const rows = await neo4j(`
+    MATCH (s:Supplier {name:$name})
+    RETURN s.tier AS tier, s.country AS country, s.employee_count AS emp,
+           s.annual_revenue_eur AS rev, s.risk_score AS risk, s.risk_flags AS flags,
+           s.founded_year AS founded, s.headquarters AS hq, s.sanctions_match AS sanctioned,
+           s.sanctions_source AS sanc_src, s.kotaemon_docs AS docs,
+           s.state_owned AS state_owned, s.website AS website
+  `, {name});
+  if (!rows.length) return;
+  const [tier,country,emp,rev,risk,flags,founded,hq,sanctioned,sanc_src,docs,state_owned,website] = rows[0].row;
+
+  document.getElementById("k-tier").textContent = tier ? "Tier " + tier : "—";
+  document.getElementById("k-country").textContent = country || "—";
+  document.getElementById("k-employees").textContent = fmtNum(emp);
+  document.getElementById("k-revenue").textContent = fmt(rev);
+  const riskEl = document.getElementById("k-risk");
+  if (risk != null) {
+    riskEl.textContent = riskLabel(risk);
+    riskEl.style.color = riskColor(risk);
+  } else {
+    riskEl.textContent = "—";
+    riskEl.style.color = "var(--sub)";
+  }
+
+  updateArc(risk);
+
+  const riskDetail = document.getElementById("risk-detail");
+  riskDetail.innerHTML = `
+    <div class="score-row"><span>Risk</span><span style="color:${riskColor(risk)}">${risk != null ? (risk*100).toFixed(0)+"%" : "—"}</span></div>
+    <div class="score-row"><span>Country</span><span>${country||"—"}</span></div>
+    <div class="score-row"><span>Founded</span><span>${founded||"—"}</span></div>
+    ${state_owned ? '<div class="score-row"><span style="color:var(--orange)">State-owned entity</span></div>' : ""}
+    ${hq ? `<div style="font-size:11px;color:var(--sub);margin-top:4px">${hq}</div>` : ""}
+    ${website ? `<div style="margin-top:6px"><a href="${website}" target="_blank" style="color:var(--accent);font-size:11px">${website.replace(/https?:\/\//,"")}</a></div>` : ""}
+  `;
+
+  document.getElementById("flags-list").innerHTML = renderFlags(flags || []);
+
+  if (sanctioned === true) {
+    document.getElementById("sanctions-badge").className = "sanctions-warn";
+    document.getElementById("sanctions-badge").innerHTML = `&#x26A0; SANCTIONS MATCH — ${sanc_src||"Unknown source"}`;
+  } else if (sanctioned === false) {
+    document.getElementById("sanctions-badge").className = "sanctions-ok";
+    document.getElementById("sanctions-badge").innerHTML = `&#10003; Screened — No match found`;
+  } else {
+    document.getElementById("sanctions-badge").className = "sanctions-unknown";
+    document.getElementById("sanctions-badge").textContent = "Not yet screened — run sanctions_screener.py";
+  }
+
+  const docCount = docs?.length || 0;
+  document.getElementById("doc-count").textContent = docCount > 0
+    ? `${docCount} doc${docCount>1?"s":""} indexed` : "No docs indexed";
+
+  document.getElementById("fin-profile").innerHTML = `
+    <table class="ctable">
+      <tr><td style="color:var(--sub)">Revenue</td><td>${fmt(rev)}</td></tr>
+      <tr><td style="color:var(--sub)">Employees</td><td>${fmtNum(emp)}</td></tr>
+      <tr><td style="color:var(--sub)">Founded</td><td>${founded||"—"}</td></tr>
+      <tr><td style="color:var(--sub)">HQ</td><td>${hq||"—"}</td></tr>
+      <tr><td style="color:var(--sub)">State-owned</td><td>${state_owned?"Yes":"No"}</td></tr>
+    </table>
+  `;
+}
+
+async function loadUpstream(name) {
+  const rows = await neo4j(`
+    MATCH (s:Supplier {name:$name})-[r:SOURCED_FROM]->(n)
+    RETURN labels(n)[0] AS type, coalesce(n.name,n.sku) AS name2,
+           n.country AS country, n.tier AS tier,
+           r.component AS comp, r.contract_value_eur AS val,
+           r.lead_time_days AS lead, r.risk_flags AS flags
+    ORDER BY type, name2
+  `, {name});
+  const el = document.getElementById("upstream-list");
+  if (!rows.length) { el.innerHTML = '<span class="empty">No upstream suppliers found</span>'; return; }
+  el.innerHTML = rows.map(r => {
+    const [type,n,country,tier,comp,val,lead,flags] = r.row;
+    const riskBadge = flags?.length ? `<span class="flag high" style="font-size:10px">${flags[0].replace(/_/g," ")}</span>` : "";
+    return `<div style="padding:7px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="color:${type==='Supplier'?'var(--accent)':'var(--green)'}">&#9679;</span>
+        <strong>${n}</strong>
+        <span style="color:var(--sub)">${country||""}</span>
+        ${tier ? `<span class="tier-badge" style="font-size:10px;padding:1px 4px;border-radius:3px;background:var(--accent);color:#fff">T${tier}</span>` : ""}
+        ${riskBadge}
+        <span style="margin-left:auto;color:var(--sub)">${val ? fmt(val) : ""}</span>
+      </div>
+      <div style="color:var(--sub);font-size:11px;margin-top:2px;margin-left:17px">${comp||"—"} ${lead?"· "+lead+"d lead":""}</div>
+    </div>`;
+  }).join("");
+}
+
+async function loadDownstream(name) {
+  const rows = await neo4j(`
+    MATCH (n)-[r:SOURCED_FROM|SUPPLIED_BY]->(s:Supplier {name:$name})
+    RETURN labels(n)[0] AS type, coalesce(n.name,n.sku) AS name2,
+           n.country AS country, n.tier AS tier, r.component AS comp,
+           r.contract_value_eur AS val
+    ORDER BY type, name2
+  `, {name});
+  const el = document.getElementById("downstream-list");
+  if (!rows.length) { el.innerHTML = '<span class="empty">No downstream customers in graph</span>'; return; }
+  el.innerHTML = rows.map(r => {
+    const [type,n,country,tier,comp,val] = r.row;
+    const icon = type === "Product" ? "&#9632;" : "&#9650;";
+    return `<div style="padding:7px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="color:${type==='Product'?'var(--purple)':'var(--orange)'}">${icon}</span>
+        <strong>${n}</strong>
+        <span style="color:var(--sub)">${country||""}</span>
+        ${tier ? `<span class="tier-badge" style="font-size:10px;padding:1px 4px;border-radius:3px;background:var(--orange);color:#000">T${tier}</span>` : ""}
+        <span style="margin-left:auto;color:var(--sub)">${val ? fmt(val) : ""}</span>
+      </div>
+      <div style="color:var(--sub);font-size:11px;margin-top:2px;margin-left:17px">${comp||""}</div>
+    </div>`;
+  }).join("");
+}
+
+async function loadCerts(name) {
+  const rows = await neo4j(`
+    MATCH (s:Supplier {name:$name})-[:CERTIFIED_BY]->(c:Certificate)
+    RETURN c.name AS name, c.issuer AS issuer, c.valid_until AS valid_until
+    ORDER BY c.valid_until
+  `, {name});
+  const el = document.getElementById("cert-list");
+  if (!rows.length) { el.innerHTML = '<span class="empty">No certifications recorded</span>'; return; }
+  document.getElementById("k-certs").textContent = rows.length;
+  el.innerHTML = rows.map(r => {
+    const [name2,issuer,valid] = r.row;
+    const status = certStatus(valid);
+    return `<div class="cert-row">
+      <div class="cert-dot ${status}"></div>
+      <div class="cert-name">${name2}</div>
+      <div style="color:var(--sub);font-size:11px">${issuer||""}</div>
+      <div class="cert-date">${valid||"—"}</div>
+    </div>`;
+  }).join("");
+}
+
+async function loadContracts(name) {
+  const rows = await neo4j(`
+    MATCH (n)-[r:SUPPLIED_BY|SOURCED_FROM]->(s:Supplier {name:$name})
+    WHERE r.contract_value_eur IS NOT NULL
+    RETURN coalesce(n.name,n.sku) AS from_node, r.contract_value_eur AS val,
+           r.lead_time_days AS lead, r.single_source AS ss, r.component AS comp
+    ORDER BY val DESC
+  `, {name});
+  const el = document.getElementById("k-contracts");
+  if (rows.length) {
+    const total = rows.reduce((a,r) => a + (r.row[1]||0), 0);
+    el.textContent = fmt(total);
+  }
+}
+
+async function loadEvents(name) {
+  const rows = await neo4j(`
+    MATCH (s:Supplier {name:$name})-[:AFFECTED_BY]->(e:Event)
+    RETURN e.name AS name, e.date AS date, e.type AS type,
+           e.impact AS impact, e.description AS desc, e.lesson AS lesson
+    ORDER BY e.date DESC
+  `, {name});
+  const el = document.getElementById("events-list");
+  if (!rows.length) { el.innerHTML = '<span class="empty">No disruption events recorded</span>'; return; }
+  el.innerHTML = rows.map(r => {
+    const [name2,date,type,impact,desc,lesson] = r.row;
+    const col = impact==="HIGH" ? "var(--red)" : impact==="MEDIUM" ? "var(--orange)" : "var(--sub)";
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <span style="color:${col}">&#x26A0;</span>
+        <strong>${name2}</strong>
+        <span style="margin-left:auto;color:${col};font-size:11px">${impact}</span>
+      </div>
+      <div style="color:var(--sub);font-size:11px;margin-top:2px">${date||""} &bull; ${type||""}</div>
+      ${desc ? `<div style="margin-top:4px;line-height:1.4">${desc}</div>` : ""}
+      ${lesson ? `<div style="margin-top:4px;color:var(--accent);font-size:11px">&#x1F4A1; ${lesson}</div>` : ""}
+    </div>`;
+  }).join("");
+}
+
+async function loadAlternatives(name) {
+  const rows = await neo4j(`
+    MATCH (s:Supplier {name:$name})-[r:ALT_SOURCE]->(alt:Supplier)
+    RETURN alt.name AS name, alt.country AS country, r.component AS comp,
+           r.qualification_status AS status
+    ORDER BY r.qualification_status
+  `, {name});
+  const el = document.getElementById("alt-list");
+  if (!rows.length) { el.innerHTML = '<span class="empty">No alternatives recorded</span>'; return; }
+  el.innerHTML = rows.map(r => {
+    const [n,country,comp,status] = r.row;
+    const cls = status==="QUALIFIED" ? "qualified" : "review";
+    return `<div class="alt-row">
+      <span style="flex:1"><strong>${n}</strong> <span style="color:var(--sub)">${country||""}</span></div>
+      <span class="alt-status ${cls}">${status||"?"}</span>
+    </div>`;
+  }).join("");
+}
+
+// ── Kotaemon RAG integration ──────────────────────────────────────────────────
+let kotaemonOnline = false;
+
+async function checkKotaemon() {
+  try {
+    const r = await fetch(KOTAEMON + "/", { method: "HEAD", signal: AbortSignal.timeout(3000) });
+    kotaemonOnline = r.ok || r.status === 200 || r.status === 302;
+  } catch(e) {
+    kotaemonOnline = false;
+  }
+  const dot = document.getElementById("kotaemon-status-dot");
+  dot.style.background = kotaemonOnline ? "var(--green)" : "var(--red)";
+  dot.title = kotaemonOnline ? "Kotaemon online" : "Kotaemon offline (CT120)";
+}
+
+function updateSuggestedQuestions(name) {
+  const suggestions = [
+    `What are ${name}'s main raw material sources?`,
+    `What is ${name}'s quality certification status?`,
+    `What supply disruption risks does ${name} face?`,
+    `What is ${name}'s annual capacity and lead time?`,
+    `Does ${name} have any ESG or sustainability concerns?`,
+  ];
+  const container = document.getElementById("suggestions");
+  container.innerHTML = '<div style="font-size:11px;color:var(--sub);margin-bottom:4px">Suggested questions:</div>' +
+    suggestions.map(q => `<button class="suggest-btn" onclick="setQuestion('${q.replace(/'/g,"&apos;")}')">${q}</button>`).join("");
+}
+
+function setQuestion(q) {
+  document.getElementById("rag-input").value = q;
+  document.getElementById("rag-input").focus();
+}
+
+function addMessage(content, role, sources) {
+  const msgs = document.getElementById("rag-messages");
+  const div = document.createElement("div");
+  div.className = `msg ${role}`;
+  div.innerHTML = content.replace(/\n/g,"<br>");
+  if (sources?.length) {
+    div.innerHTML += `<div class="src">Sources: ${sources.join(", ")}</div>`;
+  }
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function sendRag() {
+  const input = document.getElementById("rag-input");
+  const question = input.value.trim();
+  if (!question || !currentSupplier) return;
+
+  addMessage(question, "user");
+  input.value = "";
+  document.getElementById("rag-send").disabled = true;
+
+  const loadingMsg = document.createElement("div");
+  loadingMsg.className = "msg system loading";
+  loadingMsg.textContent = "Querying Kotaemon…";
+  document.getElementById("rag-messages").appendChild(loadingMsg);
+
+  if (!kotaemonOnline) {
+    // Offline: generate synthetic answer from Neo4j data
+    loadingMsg.remove();
+    await generateSyntheticAnswer(question, currentSupplier);
+    document.getElementById("rag-send").disabled = false;
+    return;
+  }
+
+  try {
+    // Gradio queue API
+    const joinRes = await fetch(KOTAEMON + "/queue/join", {
+      method: "POST",
+      headers: { "Content-Type":"application/json" },
+      body: JSON.stringify({
+        data: [question, `Supplier context: ${currentSupplier}`],
+        fn_index: 0,
+        session_hash: "supplier_intel_" + Date.now()
+      })
+    });
+    const joinData = await joinRes.json();
+    const eventId = joinData.event_id;
+
+    // Poll for result
+    let attempts = 0;
+    const poll = setInterval(async () => {
+      attempts++;
+      if (attempts > 30) {
+        clearInterval(poll);
+        loadingMsg.remove();
+        addMessage("Kotaemon timeout — try again or check CT120", "system");
+        document.getElementById("rag-send").disabled = false;
+        return;
+      }
+      try {
+        const statusRes = await fetch(`${KOTAEMON}/queue/status?session_hash=${joinData.session_hash}`);
+        const status = await statusRes.json();
+        if (status.msg === "process_completed") {
+          clearInterval(poll);
+          loadingMsg.remove();
+          const answer = status.output?.data?.[0] || "No response from Kotaemon";
+          const sources = status.output?.data?.[1] || [];
+          addMessage(answer, "assistant", sources);
+          document.getElementById("rag-send").disabled = false;
+        }
+      } catch(e) { /* continue polling */ }
+    }, 1000);
+
+  } catch(e) {
+    loadingMsg.remove();
+    addMessage("Kotaemon error: " + e.message + "<br>Falling back to graph data…", "system");
+    await generateSyntheticAnswer(question, currentSupplier);
+    document.getElementById("rag-send").disabled = false;
+  }
+}
+
+// Fallback: answer from Neo4j graph data when Kotaemon offline
+async function generateSyntheticAnswer(question, name) {
+  try {
+    const [profile, upstream, downstream] = await Promise.all([
+      neo4j(`MATCH (s:Supplier {name:$name}) RETURN s`, {name}),
+      neo4j(`MATCH (s:Supplier {name:$name})-[r:SOURCED_FROM]->(n) RETURN n.name,r.component,n.country LIMIT 10`, {name}),
+      neo4j(`MATCH (n)-[:SOURCED_FROM|SUPPLIED_BY]->(s:Supplier {name:$name}) RETURN n.name,labels(n)[0] LIMIT 5`, {name}),
+    ]);
+
+    const props = profile[0]?.row?.[0] || {};
+    const upList = upstream.map(r => `${r.row[0]} (${r.row[2]||"?"}) — ${r.row[1]||""}`).join("; ");
+    const downList = downstream.map(r => `${r.row[0]} [${r.row[1]}]`).join("; ");
+
+    let answer = `**${name}** (Graph-based answer — Kotaemon offline)\n\n`;
+    answer += `Country: ${props.country||"—"} · Tier: ${props.tier||"—"}\n`;
+    if (props.annual_revenue_eur) answer += `Revenue: ${fmt(props.annual_revenue_eur)}\n`;
+    if (upList) answer += `\nSources from: ${upList}\n`;
+    if (downList) answer += `\nSupplies to: ${downList}\n`;
+    if (props.risk_flags?.length) answer += `\nRisk flags: ${props.risk_flags.join(", ")}\n`;
+    answer += `\n*Note: Upload supplier PDFs to Kotaemon (CT120) for document-level answers.*`;
+
+    addMessage(answer, "assistant", ["Neo4j graph data"]);
+  } catch(e) {
+    addMessage("Could not generate answer: " + e.message, "system");
+  }
+}
+
+document.getElementById("rag-input").addEventListener("keydown", function(e) {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendRag(); }
+});
+
+// ── Demo data fallback ───────────────────────────────────────────────────────
+const DEMO_SUPPLIERS = [
+  {name:"ZF Friedrichshafen",country:"DE",tier:1,risk:0.3},
+  {name:"Bosch",country:"DE",tier:1,risk:0.25},
+  {name:"SSAB",country:"SE",tier:1,risk:0.2},
+  {name:"Michelin",country:"FR",tier:1,risk:0.35},
+  {name:"Dana Incorporated",country:"US",tier:1,risk:0.6},
+  {name:"Cummins Inc",country:"US",tier:1,risk:0.55},
+  {name:"Knorr-Bremse AG",country:"DE",tier:1,risk:0.2},
+  {name:"Continental AG",country:"DE",tier:1,risk:0.3},
+  {name:"Garrett Motion",country:"US",tier:2,risk:0.65},
+  {name:"TimkenSteel Corporation",country:"US",tier:2,risk:0.6},
+  {name:"Infineon Technologies",country:"DE",tier:2,risk:0.4},
+  {name:"LKAB",country:"SE",tier:2,risk:0.25},
+  {name:"Saarstahl AG",country:"DE",tier:2,risk:0.3},
+  {name:"Haldex AB",country:"SE",tier:2,risk:0.35},
+  {name:"China Rare Earth Group",country:"CN",tier:3,risk:0.9},
+  {name:"Vale SA",country:"BR",tier:3,risk:0.65},
+  {name:"Glencore",country:"CH",tier:4,risk:0.8},
+  {name:"Xinjiang Polysilicon Co",country:"CN",tier:4,risk:0.95},
+];
+
+function loadDemoSupplier(name) {
+  const s = DEMO_SUPPLIERS.find(x => x.name === name) || {name,tier:1,country:"—",risk:null};
+  document.getElementById("k-tier").textContent = s.tier ? "Tier " + s.tier : "—";
+  document.getElementById("k-country").textContent = s.country || "—";
+  document.getElementById("k-employees").textContent = "—";
+  document.getElementById("k-revenue").textContent = "—";
+  const riskEl = document.getElementById("k-risk");
+  riskEl.textContent = riskLabel(s.risk);
+  riskEl.style.color = riskColor(s.risk);
+  updateArc(s.risk);
+  document.getElementById("upstream-list").innerHTML = '<span class="empty">Neo4j offline — demo mode</span>';
+  document.getElementById("downstream-list").innerHTML = '<span class="empty">Neo4j offline — demo mode</span>';
+  document.getElementById("cert-list").innerHTML = '<span class="empty">Neo4j offline</span>';
+  document.getElementById("events-list").innerHTML = '<span class="empty">Neo4j offline</span>';
+  document.getElementById("alt-list").innerHTML = '<span class="empty">Neo4j offline</span>';
+  document.getElementById("flags-list").innerHTML = renderFlags(s.risk >= 0.7 ? ["GEOPOLITICAL_RISK","SINGLE_SOURCE"] : []);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+checkKotaemon();
+loadSupplierList();
+</script>
+</body>
+</html>

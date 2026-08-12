@@ -159,6 +159,9 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; colo
   <div class="tab" onclick="switchTab('resilience')" id="tab-resilience">
     <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1C4.1 1 1 4.1 1 8s3.1 7 7 7 7-3.1 7-7-3.1-7-7-7zm0 2c.8 0 1.5.7 1.5 1.5S8.8 6 8 6s-1.5-.7-1.5-1.5S7.2 3 8 3zm0 10c-1.7 0-3.2-.8-4.2-2 .1-.9 2.1-1.5 4.2-1.5s4.1.6 4.2 1.5c-1 1.2-2.5 2-4.2 2z"/></svg> Resilience
   </div>
+  <div class="tab" onclick="switchTab('intel')" id="tab-intel">
+    <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6" fill="none" stroke="currentColor" stroke-width="1.5"/></svg> Supplier Intel
+  </div>
   <div class="header-right">
     <div class="status-pill ok" id="neo4j-status"><span class="dot"></span>Neo4j</div>
     <div class="status-pill err" id="kotaemon-status"><span class="dot"></span>Kotaemon</div>
@@ -243,6 +246,11 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; colo
   <!-- RESILIENCE SCORING -->
   <div class="panel" id="resilience-panel">
     <iframe src="resilience_dashboard.html" id="resilience-iframe" style="width:100%;height:100%;border:none"></iframe>
+  </div>
+
+  <!-- SUPPLIER INTELLIGENCE -->
+  <div class="panel" id="intel-panel">
+    <iframe src="supplier_intel.html" id="intel-iframe" style="width:100%;height:100%;border:none"></iframe>
   </div>
 
 </div>

@@ -631,13 +631,302 @@ SET r.contract_value_eur = 850000, r.lead_time_days = 14,
     r.annual_volume_eur = 850000, r.volume_units_year = 5700000;
 
 // ============================================================
-// VERIFICATION (extended v4)
-// MATCH (n) WHERE n.demo = true RETURN labels(n)[0] AS type, count(n) AS count ORDER BY count DESC;
-// Expected: Supplier ~30+, RawMaterial ~17, Certificate ~9, Company ~6, Product ~5, Event ~4
+// SUPPLY CHAIN v5 — Dana/Cummins/Knorr-Bremse sub-chains (2026-08-12)
+// Fills gaps: full T2/T3 for previously stub suppliers
+// Adds: Kotaemon doc references, certificate expirations, alt supplier links
+// ============================================================
+
+// ---- New Tier 1: Knorr-Bremse ----
+MERGE (knorr:Supplier {name:'Knorr-Bremse AG', country:'DE', tier:1,
+  website:'https://www.knorr-bremse.com', demo:true,
+  annual_revenue_eur:7200000000, employee_count:31000, founded_year:1905,
+  headquarters:'Munich, DE'});
+
+MATCH (p:Product {sku:'SCANIA-R-500'}), (s:Supplier {name:'Knorr-Bremse AG'})
+MERGE (p)-[:SUPPLIED_BY {since:'2013-01-01', component:'EBS braking system + ABS',
+  contract_value_eur:210000000, lead_time_days:45,
+  annual_volume_eur:210000000, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-BUS-K'}), (s:Supplier {name:'Knorr-Bremse AG'})
+MERGE (p)-[:SUPPLIED_BY {since:'2018-01-01', component:'Air disc brakes + EBS',
+  contract_value_eur:95000000, lead_time_days:45, demo:true}]->(s);
+
+// ---- New Tier 2: Dana sub-suppliers ----
+MERGE (timken:Supplier {name:'TimkenSteel Corporation', country:'US', tier:2,
+  website:'https://www.timkensteel.com', demo:true,
+  annual_revenue_eur:1700000000, employee_count:4500, founded_year:1899,
+  risk_flags:['SINGLE_SOURCE'],
+  headquarters:'Canton, OH, US',
+  kotaemon_doc:'timkensteel_capability_statement.pdf'});
+
+MERGE (eaton:Supplier {name:'Eaton Corporation', country:'US', tier:2,
+  website:'https://www.eaton.com', demo:true,
+  annual_revenue_eur:20400000000, employee_count:96000, founded_year:1911,
+  headquarters:'Dublin, IE'});
+
+MERGE (parker:Supplier {name:'Parker Hannifin', country:'US', tier:2,
+  website:'https://www.parker.com', demo:true,
+  annual_revenue_eur:19800000000, employee_count:57900, founded_year:1917,
+  headquarters:'Cleveland, OH, US'});
+
+MATCH (s1:Supplier {name:'Dana Incorporated'}), (s2:Supplier {name:'TimkenSteel Corporation'})
+MERGE (s1)-[:SOURCED_FROM {component:'SBQ steel bars for axle shafts',
+  contract_value_eur:68000000, lead_time_days:60,
+  volume_kg_year:95000, single_source:true, demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Dana Incorporated'}), (s2:Supplier {name:'Eaton Corporation'})
+MERGE (s1)-[:SOURCED_FROM {component:'Locking differential assemblies',
+  contract_value_eur:92000000, lead_time_days:55, demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Dana Incorporated'}), (s2:Supplier {name:'Parker Hannifin'})
+MERGE (s1)-[:SOURCED_FROM {component:'Hydraulic seals and o-ring kits',
+  contract_value_eur:24000000, lead_time_days:30, demo:true}]->(s2);
+
+// ---- New Tier 2: Cummins sub-suppliers ----
+MERGE (garrett:Supplier {name:'Garrett Motion', country:'US', tier:2,
+  website:'https://www.garrettmotion.com', demo:true,
+  annual_revenue_eur:3200000000, employee_count:6200, founded_year:2018,
+  risk_flags:['SINGLE_SOURCE'],
+  headquarters:'Rolle, CH',
+  kotaemon_doc:'garrett_turbocharger_spec_sheet.pdf'});
+
+MERGE (borgwarner:Supplier {name:'BorgWarner', country:'US', tier:2,
+  website:'https://www.borgwarner.com', demo:true,
+  annual_revenue_eur:14200000000, employee_count:50000, founded_year:1928,
+  headquarters:'Auburn Hills, MI, US'});
+
+MERGE (tenneco:Supplier {name:'Tenneco Inc', country:'US', tier:2,
+  website:'https://www.tenneco.com', demo:true,
+  annual_revenue_eur:18000000000, employee_count:71000, founded_year:1888,
+  headquarters:'Lake Forest, IL, US'});
+
+MATCH (s1:Supplier {name:'Cummins Inc'}), (s2:Supplier {name:'Garrett Motion'})
+MERGE (s1)-[:SOURCED_FROM {component:'VGT turbocharger for Euro6 engines',
+  contract_value_eur:145000000, lead_time_days:120, single_source:true,
+  risk_flags:['SINGLE_SOURCE'], demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Cummins Inc'}), (s2:Supplier {name:'BorgWarner'})
+MERGE (s1)-[:SOURCED_FROM {component:'EGR cooler and diesel particulate filter',
+  contract_value_eur:88000000, lead_time_days:90, demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Cummins Inc'}), (s2:Supplier {name:'Tenneco Inc'})
+MERGE (s1)-[:SOURCED_FROM {component:'Pistons and engine bearings (Federal-Mogul)',
+  contract_value_eur:76000000, lead_time_days:45, demo:true}]->(s2);
+
+// ---- New Tier 2: Knorr-Bremse sub-suppliers ----
+MERGE (haldex:Supplier {name:'Haldex AB', country:'SE', tier:2,
+  website:'https://www.haldex.com', demo:true,
+  annual_revenue_eur:510000000, employee_count:2200, founded_year:1887,
+  headquarters:'Landskrona, SE'});
+
+MERGE (ferodo:Supplier {name:'Federal-Mogul Motorparts', country:'US', tier:2,
+  website:'https://www.fm-motorparts.com', demo:true,
+  annual_revenue_eur:2100000000, employee_count:18000, founded_year:1899});
+
+MATCH (s1:Supplier {name:'Knorr-Bremse AG'}), (s2:Supplier {name:'Haldex AB'})
+MERGE (s1)-[:SOURCED_FROM {component:'Brake actuators and slack adjusters',
+  contract_value_eur:38000000, lead_time_days:35, demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Knorr-Bremse AG'}), (s2:Supplier {name:'Federal-Mogul Motorparts'})
+MERGE (s1)-[:SOURCED_FROM {component:'Brake pads and friction lining',
+  contract_value_eur:29000000, lead_time_days:21, demo:true}]->(s2);
+
+// ---- Voith T2 addition ----
+MERGE (schaeffler:Supplier {name:'Schaeffler Group', country:'DE', tier:2,
+  website:'https://www.schaeffler.com', demo:true,
+  annual_revenue_eur:16300000000, employee_count:84000, founded_year:1946,
+  headquarters:'Herzogenaurach, DE'});
+
+MATCH (s1:Supplier {name:'Voith GmbH'}), (s2:Supplier {name:'Schaeffler Group'})
+MERGE (s1)-[:SOURCED_FROM {component:'Torque converter bearings and clutch actuation',
+  contract_value_eur:52000000, lead_time_days:60, demo:true}]->(s2);
+
+// ---- New Tier 3: sub-suppliers of T2 additions ----
+MERGE (north_star:Supplier {name:'North Star BlueScope Steel', country:'AU', tier:3,
+  website:'https://www.northstarbluesteel.com', demo:true,
+  annual_revenue_eur:890000000, employee_count:1200, founded_year:1995,
+  risk_flags:['ENERGY_RISK']});
+
+MERGE (ovako:Supplier {name:'Ovako AB', country:'SE', tier:3,
+  website:'https://www.ovako.com', demo:true,
+  annual_revenue_eur:1200000000, employee_count:3100, founded_year:1916,
+  headquarters:'Stockholm, SE'});
+
+MERGE (honeywell_pm:Supplier {name:'Honeywell Performance Materials', country:'US', tier:3,
+  website:'https://www.honeywell.com', demo:true,
+  annual_revenue_eur:5600000000, employee_count:19000, founded_year:1906});
+
+MERGE (nisshinbo:Supplier {name:'Nisshinbo Holdings', country:'JP', tier:3,
+  website:'https://www.nisshinbo.co.jp', demo:true,
+  annual_revenue_eur:2900000000, employee_count:11000, founded_year:1907,
+  risk_flags:['GEOPOLITICAL_RISK']});
+
+MATCH (s1:Supplier {name:'TimkenSteel Corporation'}), (s2:Supplier {name:'North Star BlueScope Steel'})
+MERGE (s1)-[:SOURCED_FROM {component:'Hot-rolled steel billet feedstock',
+  contract_value_eur:28000000, lead_time_days:30, demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'SKF Group'}), (s2:Supplier {name:'Ovako AB'})
+MERGE (s1)-[:SOURCED_FROM {component:'Bearing-grade steel (isotropic, fine-grain)',
+  contract_value_eur:180000000, lead_time_days:45, demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Garrett Motion'}), (s2:Supplier {name:'Honeywell Performance Materials'})
+MERGE (s1)-[:SOURCED_FROM {component:'Turbine housing castings (titanium aluminide)',
+  contract_value_eur:42000000, lead_time_days:90, demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Federal-Mogul Motorparts'}), (s2:Supplier {name:'Nisshinbo Holdings'})
+MERGE (s1)-[:SOURCED_FROM {component:'Aramid friction material for brake pads',
+  contract_value_eur:18000000, lead_time_days:60,
+  risk_flags:['SINGLE_SOURCE'], demo:true}]->(s2);
+
+// ---- New Raw Materials (v5) ----
+MERGE (r_sbq:RawMaterial {name:'Special Bar Quality Steel', origin:'US',
+  material_type:'Metal', demo:true,
+  description:'High-alloy steel for driveshafts and axle shafts'});
+
+MERGE (r_tial:RawMaterial {name:'Titanium Aluminide Alloy', origin:'JP',
+  material_type:'Metal', demo:true,
+  risk_flags:['SINGLE_SOURCE','GEOPOLITICAL_RISK'],
+  description:'Intermetallic for turbocharger turbine wheels'});
+
+MERGE (r_aramid:RawMaterial {name:'Aramid Fiber (Kevlar)', origin:'NL',
+  material_type:'Polymer', demo:true,
+  description:'DuPont Kevlar for brake friction material'});
+
+MERGE (r_cng:RawMaterial {name:'Compressed Natural Gas', origin:'NL',
+  material_type:'Energy', demo:true,
+  description:'CNG for bus fuel system — grid-supplied'});
+
+MATCH (s:Supplier {name:'North Star BlueScope Steel'}), (r:RawMaterial {name:'Special Bar Quality Steel'})
+MERGE (s)-[:SOURCED_FROM {demo:true}]->(r);
+
+MATCH (s:Supplier {name:'Honeywell Performance Materials'}), (r:RawMaterial {name:'Titanium Aluminide Alloy'})
+MERGE (s)-[:SOURCED_FROM {demo:true, risk_flags:['SINGLE_SOURCE']}]->(r);
+
+MATCH (s:Supplier {name:'Nisshinbo Holdings'}), (r:RawMaterial {name:'Aramid Fiber (Kevlar)'})
+MERGE (s)-[:SOURCED_FROM {demo:true}]->(r);
+
+// ---- Alternative supplier relationships ----
+// ALT_SUPPLIER: potential fallback if primary fails
+MERGE (akebono:Supplier {name:'Akebono Brake Industry', country:'JP', tier:2,
+  website:'https://www.akebono-brake.com', demo:true,
+  annual_revenue_eur:840000000, employee_count:11500, founded_year:1929,
+  tags:['ALTERNATIVE_SUPPLIER']});
+
+MERGE (brembo:Supplier {name:'Brembo SpA', country:'IT', tier:2,
+  website:'https://www.brembo.com', demo:true,
+  annual_revenue_eur:3600000000, employee_count:14500, founded_year:1961,
+  tags:['ALTERNATIVE_SUPPLIER']});
+
+// Mark as alternatives (not currently contracted)
+MATCH (s1:Supplier {name:'Knorr-Bremse AG'}), (s2:Supplier {name:'Akebono Brake Industry'})
+MERGE (s1)-[:ALT_SOURCE {component:'Brake pad friction materials', qualification_status:'QUALIFIED',
+  demo:true, note:'Approved alternative — not currently on contract'}]->(s2);
+
+MATCH (s1:Supplier {name:'Knorr-Bremse AG'}), (s2:Supplier {name:'Brembo SpA'})
+MERGE (s1)-[:ALT_SOURCE {component:'High-performance disc brakes (upmarket)',
+  qualification_status:'UNDER_REVIEW', demo:true}]->(s2);
+
+// ---- Kotaemon document references on supplier nodes ----
+MATCH (s:Supplier {name:'ZF Friedrichshafen'})
+SET s.kotaemon_docs = ['zf_annual_report_2023.pdf','zf_supplier_code_of_conduct.pdf'];
+
+MATCH (s:Supplier {name:'Bosch'})
+SET s.kotaemon_docs = ['bosch_sustainability_report_2023.pdf','bosch_purchasing_conditions.pdf'];
+
+MATCH (s:Supplier {name:'Infineon Technologies'})
+SET s.kotaemon_docs = ['infineon_annual_report_2023.pdf','infineon_conflict_minerals_report.pdf'];
+
+MATCH (s:Supplier {name:'LKAB'})
+SET s.kotaemon_docs = ['lkab_annual_report_2023.pdf','lkab_sustainability_report.pdf'];
+
+MATCH (s:Supplier {name:'Glencore'})
+SET s.kotaemon_docs = ['glencore_responsible_sourcing_report_2023.pdf'];
+
+MATCH (s:Supplier {name:'China Rare Earth Group'})
+SET s.kotaemon_docs = ['china_rare_earth_profile.html'];
+
+// ---- Additional certificates (v5) ----
+MERGE (iatf2:Certificate {name:'IATF 16949:2016', issuer:'TUV Nord', valid_until:'2027-03-31', demo:true});
+MERGE (as9100:Certificate {name:'AS9100D', issuer:'Bureau Veritas', valid_until:'2026-11-30',
+  demo:true, note:'Aerospace quality — for precision turbocharger components'});
+MERGE (lksg2:Certificate {name:'LkSG Compliance', issuer:'Internal Audit DE',
+  valid_until:'2027-01-01', demo:true});
+
+MATCH (s:Supplier {name:'Garrett Motion'}), (c:Certificate {name:'AS9100D'})
+MERGE (s)-[:CERTIFIED_BY {demo:true}]->(c);
+
+MATCH (s:Supplier {name:'Knorr-Bremse AG'}), (c:Certificate {name:'IATF 16949:2016'})
+MERGE (s)-[:CERTIFIED_BY {demo:true}]->(c);
+
+MATCH (s:Supplier {name:'Schaeffler Group'}), (c:Certificate {name:'IATF 16949:2016'})
+MERGE (s)-[:CERTIFIED_BY {demo:true}]->(c);
+
+MATCH (s:Supplier {name:'Dana Incorporated'}), (c:Certificate {name:'ISO 9001:2015'})
+MERGE (s)-[:CERTIFIED_BY {demo:true}]->(c);
+
+MATCH (s:Supplier {name:'Dana Incorporated'}), (c:Certificate {name:'IATF 16949:2016'})
+MERGE (s)-[:CERTIFIED_BY {demo:true}]->(c);
+
+MATCH (s:Supplier {name:'Cummins Inc'}), (c:Certificate {name:'ISO 14001:2015'})
+MERGE (s)-[:CERTIFIED_BY {demo:true}]->(c);
+
+MATCH (s:Supplier {name:'Haldex AB'}), (c:Certificate {name:'ISO 9001:2015'})
+MERGE (s)-[:CERTIFIED_BY {demo:true}]->(c);
+
+// ---- Cummins financial data ----
+MATCH (s:Supplier {name:'Cummins Inc'})
+SET s.annual_revenue_eur = 24100000000, s.employee_count = 59900,
+    s.founded_year = 1919, s.headquarters = 'Columbus, IN, US';
+
+MATCH (p:Product {sku:'SCANIA-R-500'})-[r:SUPPLIED_BY]->(s:Supplier {name:'Cummins Inc'})
+SET r.contract_value_eur = 380000000, r.lead_time_days = 90,
+    r.annual_volume_eur = 380000000, r.single_source = true,
+    r.risk_flags = ['SINGLE_SOURCE'];
+
+MATCH (p:Product {sku:'SCANIA-BUS-K'})-[r:SUPPLIED_BY]->(s:Supplier {name:'Cummins Inc'})
+SET r.contract_value_eur = 160000000, r.lead_time_days = 90,
+    r.annual_volume_eur = 160000000;
+
+// Knorr-Bremse Cummins Continential financial data
+MATCH (s:Supplier {name:'Continental AG'})
+SET s.annual_revenue_eur = 41400000000, s.employee_count = 200000,
+    s.founded_year = 1871, s.headquarters = 'Hannover, DE';
+
+MATCH (p:Product {sku:'SCANIA-R-500'})-[r:SUPPLIED_BY]->(s:Supplier {name:'Continental AG'})
+SET r.contract_value_eur = 295000000, r.lead_time_days = 60,
+    r.annual_volume_eur = 295000000;
+
+// ---- Disruption event: Garrett Motion bankruptcy 2020 ----
+MERGE (evt5:Event {name:'Garrett Motion Chapter 11 Bankruptcy 2020',
+  date:'2020-09-20', type:'FINANCIAL', affected_company:'Garrett Motion',
+  impact:'HIGH', demo:true,
+  description:'Turbocharger supplier Garrett filed for bankruptcy due to Honeywell asbestos liabilities; emerged 2021 as independent co.',
+  resolution:'Emerged from bankruptcy April 2021; supply continuity maintained',
+  lesson:'Single-source turbocharger risk — qualify BorgWarner as alternative'});
+
+MATCH (s:Supplier {name:'Garrett Motion'}), (e:Event {name:'Garrett Motion Chapter 11 Bankruptcy 2020'})
+MERGE (s)-[:AFFECTED_BY {demo:true}]->(e);
+
+// ---- Disruption event: TimkenSteel plant fire 2019 ----
+MERGE (evt6:Event {name:'TimkenSteel Harrison Plant Fire 2019',
+  date:'2019-11-12', type:'OPERATIONAL', affected_company:'TimkenSteel Corporation',
+  impact:'MEDIUM', demo:true,
+  description:'Electrical fire at Harrison, OH electric arc furnace — 3-week production halt',
+  lesson:'Single-source SBQ steel risk — dual-source with Ovako or Saarstahl'});
+
+MATCH (s:Supplier {name:'TimkenSteel Corporation'}), (e:Event {name:'TimkenSteel Harrison Plant Fire 2019'})
+MERGE (s)-[:AFFECTED_BY {demo:true}]->(e);
+
+// ============================================================
+// VERIFICATION (v5 — extended)
+// MATCH (n) WHERE n.demo = true RETURN labels(n)[0] AS type, count(n) AS cnt ORDER BY cnt DESC;
+// Expected: Supplier ~47+, RawMaterial ~21, Certificate ~13, Event ~6, Product ~5, Company ~6
 //
-// Check financial data loaded:
-// MATCH (p)-[r:SUPPLIED_BY]->(s) WHERE r.contract_value_eur IS NOT NULL
-// RETURN p.name, s.name, r.contract_value_eur ORDER BY r.contract_value_eur DESC;
+// Full T1→T2→T3 depth check:
+// MATCH p=(prod:Product {sku:'SCANIA-R-500'})-[:SUPPLIED_BY|SOURCED_FROM*1..4]->(n)
+// WHERE prod.sku IS NOT NULL
+// RETURN length(p) AS depth, count(p) AS paths ORDER BY depth;
 //
-// Top contract: ZF Friedrichshafen €1.2B — single source, T1
+// Alternative supplier check:
+// MATCH (s1)-[:ALT_SOURCE]->(s2) RETURN s1.name, s2.name, s2.tags;
 // ============================================================

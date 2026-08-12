@@ -20,6 +20,7 @@ Kotaemon API (Gradio app on CT120:8501):
     The Gradio queue API is used for indexing.
 """
 import argparse
+import base64
 import json
 import os
 import sys
@@ -34,6 +35,9 @@ KOTAEMON_URL = os.getenv("KOTAEMON_URL",         "http://10.0.1.120:8501")
 BROWSERLESS  = os.getenv("BROWSERLESS_PROD_URL", "http://10.0.5.100:3500")
 LITELLM      = os.getenv("LITELLM_URL",          "http://10.0.2.205:4000")
 LITELLM_KEY  = os.getenv("LITELLM_KEY",          "")
+NEO4J_URL    = os.getenv("NEO4J_URL",            "http://10.0.1.114:7474")
+NEO4J_USER   = os.getenv("NEO4J_USER",           "neo4j")
+NEO4J_PASS   = os.getenv("NEO4J_PASS",           "")
 
 # Known supplier websites to scrape and ingest
 SUPPLIER_SITES = [
@@ -45,6 +49,15 @@ SUPPLIER_SITES = [
     ("Infineon Technologies","https://www.infineon.com/cms/en/about-infineon/company/"),
     ("Cummins Inc",         "https://www.cummins.com/company/our-story"),
     ("AMS Buttons BV",      "https://www.amsbuttons.nl"),
+    ("Dana Incorporated",   "https://www.dana.com/company/about-dana/"),
+    ("Knorr-Bremse AG",     "https://www.knorr-bremse.com/en/company/about-knorr-bremse/"),
+    ("Garrett Motion",      "https://www.garrettmotion.com/company/about-us/"),
+    ("Haldex AB",           "https://www.haldex.com/en/group/about-haldex/"),
+    ("TimkenSteel Corporation","https://www.timkensteel.com/company/who-we-are"),
+    ("Schaeffler Group",    "https://www.schaeffler.com/en/group/company/"),
+    ("LKAB",                "https://www.lkab.com/en/sustainability/"),
+    ("Vale SA",             "https://www.vale.com/en/sustainability"),
+    ("Glencore",            "https://www.glencore.com/who-we-are/about-glencore"),
 ]
 
 # Synthetic supplier profiles to ingest as text docs
@@ -185,6 +198,143 @@ Certifications: CFSI Conflict-Free, RBA CoC, ISO 14001
 ]
 
 
+# ── Neo4j helpers ────────────────────────────────────────────────────────────
+
+def _get_neo4j_pass() -> str:
+    global NEO4J_PASS
+    if NEO4J_PASS:
+        return NEO4J_PASS
+    # Try KeePass
+    try:
+        from pykeepass import PyKeePass
+        kp = PyKeePass("passwords.kdbx", password="SupplyChainBaby100!")
+        e = kp.find_entries(title="Neo4j", first=True)
+        if e:
+            NEO4J_PASS = e.password
+            return NEO4J_PASS
+    except Exception:
+        pass
+    # Try credentials file on CT114 via env hint
+    import getpass
+    NEO4J_PASS = getpass.getpass("Neo4j password: ")
+    return NEO4J_PASS
+
+
+def neo4j_query(cypher: str, params: dict = None) -> list[dict]:
+    pw = _get_neo4j_pass()
+    auth = base64.b64encode(f"{NEO4J_USER}:{pw}".encode()).decode()
+    payload = json.dumps({
+        "statements": [{"statement": cypher, "parameters": params or {}}]
+    }).encode()
+    req = urllib.request.Request(
+        f"{NEO4J_URL}/db/neo4j/tx/commit",
+        data=payload,
+        headers={"Content-Type": "application/json", "Authorization": f"Basic {auth}"},
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=30) as r:
+        data = json.loads(r.read())
+    if data.get("errors"):
+        raise RuntimeError(data["errors"][0]["message"])
+    cols = data["results"][0]["columns"]
+    return [dict(zip(cols, row["row"])) for row in data["results"][0]["data"]]
+
+
+def generate_neo4j_fact_sheet(name: str) -> str:
+    """Generate a supplier fact sheet dynamically from Neo4j graph data."""
+    try:
+        profiles = neo4j_query(
+            "MATCH (s:Supplier {name:$name}) RETURN s.tier AS tier, s.country AS country, "
+            "s.annual_revenue_eur AS rev, s.employee_count AS emp, s.founded_year AS founded, "
+            "s.headquarters AS hq, s.risk_flags AS flags, s.website AS website, s.state_owned AS soe",
+            {"name": name}
+        )
+        upstream = neo4j_query(
+            "MATCH (s:Supplier {name:$name})-[r:SOURCED_FROM]->(u) "
+            "RETURN coalesce(u.name,u.sku) AS uname, u.country AS ucountry, "
+            "r.component AS comp, r.contract_value_eur AS val, r.lead_time_days AS lead "
+            "LIMIT 15", {"name": name}
+        )
+        downstream = neo4j_query(
+            "MATCH (n)-[:SOURCED_FROM|SUPPLIED_BY]->(s:Supplier {name:$name}) "
+            "RETURN coalesce(n.name,n.sku) AS dname, labels(n)[0] AS dtype, "
+            "r.component AS comp LIMIT 10" if False else
+            "MATCH (n)-[r:SOURCED_FROM|SUPPLIED_BY]->(s:Supplier {name:$name}) "
+            "RETURN coalesce(n.name,n.sku) AS dname, labels(n)[0] AS dtype, r.component AS comp LIMIT 10",
+            {"name": name}
+        )
+        certs = neo4j_query(
+            "MATCH (s:Supplier {name:$name})-[:CERTIFIED_BY]->(c:Certificate) "
+            "RETURN c.name AS cert_name, c.issuer AS issuer, c.valid_until AS valid_until",
+            {"name": name}
+        )
+        events = neo4j_query(
+            "MATCH (s:Supplier {name:$name})-[:AFFECTED_BY]->(e:Event) "
+            "RETURN e.name AS ename, e.date AS date, e.impact AS impact, "
+            "e.description AS desc, e.lesson AS lesson ORDER BY e.date DESC",
+            {"name": name}
+        )
+    except Exception as exc:
+        return f"Fact sheet generation failed for {name}: {exc}"
+
+    p = profiles[0] if profiles else {}
+
+    def fmt_eur(n):
+        if not n: return "N/A"
+        if n >= 1e9: return f"€{n/1e9:.1f}B"
+        if n >= 1e6: return f"€{n/1e6:.0f}M"
+        return f"€{n:.0f}"
+
+    lines = [
+        f"SUPPLIER FACT SHEET — {name}",
+        f"Generated: {time.strftime('%Y-%m-%d')} UTC",
+        f"Source: UC4 Supply Chain Knowledge Graph",
+        "=" * 60, "",
+        f"Tier: {p.get('tier','N/A')}",
+        f"Country: {p.get('country','N/A')}",
+        f"Annual Revenue: {fmt_eur(p.get('rev'))}",
+        f"Employees: {p.get('emp',0):,}" if p.get('emp') else "Employees: N/A",
+        f"Founded: {p.get('founded','N/A')}",
+        f"HQ: {p.get('hq','N/A')}",
+        f"State-owned: {'Yes' if p.get('soe') else 'No'}",
+        f"Website: {p.get('website','N/A')}", "",
+    ]
+
+    if p.get("flags"):
+        lines += ["RISK FLAGS:", *[f"  - {f}" for f in p["flags"]], ""]
+
+    if certs:
+        lines += ["CERTIFICATIONS:"]
+        for c in certs:
+            lines.append(f"  - {c['cert_name']} ({c.get('issuer','?')}, valid until {c.get('valid_until','?')})")
+        lines.append("")
+
+    if upstream:
+        lines += ["UPSTREAM SUPPLY (sources from):"]
+        for u in upstream:
+            parts = [x for x in [u.get("comp"), fmt_eur(u.get("val")), f"{u.get('lead')}d" if u.get('lead') else None] if x]
+            lines.append(f"  - {u['uname']} ({u.get('ucountry','?')})" + (f": {', '.join(parts)}" if parts else ""))
+        lines.append("")
+
+    if downstream:
+        lines += ["DOWNSTREAM (supplies to):"]
+        for d in downstream:
+            lines.append(f"  - {d['dname']} [{d.get('dtype','?')}]" + (f": {d['comp']}" if d.get("comp") else ""))
+        lines.append("")
+
+    if events:
+        lines += ["DISRUPTION EVENTS:"]
+        for e in events:
+            lines.append(f"  [{e.get('date','?')}] {e['ename']} (Impact: {e.get('impact','?')})")
+            if e.get("desc"): lines.append(f"    {e['desc']}")
+            if e.get("lesson"): lines.append(f"    Lesson: {e['lesson']}")
+        lines.append("")
+
+    lines += ["=" * 60,
+              "Auto-generated from UC4 Neo4j graph. Verify against official supplier docs."]
+    return "\n".join(lines)
+
+
 def check_kotaemon() -> bool:
     """Return True if Kotaemon is reachable."""
     try:
@@ -280,6 +430,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Kotaemon Document Ingestor")
     parser.add_argument("--skip-scrape", action="store_true", help="Skip live website scraping")
     parser.add_argument("--dry-run",     action="store_true", help="List docs, don't upload")
+    parser.add_argument("--supplier",    help="Ingest only this specific supplier name")
+    parser.add_argument("--neo4j-only",  action="store_true", help="Only run Neo4j fact-sheet step")
     args = parser.parse_args()
 
     print(f"UC4 Kotaemon Ingestor — {KOTAEMON_URL}")
@@ -368,6 +520,34 @@ def main() -> None:
             else:
                 print("scrape failed"); failed += 1
             time.sleep(1)  # be polite
+
+    # 5. Neo4j-derived fact sheets for all graph suppliers
+    print("\n[5] Neo4j-derived supplier fact sheets:")
+    try:
+        cypher = "MATCH (s:Supplier) WHERE s.demo = true"
+        if args.supplier:
+            cypher += f" AND s.name = '{args.supplier}'"
+        cypher += " RETURN s.name AS name ORDER BY s.tier, s.name"
+        all_suppliers = neo4j_query(cypher)
+        print(f"  Found {len(all_suppliers)} suppliers in graph")
+        for row in all_suppliers:
+            sname = row["name"]
+            fname = sname.lower().replace(" ", "_").replace("/","_") + "_neo4j_factsheet.txt"
+            if args.dry_run:
+                print(f"  WOULD GENERATE+UPLOAD: {fname}")
+                continue
+            print(f"  {sname} ... ", end="", flush=True)
+            try:
+                fact_sheet = generate_neo4j_fact_sheet(sname)
+                ok = upload_to_kotaemon(fname, fact_sheet.encode("utf-8"))
+                if ok:
+                    print(f"OK ({len(fact_sheet)} chars)"); uploaded += 1
+                else:
+                    print("upload failed"); failed += 1
+            except Exception as exc:
+                print(f"ERROR: {exc}"); failed += 1
+    except Exception as exc:
+        print(f"  Neo4j unavailable: {exc} — skipping step 5")
 
     print(f"\n{'─'*60}")
     if args.dry_run:
