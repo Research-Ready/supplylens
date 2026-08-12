@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UC4 — Network Analytics</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; color: #e2e8f0; min-height: 100vh; }
+
+#header { background: #111420; border-bottom: 1px solid #1e2235; padding: 12px 20px; display: flex; align-items: center; gap: 16px; }
+#header h1 { font-size: 14px; font-weight: 700; color: #818cf8; }
+#header .sub { font-size: 11px; color: #4a5568; }
+.badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; background: rgba(129,140,248,0.15); color: #818cf8; border: 1px solid rgba(129,140,248,0.3); margin-left: auto; }
+
+/* KPI strip */
+#kpi { display: flex; background: #0d1019; border-bottom: 1px solid #1a1d2e; }
+.kpi { padding: 10px 20px; border-right: 1px solid #1a1d2e; }
+.kpi-v { font-size: 22px; font-weight: 700; }
+.kpi-l { font-size: 10px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.07em; }
+.kpi-v.blue { color: #818cf8; }
+.kpi-v.red  { color: #ef4444; }
+.kpi-v.orange { color: #f97316; }
+.kpi-v.green  { color: #34d399; }
+
+/* Grid layout */
+#grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto auto auto; gap: 12px; padding: 12px; }
+.card { background: #0d1019; border: 1px solid #1a1d2e; border-radius: 8px; overflow: hidden; }
+.card-head { padding: 10px 14px; border-bottom: 1px solid #1a1d2e; display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+.card-body { padding: 14px; }
+
+/* Full-width cards */
+.full { grid-column: 1 / -1; }
+
+/* Bar charts */
+.bar-wrap { display: flex; flex-direction: column; gap: 6px; }
+.bar-row { display: flex; align-items: center; gap: 8px; }
+.bar-label { font-size: 11px; color: #94a3b8; min-width: 160px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; }
+.bar-track { flex: 1; height: 14px; background: #1a1d2e; border-radius: 3px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+.bar-val { font-size: 10px; color: #64748b; min-width: 36px; text-align: right; }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+th { color: #64748b; text-align: left; padding: 4px 8px; border-bottom: 1px solid #1a1d2e; font-weight: 500; text-transform: uppercase; font-size: 10px; letter-spacing: 0.04em; }
+td { padding: 5px 8px; border-bottom: 1px solid rgba(26,29,46,0.5); color: #94a3b8; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(129,140,248,0.04); }
+.flag { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 600; margin: 1px; }
+.flag.crit { background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); }
+.flag.high { background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3); }
+.flag.med  { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+.flag.ok   { background: rgba(52,211,153,0.1); color: #34d399; border: 1px solid rgba(52,211,153,0.25); }
+
+/* HHI gauge */
+.hhi-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.hhi-label { font-size: 11px; color: #94a3b8; min-width: 120px; }
+.hhi-bar { flex: 1; height: 12px; background: #1a1d2e; border-radius: 2px; overflow: hidden; position: relative; }
+.hhi-fill { height: 100%; border-radius: 2px; }
+.hhi-val { font-size: 10px; min-width: 44px; text-align: right; }
+
+/* Path chain */
+.path-item { padding: 6px 0; border-bottom: 1px solid rgba(26,29,46,0.5); font-size: 11px; }
+.path-item:last-child { border-bottom: none; }
+.chain { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.chain-node { padding: 2px 7px; border-radius: 4px; font-size: 10px; }
+.chain-node.product  { background: rgba(129,140,248,0.15); color: #818cf8; }
+.chain-node.supplier { background: rgba(52,211,153,0.1); color: #34d399; }
+.chain-node.material { background: rgba(251,191,36,0.1); color: #fbbf24; }
+.chain-arrow { color: #4a5568; font-size: 10px; }
+.path-depth { font-size: 9px; color: #4a5568; margin-top: 3px; }
+
+/* Bottleneck severity dot */
+.sev-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+
+.btn { padding: 5px 12px; border-radius: 5px; border: 1px solid #1e2235; background: #141620; color: #64748b; font-size: 11px; cursor: pointer; }
+.btn:hover { border-color: #818cf8; color: #818cf8; }
+.btn.active { background: #1e2a4a; color: #818cf8; border-color: #3d4d80; }
+
+/* D3 network graph */
+#network-svg { width: 100%; height: 340px; }
+.node circle { stroke-width: 1.5; cursor: pointer; }
+.node text { font-size: 9px; fill: #94a3b8; pointer-events: none; }
+.link { stroke: #2a3050; stroke-width: 1; }
+.link.alt { stroke: #818cf8; stroke-dasharray: 4 3; stroke-width: 1.5; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>Network Analytics</h1>
+  <span class="sub">Supply Chain Graph Topology · Scania AB</span>
+  <span class="badge" id="neo4j-badge">DEMO DATA</span>
+</div>
+
+<div id="kpi">
+  <div class="kpi"><div class="kpi-v blue" id="kpi-nodes">—</div><div class="kpi-l">Nodes</div></div>
+  <div class="kpi"><div class="kpi-v blue" id="kpi-edges">—</div><div class="kpi-l">Edges</div></div>
+  <div class="kpi"><div class="kpi-v red"  id="kpi-bottlenecks">—</div><div class="kpi-l">Bottlenecks</div></div>
+  <div class="kpi"><div class="kpi-v orange" id="kpi-max-depth">—</div><div class="kpi-l">Max Depth</div></div>
+  <div class="kpi"><div class="kpi-v green" id="kpi-density">—</div><div class="kpi-l">Density</div></div>
+  <div class="kpi"><div class="kpi-v red" id="kpi-no-alt">—</div><div class="kpi-l">No Alternative</div></div>
+</div>
+
+<div id="grid">
+
+  <!-- Degree Centrality -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Degree Centrality — Top Nodes</span>
+      <div style="display:flex;gap:6px">
+        <button class="btn active" onclick="setCentralityMode('total')">Total</button>
+        <button class="btn" onclick="setCentralityMode('in')">In-degree</button>
+        <button class="btn" onclick="setCentralityMode('out')">Out-degree</button>
+      </div>
+    </div>
+    <div class="card-body"><div class="bar-wrap" id="centrality-bars"></div></div>
+  </div>
+
+  <!-- Bottleneck Detection -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Single-Point-of-Failure Bottlenecks</span>
+    </div>
+    <div class="card-body" style="overflow-y:auto;max-height:300px">
+      <table id="bottleneck-table">
+        <thead><tr><th>Supplier</th><th>Country</th><th>Score</th><th>Flags</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- HHI per Product -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Geographic Concentration (HHI) per Product</span>
+      <span style="font-size:10px;color:#4a5568">>0.35 = HIGH &gt;0.20 = MEDIUM</span>
+    </div>
+    <div class="card-body" id="hhi-body"></div>
+  </div>
+
+  <!-- Betweenness Centrality -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Betweenness Centrality (critical intermediaries)</span>
+    </div>
+    <div class="card-body"><div class="bar-wrap" id="betweenness-bars"></div></div>
+  </div>
+
+  <!-- Longest Paths -->
+  <div class="card full">
+    <div class="card-head">
+      <span class="card-title">Longest Supply Chain Paths (product → raw material)</span>
+    </div>
+    <div class="card-body" id="paths-body"></div>
+  </div>
+
+  <!-- Force graph -->
+  <div class="card full">
+    <div class="card-head">
+      <span class="card-title">Supply Chain Network Graph</span>
+      <div style="display:flex;gap:8px;font-size:10px;color:#4a5568;align-items:center">
+        <span style="color:#818cf8">■</span> Product
+        <span style="color:#34d399">■</span> Supplier T1
+        <span style="color:#a78bfa">■</span> T2
+        <span style="color:#fbbf24">■</span> T3+
+        <span style="color:#ef4444">■</span> RawMaterial
+        <span style="color:#818cf8;border-bottom:2px dashed #818cf8;padding-bottom:1px">- -</span> Alt Source
+      </div>
+    </div>
+    <svg id="network-svg"></svg>
+  </div>
+
+</div>
+
+<script>
+// ─── Demo data (matches graph_analyzer.py DEMO_NODES) ─────────────────────────
+const NODES = [
+  {id:"SCANIA-R-500", label:"Scania R500", type:"Product", country:"SE"},
+  {id:"SCANIA-L-340-BEV", label:"Scania L340 BEV", type:"Product", country:"SE"},
+  {id:"SCANIA-G-410", label:"Scania G410", type:"Product", country:"SE"},
+  {id:"SCANIA-ENG-DC09", label:"Scania DC09", type:"Product", country:"SE"},
+  {id:"BTN-001", label:"Button 12mm", type:"Product", country:"NL"},
+  // T1
+  {id:"ZF Friedrichshafen",  label:"ZF Friedrichshafen", type:"Supplier", tier:1, country:"DE"},
+  {id:"Bosch",               label:"Bosch",               type:"Supplier", tier:1, country:"DE"},
+  {id:"SSAB",                label:"SSAB",                type:"Supplier", tier:1, country:"SE"},
+  {id:"Michelin",            label:"Michelin",            type:"Supplier", tier:1, country:"FR"},
+  {id:"Dana Incorporated",   label:"Dana Inc.",           type:"Supplier", tier:1, country:"US"},
+  {id:"Cummins",             label:"Cummins",             type:"Supplier", tier:1, country:"US"},
+  {id:"Knorr-Bremse AG",    label:"Knorr-Bremse",       type:"Supplier", tier:1, country:"DE"},
+  {id:"Voith GmbH",          label:"Voith",               type:"Supplier", tier:1, country:"DE"},
+  {id:"CATL",                label:"CATL",                type:"Supplier", tier:1, country:"CN", flags:["GEOPOLITICAL_RISK","SINGLE_SOURCE"]},
+  {id:"Nidec Corporation",   label:"Nidec",               type:"Supplier", tier:1, country:"JP"},
+  {id:"ABB",                 label:"ABB",                 type:"Supplier", tier:1, country:"CH"},
+  {id:"Continental AG",      label:"Continental",         type:"Supplier", tier:1, country:"DE"},
+  {id:"Aptiv",               label:"Aptiv",               type:"Supplier", tier:1, country:"US", flags:["UKRAINE_CONFLICT_RISK"]},
+  {id:"Valeo",               label:"Valeo",               type:"Supplier", tier:1, country:"FR"},
+  {id:"Autoliv",             label:"Autoliv",             type:"Supplier", tier:1, country:"SE"},
+  {id:"AMS Buttons BV",      label:"AMS Buttons",         type:"Supplier", tier:1, country:"NL"},
+  // T2
+  {id:"Saarstahl AG",        label:"Saarstahl",           type:"Supplier", tier:2, country:"DE"},
+  {id:"Infineon Technologies",label:"Infineon",           type:"Supplier", tier:2, country:"DE"},
+  {id:"Sensata Technologies", label:"Sensata",            type:"Supplier", tier:2, country:"NL"},
+  {id:"LKAB",                label:"LKAB",                type:"Supplier", tier:2, country:"SE"},
+  {id:"TimkenSteel",         label:"TimkenSteel",         type:"Supplier", tier:2, country:"US"},
+  {id:"Eaton Corporation",   label:"Eaton",               type:"Supplier", tier:2, country:"IE"},
+  {id:"Parker Hannifin",     label:"Parker Hannifin",     type:"Supplier", tier:2, country:"US"},
+  {id:"Garrett Motion",      label:"Garrett Motion",      type:"Supplier", tier:2, country:"CH", flags:["FINANCIAL_RISK"]},
+  {id:"BorgWarner",          label:"BorgWarner",          type:"Supplier", tier:2, country:"US"},
+  {id:"Tenneco",             label:"Tenneco",             type:"Supplier", tier:2, country:"US"},
+  {id:"Haldex AB",           label:"Haldex",              type:"Supplier", tier:2, country:"SE"},
+  {id:"Schaeffler Group",    label:"Schaeffler",          type:"Supplier", tier:2, country:"DE"},
+  {id:"Umicore BM",          label:"Umicore",             type:"Supplier", tier:2, country:"BE"},
+  {id:"Shanshan",            label:"Shanshan",            type:"Supplier", tier:2, country:"CN", flags:["GEOPOLITICAL_RISK","UFLPA_LISTED"]},
+  {id:"STMicroelectronics",  label:"STMicro",             type:"Supplier", tier:2, country:"CH"},
+  {id:"TE Connectivity",     label:"TE Connectivity",     type:"Supplier", tier:2, country:"IE"},
+  {id:"Leoni AG",            label:"Leoni",               type:"Supplier", tier:2, country:"DE"},
+  {id:"Toray Industries",    label:"Toray",               type:"Supplier", tier:2, country:"JP"},
+  // T3
+  {id:"Ovako AB",            label:"Ovako",               type:"Supplier", tier:3, country:"SE"},
+  {id:"Honeywell PM",        label:"Honeywell PM",        type:"Supplier", tier:3, country:"US"},
+  {id:"Norilsk Nickel",      label:"Norilsk Nickel",      type:"Supplier", tier:3, country:"RU", flags:["SANCTIONS_OFAC","GEOPOLITICAL_RISK"]},
+  {id:"Eramet",              label:"Eramet",              type:"Supplier", tier:3, country:"FR"},
+  {id:"SQM",                 label:"SQM",                 type:"Supplier", tier:3, country:"CL", flags:["WATER_STRESS"]},
+  {id:"Albemarle",           label:"Albemarle",           type:"Supplier", tier:3, country:"US"},
+  {id:"Ganfeng Lithium",     label:"Ganfeng",             type:"Supplier", tier:3, country:"CN", flags:["GEOPOLITICAL_RISK","UFLPA_LISTED"]},
+  {id:"Codelco",             label:"Codelco",             type:"Supplier", tier:3, country:"CL"},
+  // RawMaterial
+  {id:"Plastic Pellets",     label:"Plastic Pellets",     type:"RawMaterial", country:"DE"},
+  {id:"Metal Pins",          label:"Metal Pins",          type:"RawMaterial", country:"CN"},
+  {id:"Iron Ore",            label:"Iron Ore",            type:"RawMaterial", country:"SE"},
+  {id:"Lithium Carbonate",   label:"Lithium Carbonate",   type:"RawMaterial", country:"CL"},
+  {id:"Nickel Sulfate",      label:"Nickel Sulfate",      type:"RawMaterial", country:"RU", flags:["SANCTIONS_OFAC"]},
+  {id:"Palladium",           label:"Palladium",           type:"RawMaterial", country:"RU", flags:["SANCTIONS_OFAC","SINGLE_SOURCE"]},
+  {id:"Copper Cathode",      label:"Copper Cathode",      type:"RawMaterial", country:"CL"},
+  {id:"Polysilicon",         label:"Polysilicon",         type:"RawMaterial", country:"CN", flags:["UFLPA_RISK"]},
+];
+
+const EDGES = [
+  // Products → T1
+  {s:"SCANIA-R-500", t:"ZF Friedrichshafen"},
+  {s:"SCANIA-R-500", t:"Bosch"},
+  {s:"SCANIA-R-500", t:"SSAB"},
+  {s:"SCANIA-R-500", t:"Michelin"},
+  {s:"SCANIA-R-500", t:"Dana Incorporated"},
+  {s:"SCANIA-R-500", t:"Cummins"},
+  {s:"SCANIA-R-500", t:"Knorr-Bremse AG"},
+  {s:"SCANIA-R-500", t:"Voith GmbH"},
+  {s:"SCANIA-R-500", t:"Continental AG"},
+  {s:"SCANIA-R-500", t:"Aptiv"},
+  {s:"SCANIA-R-500", t:"Valeo"},
+  {s:"SCANIA-R-500", t:"Autoliv"},
+  {s:"SCANIA-L-340-BEV", t:"CATL"},
+  {s:"SCANIA-L-340-BEV", t:"Nidec Corporation"},
+  {s:"SCANIA-L-340-BEV", t:"ABB"},
+  {s:"SCANIA-G-410", t:"Knorr-Bremse AG"},
+  {s:"SCANIA-G-410", t:"ZF Friedrichshafen"},
+  {s:"SCANIA-ENG-DC09", t:"Bosch"},
+  {s:"BTN-001", t:"AMS Buttons BV"},
+  // T1 → T2
+  {s:"ZF Friedrichshafen", t:"Saarstahl AG"},
+  {s:"ZF Friedrichshafen", t:"Schaeffler Group"},
+  {s:"Bosch", t:"Infineon Technologies"},
+  {s:"Bosch", t:"Sensata Technologies"},
+  {s:"SSAB", t:"LKAB"},
+  {s:"Dana Incorporated", t:"TimkenSteel"},
+  {s:"Dana Incorporated", t:"Eaton Corporation"},
+  {s:"Dana Incorporated", t:"Parker Hannifin"},
+  {s:"Cummins", t:"Garrett Motion"},
+  {s:"Cummins", t:"BorgWarner"},
+  {s:"Cummins", t:"Tenneco"},
+  {s:"Knorr-Bremse AG", t:"Haldex AB"},
+  {s:"CATL", t:"Umicore BM"},
+  {s:"CATL", t:"Shanshan"},
+  {s:"Continental AG", t:"STMicroelectronics"},
+  {s:"Aptiv", t:"TE Connectivity"},
+  {s:"Aptiv", t:"Leoni AG"},
+  {s:"Valeo", t:"STMicroelectronics"},
+  {s:"AMS Buttons BV", t:"Plastic Pellets"},
+  // T2 → T3/RawMaterial
+  {s:"Saarstahl AG", t:"Iron Ore"},
+  {s:"LKAB", t:"Iron Ore"},
+  {s:"Ovako AB", t:"Iron Ore"},
+  {s:"Haldex AB", t:"Ovako AB"},
+  {s:"Garrett Motion", t:"Honeywell PM"},
+  {s:"Umicore BM", t:"Norilsk Nickel"},
+  {s:"Shanshan", t:"Ganfeng Lithium"},
+  {s:"Umicore BM", t:"SQM"},
+  {s:"Norilsk Nickel", t:"Nickel Sulfate"},
+  {s:"SQM", t:"Lithium Carbonate"},
+  {s:"Ganfeng Lithium", t:"Lithium Carbonate"},
+  {s:"Albemarle", t:"Lithium Carbonate"},
+  {s:"Eramet", t:"Nickel Sulfate"},
+  {s:"STMicroelectronics", t:"Palladium"},
+  {s:"TE Connectivity", t:"Copper Cathode"},
+  {s:"Leoni AG", t:"Copper Cathode"},
+  {s:"Codelco", t:"Copper Cathode"},
+  {s:"Shanshan", t:"Polysilicon"},
+];
+
+const ALT_EDGES = [
+  {s:"CATL", t:"Samsung SDI", label:"ALT"},
+  {s:"Norilsk Nickel", t:"Eramet", label:"ALT"},
+  {s:"SQM", t:"Albemarle", label:"ALT"},
+  {s:"Ganfeng Lithium", t:"Albemarle", label:"ALT"},
+];
+
+// ─── Graph builder ─────────────────────────────────────────────────────────────
+function buildAdj(nodes, edges) {
+  const out = {}, inp = {};
+  nodes.forEach(n => { out[n.id] = []; inp[n.id] = []; });
+  edges.forEach(e => {
+    if (out[e.s]) out[e.s].push(e.t);
+    if (inp[e.t]) inp[e.t].push(e.s);
+  });
+  return {out, inp};
+}
+
+function bfsReachable(start, adj) {
+  const visited = new Set([start]);
+  const q = [start];
+  while (q.length) {
+    const u = q.shift();
+    (adj[u] || []).forEach(v => { if (!visited.has(v)) { visited.add(v); q.push(v); } });
+  }
+  return visited;
+}
+
+function computeDegree(nodes, out, inp) {
+  return nodes.map(n => ({
+    id: n.id, label: n.label,
+    out: (out[n.id] || []).length,
+    inp: (inp[n.id] || []).length,
+    total: (out[n.id] || []).length + (inp[n.id] || []).length,
+  })).sort((a,b) => b.total - a.total);
+}
+
+function computeBetweenness(nodes, out, inp, sampleFrac = 0.3) {
+  // BFS path sampling approximation
+  const scores = {};
+  nodes.forEach(n => scores[n.id] = 0);
+  const products = nodes.filter(n => n.type === "Product");
+  const leaves = nodes.filter(n => (out[n.id] || []).length === 0);
+  const sample = products.slice(0, Math.max(1, Math.ceil(products.length * sampleFrac)));
+
+  sample.forEach(src => {
+    leaves.forEach(dst => {
+      if (src.id === dst.id) return;
+      // BFS to find shortest path
+      const prev = {};
+      const q = [src.id];
+      const seen = new Set([src.id]);
+      let found = false;
+      while (q.length && !found) {
+        const u = q.shift();
+        (out[u] || []).forEach(v => {
+          if (!seen.has(v)) { seen.add(v); prev[v] = u; q.push(v); }
+          if (v === dst.id) found = true;
+        });
+      }
+      if (!found) return;
+      // Walk back path and increment intermediaries
+      let cur = dst.id;
+      while (prev[cur] && prev[cur] !== src.id) {
+        cur = prev[cur];
+        scores[cur] = (scores[cur] || 0) + 1;
+      }
+    });
+  });
+  return Object.entries(scores)
+    .map(([id, score]) => {
+      const n = nodes.find(x => x.id === id);
+      return {id, label: n ? n.label : id, score};
+    })
+    .filter(x => x.score > 0)
+    .sort((a,b) => b.score - a.score);
+}
+
+function computeHHI(nodes, out) {
+  const products = nodes.filter(n => n.type === "Product");
+  return products.map(p => {
+    const reachable = bfsReachable(p.id, out);
+    const suppliers = [...reachable].map(id => nodes.find(n => n.id === id)).filter(n => n && n.type === "Supplier");
+    const byCountry = {};
+    suppliers.forEach(s => { byCountry[s.country] = (byCountry[s.country] || 0) + 1; });
+    const total = suppliers.length || 1;
+    const hhi = Object.values(byCountry).reduce((acc, c) => acc + (c / total) ** 2, 0);
+    const level = hhi > 0.35 ? "HIGH" : hhi > 0.20 ? "MEDIUM" : "LOW";
+    return {product: p.label, sku: p.id, hhi: Math.round(hhi * 1000) / 1000, level, total};
+  });
+}
+
+function computeBottlenecks(nodes, out, inp, altEdges) {
+  const altSources = new Set(altEdges.map(e => e.s));
+  const nodeMap = {};
+  nodes.forEach(n => nodeMap[n.id] = n);
+
+  // How many products depend on this node (via reachability from products)
+  const productDeps = {};
+  nodes.filter(n => n.type === "Product").forEach(p => {
+    const r = bfsReachable(p.id, out);
+    r.forEach(id => { if (id !== p.id) productDeps[id] = (productDeps[id] || 0) + 1; });
+  });
+
+  return nodes
+    .filter(n => n.type === "Supplier")
+    .map(n => {
+      const inDeg = (inp[n.id] || []).length;
+      const outDeg = (out[n.id] || []).length;
+      const prodDep = productDeps[n.id] || 0;
+      const hasAlt = altSources.has(n.id);
+      const flags = n.flags || [];
+      const hasSingle = flags.includes("SINGLE_SOURCE");
+      const score = prodDep * 2 + (hasAlt ? 0 : 3) + (hasSingle ? 2 : 0) + inDeg;
+      return {id: n.id, label: n.label, country: n.country, flags, score, prodDep, hasAlt};
+    })
+    .filter(x => x.score >= 4)
+    .sort((a,b) => b.score - a.score)
+    .slice(0, 12);
+}
+
+function findLongestPaths(nodes, out) {
+  const nodeMap = {};
+  nodes.forEach(n => nodeMap[n.id] = n);
+  const paths = [];
+  const products = nodes.filter(n => n.type === "Product");
+
+  function dfs(node, path, visited) {
+    const neighbors = out[node] || [];
+    if (neighbors.length === 0 || neighbors.every(v => visited.has(v))) {
+      if (path.length > 2) paths.push([...path]);
+      return;
+    }
+    neighbors.forEach(v => {
+      if (!visited.has(v)) {
+        visited.add(v);
+        path.push(v);
+        dfs(v, path, visited);
+        path.pop();
+        visited.delete(v);
+      }
+    });
+  }
+
+  products.slice(0, 3).forEach(p => {
+    dfs(p.id, [p.id], new Set([p.id]));
+  });
+
+  return paths.sort((a,b) => b.length - a.length).slice(0, 8)
+    .map(p => p.map(id => {
+      const n = nodeMap[id];
+      return {id, label: n ? n.label : id, type: n ? n.type : "?"};
+    }));
+}
+
+// ─── Render functions ──────────────────────────────────────────────────────────
+let centralityMode = "total";
+let degreeData = [];
+
+function setCentralityMode(mode) {
+  centralityMode = mode;
+  document.querySelectorAll(".card-head button").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+  renderCentralityBars(degreeData);
+}
+
+function renderCentralityBars(data) {
+  const top = data.slice(0, 12);
+  const maxVal = Math.max(...top.map(d => d[centralityMode] || 0)) || 1;
+  const colors = {total: "#818cf8", inp: "#34d399", out: "#f97316"};
+  const el = document.getElementById("centrality-bars");
+  el.innerHTML = top.map(d => {
+    const val = d[centralityMode] || 0;
+    const pct = Math.round(val / maxVal * 100);
+    return `<div class="bar-row">
+      <div class="bar-label" title="${d.id}">${d.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${colors[centralityMode]}"></div></div>
+      <div class="bar-val">${val}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderBetweennessBars(data) {
+  const top = data.slice(0, 10);
+  const maxVal = Math.max(...top.map(d => d.score)) || 1;
+  document.getElementById("betweenness-bars").innerHTML = top.map(d => {
+    const pct = Math.round(d.score / maxVal * 100);
+    return `<div class="bar-row">
+      <div class="bar-label" title="${d.id}">${d.label}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:#a78bfa"></div></div>
+      <div class="bar-val">${d.score}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderHHI(data) {
+  const colMap = {HIGH: "#ef4444", MEDIUM: "#f97316", LOW: "#34d399"};
+  document.getElementById("hhi-body").innerHTML = data.map(d => {
+    const pct = Math.min(100, Math.round(d.hhi * 100 / 0.5 * 100));
+    return `<div class="hhi-row">
+      <div class="hhi-label" title="${d.sku}">${d.product}</div>
+      <div class="hhi-bar"><div class="hhi-fill" style="width:${pct}%;background:${colMap[d.level]}"></div></div>
+      <div class="hhi-val" style="color:${colMap[d.level]}">${d.hhi} <span style="font-size:9px">(${d.level})</span></div>
+    </div>`;
+  }).join("");
+}
+
+function renderBottlenecks(data) {
+  const tbody = document.querySelector("#bottleneck-table tbody");
+  tbody.innerHTML = data.map(d => {
+    const sev = d.score >= 10 ? ["crit","●"] : d.score >= 7 ? ["high","●"] : ["med","●"];
+    const altBadge = d.hasAlt ? "" : `<span class="flag crit">NO ALT</span>`;
+    const flags = (d.flags || []).map(f => {
+      const cls = f.includes("SANC") ? "crit" : f.includes("GEO") || f.includes("UFLPA") ? "high" : "med";
+      return `<span class="flag ${cls}">${f.replace("_"," ")}</span>`;
+    }).join("");
+    return `<tr>
+      <td><span class="sev-dot" style="background:${sev[0]==="crit"?"#ef4444":sev[0]==="high"?"#f97316":"#fbbf24"}"></span>${d.label}</td>
+      <td>${d.country}</td>
+      <td style="color:${sev[0]==="crit"?"#ef4444":sev[0]==="high"?"#f97316":"#fbbf24"};font-weight:600">${d.score}</td>
+      <td>${altBadge}${flags}</td>
+    </tr>`;
+  }).join("");
+}
+
+function renderPaths(paths) {
+  const nodeMap = {};
+  NODES.forEach(n => nodeMap[n.id] = n);
+  document.getElementById("paths-body").innerHTML = paths.map((path, i) => {
+    const chain = path.map(n => {
+      const cls = n.type === "Product" ? "product" : n.type === "RawMaterial" ? "material" : "supplier";
+      return `<span class="chain-node ${cls}">${n.label}</span>`;
+    }).join('<span class="chain-arrow"> → </span>');
+    return `<div class="path-item">
+      <div class="chain">${chain}</div>
+      <div class="path-depth">Depth ${path.length - 1}</div>
+    </div>`;
+  }).join("");
+}
+
+// ─── D3 Force graph ────────────────────────────────────────────────────────────
+function renderForceGraph() {
+  const svg = d3.select("#network-svg");
+  const W = document.getElementById("network-svg").clientWidth;
+  const H = 340;
+  svg.attr("viewBox", `0 0 ${W} ${H}`);
+
+  const color = n => {
+    if (n.type === "Product") return "#818cf8";
+    if (n.type === "RawMaterial") return "#ef4444";
+    const t = n.tier || 1;
+    return t === 1 ? "#34d399" : t === 2 ? "#a78bfa" : "#fbbf24";
+  };
+  const radius = n => n.type === "Product" ? 8 : n.type === "RawMaterial" ? 5 : 6;
+
+  const allLinks = [
+    ...EDGES.map(e => ({...e, alt: false})),
+    ...ALT_EDGES.map(e => ({...e, alt: true})),
+  ];
+  const nodeIds = new Set(NODES.map(n => n.id));
+  const validLinks = allLinks.filter(e => nodeIds.has(e.s) && nodeIds.has(e.t));
+
+  const sim = d3.forceSimulation(NODES)
+    .force("link", d3.forceLink(validLinks).id(d => d.id).distance(55).strength(0.6))
+    .force("charge", d3.forceManyBody().strength(-120))
+    .force("center", d3.forceCenter(W / 2, H / 2))
+    .force("collision", d3.forceCollide(14));
+
+  const g = svg.append("g");
+
+  // Zoom
+  svg.call(d3.zoom().scaleExtent([0.3, 3]).on("zoom", e => g.attr("transform", e.transform)));
+
+  // Links
+  const link = g.append("g").selectAll("line")
+    .data(validLinks).join("line")
+    .attr("class", d => "link" + (d.alt ? " alt" : ""));
+
+  // Nodes
+  const node = g.append("g").selectAll("g")
+    .data(NODES).join("g")
+    .attr("class", "node")
+    .call(d3.drag()
+      .on("start", (e, d) => { if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+      .on("drag",  (e, d) => { d.fx = e.x; d.fy = e.y; })
+      .on("end",   (e, d) => { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; }));
+
+  node.append("circle")
+    .attr("r", d => radius(d))
+    .attr("fill", d => color(d))
+    .attr("fill-opacity", 0.85)
+    .attr("stroke", d => color(d))
+    .attr("stroke-opacity", 0.5);
+
+  node.append("text")
+    .attr("dy", d => radius(d) + 9)
+    .attr("text-anchor", "middle")
+    .text(d => d.label.split(" ")[0]);
+
+  sim.on("tick", () => {
+    link.attr("x1", d => d.source.x).attr("y1", d => d.source.y)
+        .attr("x2", d => d.target.x).attr("y2", d => d.target.y);
+    node.attr("transform", d => `translate(${d.x},${d.y})`);
+  });
+}
+
+// ─── KPI update ───────────────────────────────────────────────────────────────
+function updateKPIs(degree, bottlenecks, paths, hhi) {
+  document.getElementById("kpi-nodes").textContent = NODES.length;
+  document.getElementById("kpi-edges").textContent = EDGES.length + ALT_EDGES.length;
+  document.getElementById("kpi-bottlenecks").textContent = bottlenecks.length;
+  const maxDepth = paths.length ? Math.max(...paths.map(p => p.length - 1)) : 0;
+  document.getElementById("kpi-max-depth").textContent = maxDepth;
+  const density = (EDGES.length / (NODES.length * (NODES.length - 1)));
+  document.getElementById("kpi-density").textContent = density.toFixed(4);
+  const noAlt = bottlenecks.filter(b => !b.hasAlt).length;
+  document.getElementById("kpi-no-alt").textContent = noAlt;
+}
+
+// ─── Try Neo4j via SSH tunnel ─────────────────────────────────────────────────
+async function tryNeo4j() {
+  // SSH tunnel: ssh -f -L 17474:localhost:7474 -N root@10.0.1.114
+  try {
+    const token = btoa("neo4j:" + (localStorage.getItem("neo4j_pass") || ""));
+    const q = `MATCH (n) RETURN count(n) AS c`;
+    const r = await fetch("http://localhost:17474/db/neo4j/tx/commit", {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "Authorization": "Basic " + token},
+      body: JSON.stringify({statements: [{statement: q}]}),
+      signal: AbortSignal.timeout(3000),
+    });
+    if (r.ok) {
+      document.getElementById("neo4j-badge").textContent = "LIVE DATA";
+      document.getElementById("neo4j-badge").style.color = "#34d399";
+    }
+  } catch {}
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded", () => {
+  const {out, inp} = buildAdj(NODES, EDGES);
+
+  degreeData = computeDegree(NODES, out, inp);
+  renderCentralityBars(degreeData);
+
+  const betweenness = computeBetweenness(NODES, out, inp, 0.5);
+  renderBetweennessBars(betweenness);
+
+  const hhi = computeHHI(NODES, out);
+  renderHHI(hhi);
+
+  const bottlenecks = computeBottlenecks(NODES, out, inp, ALT_EDGES);
+  renderBottlenecks(bottlenecks);
+
+  const paths = findLongestPaths(NODES, out);
+  renderPaths(paths);
+
+  updateKPIs(degreeData, bottlenecks, paths, hhi);
+
+  renderForceGraph();
+
+  tryNeo4j();
+});
+</script>
+</body>
+</html>

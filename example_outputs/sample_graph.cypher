@@ -1304,3 +1304,246 @@ MERGE (p)-[:SUPPLIED_BY {component:'Engine braking system',
 // RETURN [node IN nodes(path) | coalesce(node.name,node.sku)] AS chain, length(path) AS depth
 // ORDER BY depth;
 // ============================================================
+
+// ============================================================
+// V7 — AUTOMOTIVE ELECTRONICS CHAIN
+// Continental, Aptiv, Valeo, Autoliv → STMicro, TE Connectivity,
+// Leoni, Toray → Palladium(RU), Copper(CL), Polysilicon(CN)
+// ============================================================
+
+// ── T1: Automotive electronics & safety suppliers ──────────────────────────────
+MERGE (cont:Supplier {name:'Continental AG', country:'DE', tier:1,
+  website:'https://www.continental.com',
+  revenue_eur:41400000000, employees:190000,
+  risk_flags:[], demo:true});
+
+MERGE (aptiv:Supplier {name:'Aptiv', country:'US', tier:1,
+  website:'https://www.aptiv.com',
+  revenue_eur:17900000000, employees:180000,
+  risk_flags:['UKRAINE_CONFLICT_RISK'], demo:true,
+  note:'Major wiring harness plant in Lviv, Ukraine (active conflict zone)'});
+
+MERGE (valeo:Supplier {name:'Valeo', country:'FR', tier:1,
+  website:'https://www.valeo.com',
+  revenue_eur:20000000000, employees:103000,
+  risk_flags:[], demo:true});
+
+MERGE (autoliv:Supplier {name:'Autoliv', country:'SE', tier:1,
+  website:'https://www.autoliv.com',
+  revenue_eur:9000000000, employees:71000,
+  risk_flags:[], demo:true});
+
+// ── T2: Component manufacturers ────────────────────────────────────────────────
+MERGE (stm:Supplier {name:'STMicroelectronics', country:'CH', tier:2,
+  website:'https://www.st.com',
+  revenue_eur:14300000000, employees:50000,
+  risk_flags:[], cbam_applicable:false, demo:true});
+
+MERGE (te:Supplier {name:'TE Connectivity', country:'IE', tier:2,
+  website:'https://www.te.com',
+  revenue_eur:15600000000, employees:89000,
+  risk_flags:[], demo:true});
+
+MERGE (leoni:Supplier {name:'Leoni AG', country:'DE', tier:2,
+  website:'https://www.leoni.com',
+  revenue_eur:5400000000, employees:100000,
+  risk_flags:['UKRAINE_CONFLICT_RISK'], demo:true,
+  note:'Cable production in Ukraine; financial restructuring 2023'});
+
+MERGE (toray:Supplier {name:'Toray Industries', country:'JP', tier:2,
+  website:'https://www.toray.com',
+  revenue_eur:17000000000, employees:50000,
+  risk_flags:[], demo:true});
+
+MERGE (molex:Supplier {name:'Molex', country:'US', tier:2,
+  website:'https://www.molex.com',
+  revenue_eur:4000000000, employees:40000,
+  risk_flags:[], demo:true});
+
+// ── T3: Raw material sources ───────────────────────────────────────────────────
+MERGE (codelco:Supplier {name:'Codelco', country:'CL', tier:3,
+  website:'https://www.codelco.com',
+  revenue_eur:12000000000, employees:28000,
+  risk_flags:[], demo:true,
+  note:'Largest copper producer globally; state-owned Chilean'});
+
+// Palladium — critical for catalytic converters + automotive sensors
+MERGE (norilsk_pd:RawMaterial {name:'Palladium', origin:'RU',
+  material_type:'Precious Metal', cbam_applicable:false,
+  risk_flags:['SANCTIONS_OFAC','GEOPOLITICAL_RISK','SINGLE_SOURCE'],
+  note:'~40% world supply from Norilsk Nickel (sanctioned entity)',
+  cbam_co2_intensity_kg_per_tonne:0,
+  demo:true});
+
+MERGE (copper:RawMaterial {name:'Copper Cathode', origin:'CL',
+  material_type:'Metal', cbam_applicable:true,
+  cbam_co2_intensity_kg_per_tonne:2200,
+  risk_flags:[], demo:true});
+
+MERGE (polysil:RawMaterial {name:'Polysilicon', origin:'CN',
+  material_type:'Semiconductor Material',
+  risk_flags:['GEOPOLITICAL_RISK','UFLPA_RISK'],
+  note:'~85% global polysilicon from China; UFLPA enforcement active',
+  demo:true});
+
+MERGE (cfcomposite:RawMaterial {name:'Carbon Fibre Composite', origin:'JP',
+  material_type:'Advanced Composite',
+  risk_flags:[], demo:true});
+
+MERGE (bisphenol:RawMaterial {name:'Bisphenol-A', origin:'DE',
+  material_type:'Chemical', cbam_applicable:false,
+  risk_flags:[], demo:true});
+
+// ── Product relationships: R-500 → automotive electronics ─────────────────────
+MATCH (p:Product {sku:'SCANIA-R-500'}), (s:Supplier {name:'Continental AG'})
+MERGE (p)-[:SUPPLIED_BY {component:'ADAS sensors, body control modules, telematics',
+  contract_value_eur:180000000, lead_time_days:60, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-R-500'}), (s:Supplier {name:'Aptiv'})
+MERGE (p)-[:SUPPLIED_BY {component:'Wiring harness, high-voltage connectors',
+  contract_value_eur:95000000, lead_time_days:45,
+  risk_note:'Lviv plant disruption risk', demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-R-500'}), (s:Supplier {name:'Valeo'})
+MERGE (p)-[:SUPPLIED_BY {component:'Climate control, lighting, wipers, ADAS cameras',
+  contract_value_eur:120000000, lead_time_days:50, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-R-500'}), (s:Supplier {name:'Autoliv'})
+MERGE (p)-[:SUPPLIED_BY {component:'Airbags, seatbelts, active safety systems',
+  contract_value_eur:75000000, lead_time_days:40, demo:true}]->(s);
+
+// G-410 also uses Continental ADAS
+MATCH (p:Product {sku:'SCANIA-G-410'}), (s:Supplier {name:'Continental AG'})
+MERGE (p)-[:SUPPLIED_BY {component:'Safety ECUs, fleet management sensors',
+  contract_value_eur:65000000, demo:true}]->(s);
+
+// ── T1 → T2 sourcing relationships ────────────────────────────────────────────
+MATCH (t1:Supplier {name:'Continental AG'}), (t2:Supplier {name:'STMicroelectronics'})
+MERGE (t1)-[:SOURCED_FROM {component:'Microcontrollers (SPC58x, SPC57x), MEMS sensors',
+  volume_units_year:2000000, lead_time_days:16, demo:true}]->(t2);
+
+MATCH (t1:Supplier {name:'Continental AG'}), (t2:Supplier {name:'TE Connectivity'})
+MERGE (t1)-[:SOURCED_FROM {component:'Automotive connectors, sensor housings',
+  volume_units_year:5000000, demo:true}]->(t2);
+
+MATCH (t1:Supplier {name:'Aptiv'}), (t2:Supplier {name:'TE Connectivity'})
+MERGE (t1)-[:SOURCED_FROM {component:'High-voltage connectors, sealing systems',
+  volume_units_year:8000000, demo:true}]->(t2);
+
+MATCH (t1:Supplier {name:'Aptiv'}), (t2:Supplier {name:'Leoni AG'})
+MERGE (t1)-[:SOURCED_FROM {component:'Cable sets, wiring harness sub-assemblies',
+  note:'Leoni Lviv plant — conflict zone dependency', demo:true}]->(t2);
+
+MATCH (t1:Supplier {name:'Aptiv'}), (t2:Supplier {name:'Molex'})
+MERGE (t1)-[:SOURCED_FROM {component:'Micro-connectors, PCB assemblies', demo:true}]->(t2);
+
+MATCH (t1:Supplier {name:'Valeo'}), (t2:Supplier {name:'STMicroelectronics'})
+MERGE (t1)-[:SOURCED_FROM {component:'ADAS image sensor processors, power ICs', demo:true}]->(t2);
+
+MATCH (t1:Supplier {name:'Autoliv'}), (t2:Supplier {name:'Toray Industries'})
+MERGE (t1)-[:SOURCED_FROM {component:'Airbag nylon fabric (nylon 6,6 substrate)', demo:true}]->(t2);
+
+// ── T2 → T3/Raw material sourcing ─────────────────────────────────────────────
+MATCH (t2:Supplier {name:'STMicroelectronics'}), (r:RawMaterial {name:'Palladium'})
+MERGE (t2)-[:SOURCED_FROM {component:'Palladium wire bonds, catalytic metallisation',
+  volume_tonnes_year:0.8,
+  risk_note:'~40% supply from sanctioned Norilsk — STM actively diversifying', demo:true}]->(r);
+
+MATCH (t2:Supplier {name:'STMicroelectronics'}), (r:RawMaterial {name:'Polysilicon'})
+MERGE (t2)-[:SOURCED_FROM {component:'EPI wafer substrate (solar-grade to semi-grade)',
+  uflpa_enforcement_risk:true, demo:true}]->(r);
+
+MATCH (t2:Supplier {name:'TE Connectivity'}), (r:RawMaterial {name:'Copper Cathode'})
+MERGE (t2)-[:SOURCED_FROM {component:'Drawn copper wire for connector pins',
+  volume_tonnes_year:45000, demo:true}]->(r);
+
+MATCH (t2:Supplier {name:'Leoni AG'}), (r:RawMaterial {name:'Copper Cathode'})
+MERGE (t2)-[:SOURCED_FROM {component:'Cable wire core (automotive-grade oxygen-free copper)',
+  volume_tonnes_year:85000, demo:true}]->(r);
+
+MATCH (t2:Supplier {name:'Toray Industries'}), (r:RawMaterial {name:'Carbon Fibre Composite'})
+MERGE (t2)-[:SOURCED_FROM {component:'T800 PAN-based carbon fibre (airbag reinforcement)', demo:true}]->(r);
+
+MATCH (t2:Supplier {name:'Molex'}), (r:RawMaterial {name:'Copper Cathode'})
+MERGE (t2)-[:SOURCED_FROM {component:'Connector terminal stamping', demo:true}]->(r);
+
+// Codelco mines the copper for TE, Leoni, Molex
+MATCH (mine:Supplier {name:'Codelco'}), (r:RawMaterial {name:'Copper Cathode'})
+MERGE (mine)-[:SOURCED_FROM {component:'Mined, refined copper cathode (Escondida, Collahuasi)',
+  volume_tonnes_year:1700000, demo:true}]->(r);
+
+// ── ALT_SOURCE: alternatives to Ukraine-risk Leoni ─────────────────────────────
+MATCH (t1:Supplier {name:'Aptiv'}), (alt:Supplier {name:'TE Connectivity'})
+MERGE (t1)-[:ALT_SOURCE {reason:'Leoni Ukraine disruption contingency',
+  capacity_pct:60, lead_weeks_to_qualify:26, demo:true}]->(alt);
+
+// ── Supply chain event: Palladium sanctions risk ───────────────────────────────
+MERGE (ev_pd:Event {
+  id:'EVT-PALLADIUM-SANC-2024',
+  title:'OFAC Palladium Supply Chain Advisory',
+  date:'2024-03-01',
+  type:'SANCTIONS',
+  description:'US Treasury OFAC advisory: Norilsk-origin palladium poses sanctions evasion risk. Semiconductor and automotive firms required to screen Tier 3 sources.',
+  affected_skus:['SCANIA-R-500','SCANIA-G-410'],
+  revenue_at_risk_eur:255000000,
+  demo:true
+});
+
+MATCH (ev:Event {id:'EVT-PALLADIUM-SANC-2024'}), (r:RawMaterial {name:'Palladium'})
+MERGE (ev)-[:AFFECTS]->(r);
+
+// ── Supply chain event: Ukraine wiring harness disruption ─────────────────────
+MERGE (ev_ua:Event {
+  id:'EVT-UKRAINE-WIRING-2022',
+  title:'Ukraine Wiring Harness Plant Disruption',
+  date:'2022-02-25',
+  type:'GEOPOLITICAL',
+  description:'Russian invasion of Ukraine caused immediate shutdown of wiring harness plants in Lviv and Kharkiv (Aptiv, Leoni, Fujikura). European automotive OEMs lost 30-40% wiring harness supply within weeks.',
+  affected_skus:['SCANIA-R-500','SCANIA-G-410'],
+  revenue_at_risk_eur:1800000000,
+  demo:true
+});
+
+MATCH (ev:Event {id:'EVT-UKRAINE-WIRING-2022'}), (s:Supplier {name:'Aptiv'})
+MERGE (ev)-[:AFFECTS]->(s);
+MATCH (ev:Event {id:'EVT-UKRAINE-WIRING-2022'}), (s:Supplier {name:'Leoni AG'})
+MERGE (ev)-[:AFFECTS]->(s);
+
+// ── Supply chain event: Automotive chip shortage 2021-2023 ────────────────────
+MERGE (ev_chip:Event {
+  id:'EVT-AUTO-CHIP-SHORTAGE-2021',
+  title:'Global Automotive Semiconductor Shortage',
+  date:'2021-01-01',
+  type:'SHORTAGE',
+  description:'COVID-19 demand surge + fab capacity reallocation triggered 12-26 week lead time increases for automotive MCUs (NXP, STMicro, Renesas, Infineon). Scania production cut 15% in H2 2021.',
+  affected_skus:['SCANIA-R-500','SCANIA-G-410','SCANIA-ENG-DC09'],
+  revenue_at_risk_eur:3500000000,
+  demo:true
+});
+
+MATCH (ev:Event {id:'EVT-AUTO-CHIP-SHORTAGE-2021'}), (s:Supplier {name:'STMicroelectronics'})
+MERGE (ev)-[:AFFECTS]->(s);
+MATCH (ev:Event {id:'EVT-AUTO-CHIP-SHORTAGE-2021'}), (s:Supplier {name:'Infineon Technologies'})
+MERGE (ev)-[:AFFECTS]->(s);
+
+// ============================================================
+// VERIFICATION (v7)
+// Products: 8 (unchanged)
+// Suppliers: ~72+ (added: Continental, Aptiv, Valeo, Autoliv,
+//            STMicro, TE Connectivity, Leoni, Toray, Molex, Codelco)
+// Raw materials: ~30+ (added: Palladium, Copper Cathode, Polysilicon,
+//                Carbon Fibre Composite, Bisphenol-A)
+// Events: 12 (added: OFAC Palladium, Ukraine Wiring, Auto Chip Shortage)
+//
+// Key new risk vectors:
+//   Aptiv: 40% wiring harness in Ukraine conflict zone
+//   Palladium (STMicro): 40% from sanctioned Norilsk → SANCTIONS_OFAC
+//   Polysilicon (STMicro): UFLPA enforcement active, ~85% from China
+//   Leoni AG: Ukraine plant + financial restructuring 2023
+//
+// Electronics chain query:
+// MATCH path=(p:Product {sku:'SCANIA-R-500'})-[:SUPPLIED_BY|SOURCED_FROM*1..4]->(n)
+// WHERE n.name IN ['Continental AG','Aptiv','STMicroelectronics','Palladium','Polysilicon']
+// RETURN [node IN nodes(path) | coalesce(node.name,node.sku)] AS chain, length(path) AS depth
+// ORDER BY depth;
+// ============================================================

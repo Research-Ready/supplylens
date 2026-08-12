@@ -1,10 +1,12 @@
 """UC4 Supply Chain Enrichment Agent — LangGraph StateGraph (CT119 :8000)
-Graph: initialize → scrape → extract → kotaemon_rag → embed → infer → merge → (loop)
+Graph: initialize → scrape → extract → kotaemon_rag → embed → infer → compliance_check → merge → (loop)
 Trigger: POST /runs {"assistant_id": "supply-chain-enrichment",
                      "input": {"product": "...", "company": "...", "depth": 3}}
 
 Kotaemon (CT120:8501) is queried after extraction — RAG over ingested supplier PDFs
 augments the scraped text before LLM inference. Fails gracefully if unreachable.
+compliance_check runs after infer: screens each inferred node for sanctions, UFLPA,
+CBAM applicability, and appends risk_flags before merge.
 """
 import json
 import logging
@@ -19,6 +21,8 @@ from langgraph.graph import StateGraph, END
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from neo4j_client import Neo4jClient
+from kotaemon_client import KotaemonClient
+from sanctions_screener import screen_supplier
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -148,72 +152,18 @@ KOTAEMON_RAG_QUERY = (
     "and any risk factors mentioned in documents."
 )
 
-
-def _kotaemon_ask(question: str, timeout: int = 20) -> str:
-    """Query Kotaemon RAG via Gradio queue API. Returns answer text or empty string."""
-    # Gradio queue API: POST /queue/join, then poll /queue/status/<event_id>
-    import time
-    try:
-        join_body = json.dumps({
-            "data": [question, None],   # [message, conversation_history]
-            "event_data": None,
-            "fn_index": 0,
-            "session_hash": uuid.uuid4().hex[:8],
-        }).encode()
-        join_req = urllib.request.Request(
-            f"{KOTAEMON}/queue/join",
-            data=join_body,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(join_req, timeout=10) as r:
-            join_data = json.loads(r.read())
-        event_id = join_data.get("event_id")
-        if not event_id:
-            return ""
-
-        # Poll status
-        deadline = time.time() + timeout
-        while time.time() < deadline:
-            status_req = urllib.request.Request(
-                f"{KOTAEMON}/queue/status",
-                headers={"Content-Type": "application/json"},
-            )
-            with urllib.request.urlopen(status_req, timeout=10) as r:
-                status = json.loads(r.read())
-            if status.get("status") == "complete":
-                output = status.get("output", {})
-                data = output.get("data", [])
-                if data:
-                    # data[0] is typically the answer string or [[user,bot]] pairs
-                    answer = data[0]
-                    if isinstance(answer, list) and answer:
-                        # chat history format: [[user, bot], ...]
-                        last = answer[-1]
-                        return last[1] if isinstance(last, list) and len(last) > 1 else str(last)
-                    return str(answer)
-                return ""
-            time.sleep(1)
-        return ""
-    except Exception as exc:
-        log.debug("kotaemon_rag: query failed (%s)", exc)
-        return ""
+_ktm = KotaemonClient(KOTAEMON)
 
 
 def kotaemon_rag(state: EnrichState) -> dict:
     """Augment extracted texts with Kotaemon RAG answers over ingested supplier docs.
 
-    For each supplier in texts, query Kotaemon for additional supply chain context.
-    Appends RAG context to existing text. Fails silently if Kotaemon unreachable.
+    Uses KotaemonClient (with circuit breaker). Fails silently if CT120 unreachable.
     """
     if not state["texts"]:
         return {}
 
-    # Quick reachability check
-    try:
-        req = urllib.request.Request(f"{KOTAEMON}/", method="HEAD")
-        urllib.request.urlopen(req, timeout=5)
-    except Exception:
+    if not _ktm.health():
         log.info("kotaemon_rag: CT120 unreachable — skipping RAG augmentation")
         return {}
 
@@ -223,7 +173,7 @@ def kotaemon_rag(state: EnrichState) -> dict:
     for name in list(state["texts"].keys()):
         question = KOTAEMON_RAG_QUERY.format(company=name)
         try:
-            rag_answer = _kotaemon_ask(question, timeout=25)
+            rag_answer = _ktm.query(question, query_timeout=25)
             if rag_answer and len(rag_answer) > 50:
                 augmented[name] = state["texts"][name] + "\n\n[Kotaemon RAG]\n" + rag_answer
                 log.info("kotaemon_rag: %s → +%d chars from RAG", name, len(rag_answer))
@@ -417,6 +367,58 @@ def infer(state: EnrichState) -> dict:
     return {"inferred": inferred, "stats": stats, "errors": errors}
 
 
+CBAM_SECTORS = {"steel", "aluminium", "cement", "fertiliser", "electricity", "battery"}
+UFLPA_COUNTRIES = {"CN"}
+UFLPA_SECTORS = {"battery", "solar", "polysilicon", "cotton", "semiconductor"}
+
+
+def compliance_check(state: EnrichState) -> dict:
+    """Screen each inferred node for sanctions, UFLPA, and CBAM risk flags.
+
+    Appends risk_flags to each node in-place. Non-blocking — errors add to state.
+    """
+    if not state["inferred"]:
+        return {}
+
+    errors = list(state["errors"])
+    updated: List[Dict] = []
+
+    for node in state["inferred"]:
+        flags = list(node.get("risk_flags") or [])
+        name    = node.get("name", "")
+        country = (node.get("country") or "XX")[:2].upper()
+        comp    = (node.get("component") or "").lower()
+
+        # Sanctions screen
+        try:
+            result = screen_supplier(name, country)
+            if result.get("hit"):
+                for lst in result.get("lists", []):
+                    flag = f"SANCTIONS_{lst.upper()}"
+                    if flag not in flags:
+                        flags.append(flag)
+                log.info("compliance_check: %s → sanctions hit (%s)", name, result.get("lists"))
+        except Exception as exc:
+            errors.append(f"compliance_check sanctions: {name} — {exc}")
+
+        # UFLPA — China-origin goods in high-risk sectors
+        if country in UFLPA_COUNTRIES:
+            if any(s in comp for s in UFLPA_SECTORS):
+                if "UFLPA_RISK" not in flags:
+                    flags.append("UFLPA_RISK")
+
+        # CBAM — import levy applies to certain sectors
+        if any(s in comp for s in CBAM_SECTORS):
+            if "CBAM_APPLICABLE" not in flags:
+                flags.append("CBAM_APPLICABLE")
+
+        node["risk_flags"] = flags
+        updated.append(node)
+
+    log.info("compliance_check: screened %d nodes", len(updated))
+    return {"inferred": updated, "errors": errors}
+
+
 def merge(state: EnrichState) -> dict:
     """MERGE inferred nodes into Neo4j; queue newly-found Suppliers for next depth."""
     db = _neo4j()
@@ -540,21 +542,23 @@ def route(state: EnrichState) -> str:
 
 
 _builder = StateGraph(EnrichState)
-_builder.add_node("initialize",    initialize)
-_builder.add_node("scrape",        scrape)
-_builder.add_node("extract",       extract)
-_builder.add_node("kotaemon_rag",  kotaemon_rag)
-_builder.add_node("embed",         embed)
-_builder.add_node("infer",         infer)
-_builder.add_node("merge",         merge)
+_builder.add_node("initialize",        initialize)
+_builder.add_node("scrape",            scrape)
+_builder.add_node("extract",           extract)
+_builder.add_node("kotaemon_rag",      kotaemon_rag)
+_builder.add_node("embed",             embed)
+_builder.add_node("infer",             infer)
+_builder.add_node("compliance_check",  compliance_check)
+_builder.add_node("merge",             merge)
 
 _builder.set_entry_point("initialize")
-_builder.add_edge("initialize",   "scrape")
-_builder.add_edge("scrape",       "extract")
-_builder.add_edge("extract",      "kotaemon_rag")  # RAG augmentation before inference
-_builder.add_edge("kotaemon_rag", "embed")
-_builder.add_edge("embed",        "infer")
-_builder.add_edge("infer",        "merge")
+_builder.add_edge("initialize",       "scrape")
+_builder.add_edge("scrape",           "extract")
+_builder.add_edge("extract",          "kotaemon_rag")   # RAG augmentation before inference
+_builder.add_edge("kotaemon_rag",     "embed")
+_builder.add_edge("embed",            "infer")
+_builder.add_edge("infer",            "compliance_check")  # screen before writing to graph
+_builder.add_edge("compliance_check", "merge")
 _builder.add_conditional_edges(
     "merge", route, {"continue": "scrape", "end": END}
 )
