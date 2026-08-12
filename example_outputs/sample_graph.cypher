@@ -22,7 +22,9 @@ MERGE (bosch:Supplier {name: 'Bosch', country: 'DE', tier: 1, website: 'https://
 MERGE (ssab:Supplier {name: 'SSAB', country: 'SE', tier: 1, website: 'https://www.ssab.com', demo: true});
 MERGE (mich:Supplier {name: 'Michelin', country: 'FR', tier: 1, website: 'https://www.michelin.com', demo: true});
 MERGE (dana:Supplier {name: 'Dana Incorporated', country: 'US', tier: 1, website: 'https://www.dana.com', demo: true});
-MERGE (ams:Supplier {name: 'AMS Buttons BV', country: 'NL', tier: 1, website: 'https://www.amsbuttons.nl', demo: true});
+MERGE (ams:Supplier {name: 'AMS Buttons BV', country: 'NL', tier: 1, website: 'https://www.amsbuttons.nl', demo: true})
+ON CREATE SET ams.country = 'NL'
+ON MATCH  SET ams.country = 'NL';
 
 // ============================================================
 // TIER 2 — Sub-suppliers
@@ -31,7 +33,9 @@ MERGE (saar:Supplier {name: 'Saarstahl AG', country: 'DE', tier: 2, demo: true})
 MERGE (inf:Supplier {name: 'Infineon Technologies', country: 'DE', tier: 2, demo: true});
 MERGE (sen:Supplier {name: 'Sensata Technologies', country: 'NL', tier: 2, demo: true});
 MERGE (lkab:Supplier {name: 'LKAB', country: 'SE', tier: 2, demo: true});
-MERGE (shen:Supplier {name: 'Shenzhen Metal Co', country: 'CN', tier: 2, demo: true});
+MERGE (shen:Supplier {name: 'Shenzhen Metal Co', country: 'CN', tier: 2, demo: true})
+ON CREATE SET shen.country = 'CN'
+ON MATCH  SET shen.country = 'CN';
 
 // ============================================================
 // RAW MATERIALS
