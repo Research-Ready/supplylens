@@ -345,8 +345,170 @@ MATCH (s:Supplier {name: 'Michelin'}), (c:Certificate {name: 'ISO 14001:2015'})
 MERGE (s)-[:CERTIFIED_BY {demo: true}]->(c);
 
 // ============================================================
-// VERIFICATION (extended)
-// MATCH (n) WHERE n.demo = true RETURN labels(n)[0] AS type, count(n) AS count
-// ORDER BY count DESC;
-// Expected: Supplier ~18, RawMaterial ~12, Certificate ~6, Company ~6, Product ~2
+// TIER 4 + ADDITIONAL PRODUCTS (2026-08-12)
+// Mining companies, chemical plants, more Scania products
+// ============================================================
+
+// ---- Additional Scania products (share Tier-1 suppliers) ----
+MERGE (p3:Product {sku: 'SCANIA-T-500', name: 'Scania T-series Truck', category: 'Commercial Vehicles', demo: true});
+MERGE (p4:Product {sku: 'SCANIA-BUS-K', name: 'Scania Citywide Bus', category: 'Public Transport', demo: true});
+MERGE (p5:Product {sku: 'SCANIA-ENG-DC13', name: 'Scania DC13 Engine', category: 'Powertrain', demo: true});
+
+// T-series shares many Tier-1 suppliers with R-series
+MATCH (p:Product {sku:'SCANIA-T-500'}), (s:Supplier {name:'ZF Friedrichshafen'})
+MERGE (p)-[:SUPPLIED_BY {component:'OptiCruise gearbox', since:'2016-01-01', demo:true}]->(s);
+MATCH (p:Product {sku:'SCANIA-T-500'}), (s:Supplier {name:'SSAB'})
+MERGE (p)-[:SUPPLIED_BY {component:'Chassis steel', since:'2016-01-01', demo:true}]->(s);
+MATCH (p:Product {sku:'SCANIA-T-500'}), (s:Supplier {name:'Michelin'})
+MERGE (p)-[:SUPPLIED_BY {component:'X MultiWay tyres', since:'2016-01-01', demo:true}]->(s);
+
+// Bus uses different gearbox supplier
+MERGE (voith:Supplier {name:'Voith GmbH', country:'DE', tier:1, website:'https://www.voith.com', demo:true});
+MATCH (p:Product {sku:'SCANIA-BUS-K'}), (s:Supplier {name:'Voith GmbH'})
+MERGE (p)-[:SUPPLIED_BY {component:'DIWA automatic transmission', since:'2018-01-01', demo:true}]->(s);
+MATCH (p:Product {sku:'SCANIA-BUS-K'}), (s:Supplier {name:'Cummins Inc'})
+MERGE (p)-[:SUPPLIED_BY {component:'Euro6 CNG engine', since:'2018-01-01', demo:true}]->(s);
+MATCH (p:Product {sku:'SCANIA-BUS-K'}), (s:Supplier {name:'Continental AG'})
+MERGE (p)-[:SUPPLIED_BY {component:'iBUS e-ticketing + ADAS', since:'2020-01-01', demo:true}]->(s);
+
+// DC13 Engine
+MERGE (skf:Supplier {name:'SKF Group', country:'SE', tier:1, website:'https://www.skf.com', demo:true});
+MERGE (timken:Supplier {name:'Timken Company', country:'US', tier:1, website:'https://www.timken.com',
+  demo:true, risk_flags:['SINGLE_SOURCE']});
+MATCH (p:Product {sku:'SCANIA-ENG-DC13'}), (s:Supplier {name:'Bosch'})
+MERGE (p)-[:SUPPLIED_BY {component:'XPI fuel injection system', since:'2014-01-01', demo:true}]->(s);
+MATCH (p:Product {sku:'SCANIA-ENG-DC13'}), (s:Supplier {name:'SKF Group'})
+MERGE (p)-[:SUPPLIED_BY {component:'Crankshaft bearings', since:'2010-01-01', demo:true}]->(s);
+MATCH (p:Product {sku:'SCANIA-ENG-DC13'}), (s:Supplier {name:'Timken Company'})
+MERGE (p)-[:SUPPLIED_BY {component:'Roller bearings for camshaft', since:'2012-01-01',
+  demo:true, risk_flags:['SINGLE_SOURCE']}]->(s);
+
+// ---- Tier 2 for new Tier-1 ----
+MERGE (gkn:Supplier {name:'GKN Automotive', country:'GB', tier:2, demo:true});
+MERGE (norsk:Supplier {name:'Norsk Hydro', country:'NO', tier:2,
+  website:'https://www.hydro.com', demo:true});
+MERGE (rio:Supplier {name:'Rio Tinto', country:'AU', tier:2,
+  website:'https://www.riotinto.com', demo:true, risk_flags:['ESG_RISK']});
+
+MATCH (s1:Supplier {name:'Voith GmbH'}), (s2:Supplier {name:'GKN Automotive'})
+MERGE (s1)-[:SOURCED_FROM {component:'Clutch packs and friction elements', demo:true}]->(s2);
+MATCH (s1:Supplier {name:'SKF Group'}), (s2:Supplier {name:'Norsk Hydro'})
+MERGE (s1)-[:SOURCED_FROM {component:'Aluminium alloy for bearing housings', demo:true}]->(s2);
+
+// ---- Tier 4 — Mining & Chemical Plants ----
+MERGE (lkab_kirunav:Supplier {name:'LKAB Kiirunavaara Shaft', country:'SE', tier:4,
+  demo:true, risk_flags:['CLIMATE_RISK','WATER_STRESS']});
+MERGE (glencore:Supplier {name:'Glencore', country:'CH', tier:4,
+  website:'https://www.glencore.com', demo:true,
+  risk_flags:['ESG_RISK','CONFLICT_MINERAL','SANCTIONS_RISK']});
+MERGE (freeport:Supplier {name:'Freeport-McMoRan', country:'US', tier:4,
+  website:'https://www.fcx.com', demo:true, risk_flags:['ESG_RISK','WATER_STRESS']});
+MERGE (basf_ludwigsh:Supplier {name:'BASF Ludwigshafen Complex', country:'DE', tier:4,
+  demo:true, risk_flags:['CLIMATE_RISK','ENERGY_RISK']});
+MERGE (cabot_billerica:Supplier {name:'Cabot Billerica R&D', country:'US', tier:4, demo:true});
+MERGE (xinjiang_poly:Supplier {name:'Xinjiang Polysilicon Co', country:'CN', tier:4,
+  demo:true, risk_flags:['GEOPOLITICAL_RISK','SANCTIONS_RISK','FORCED_LABOUR_RISK']});
+MERGE (siltronic:Supplier {name:'Siltronic AG', country:'DE', tier:4,
+  website:'https://www.siltronic.com', demo:true});
+MERGE (umicore:Supplier {name:'Umicore SA', country:'BE', tier:4,
+  website:'https://www.umicore.com', demo:true});
+
+// Tier 3 → Tier 4 links
+MATCH (s1:Supplier {name:'LKAB Kiruna Mine'}), (s2:Supplier {name:'LKAB Kiirunavaara Shaft'})
+MERGE (s1)-[:SOURCED_FROM {component:'Iron ore from sublevel caving, 1365m depth', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'AVX Tantalum'}), (s2:Supplier {name:'Glencore'})
+MERGE (s1)-[:SOURCED_FROM {component:'Cobalt and tantalum-bearing ore', demo:true,
+  risk_flags:['CONFLICT_MINERAL']}]->(s2);
+
+MATCH (s1:Supplier {name:'Codelco'}), (s2:Supplier {name:'Freeport-McMoRan'})
+MERGE (s1)-[:SOURCED_FROM {component:'Copper cathode exchange / spot market', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'BASF SE'}), (s2:Supplier {name:'BASF Ludwigshafen Complex'})
+MERGE (s1)-[:SOURCED_FROM {component:'ABS resin polymerisation (Verbund site)', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Cabot Corporation'}), (s2:Supplier {name:'Cabot Billerica R&D'})
+MERGE (s1)-[:SOURCED_FROM {component:'Carbon black formulation IP', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'China Rare Earth Group'}), (s2:Supplier {name:'Xinjiang Polysilicon Co'})
+MERGE (s1)-[:SOURCED_FROM {component:'Quartz and process chemicals', demo:true,
+  risk_flags:['FORCED_LABOUR_RISK','SANCTIONS_RISK']}]->(s2);
+
+MATCH (s1:Supplier {name:'Infineon Technologies'}), (s2:Supplier {name:'Siltronic AG'})
+MERGE (s1)-[:SOURCED_FROM {component:'300mm silicon wafers', demo:true}]->(s2);
+MATCH (s1:Supplier {name:'Infineon Technologies'}), (s2:Supplier {name:'Umicore SA'})
+MERGE (s1)-[:SOURCED_FROM {component:'High-purity target materials for sputtering', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Norsk Hydro'}), (s2:Supplier {name:'Rio Tinto'})
+MERGE (s1)-[:SOURCED_FROM {component:'Bauxite → alumina supply', demo:true}]->(s2);
+
+// ---- Tier 4 Raw Materials ----
+MERGE (r_bauxite:RawMaterial {name:'Bauxite', origin:'AU', material_type:'Mineral',
+  demo:true, risk_flags:['ESG_RISK']});
+MERGE (r_cobalt:RawMaterial {name:'Cobalt Hydroxide', origin:'CD',
+  material_type:'Metal', demo:true, risk_flags:['CONFLICT_MINERAL','CHILD_LABOUR_RISK']});
+MERGE (r_quartz:RawMaterial {name:'High-Purity Quartz', origin:'NO',
+  material_type:'Mineral', demo:true});
+MERGE (r_natgas:RawMaterial {name:'Natural Gas (feedstock)', origin:'RU',
+  material_type:'Energy', demo:true, risk_flags:['GEOPOLITICAL_RISK','ENERGY_RISK','SANCTIONS_RISK']});
+MERGE (r_water:RawMaterial {name:'Process Water (Atacama)', origin:'CL',
+  material_type:'Resource', demo:true, risk_flags:['WATER_STRESS']});
+
+MATCH (s:Supplier {name:'Freeport-McMoRan'}), (r:RawMaterial {name:'Copper Cathode'})
+MERGE (s)-[:SOURCED_FROM {demo:true}]->(r);
+MATCH (s:Supplier {name:'Rio Tinto'}), (r:RawMaterial {name:'Bauxite'})
+MERGE (s)-[:SOURCED_FROM {demo:true}]->(r);
+MATCH (s:Supplier {name:'Glencore'}), (r:RawMaterial {name:'Cobalt Hydroxide'})
+MERGE (s)-[:SOURCED_FROM {demo:true, risk_flags:['CONFLICT_MINERAL']}]->(r);
+MATCH (s:Supplier {name:'BASF Ludwigshafen Complex'}), (r:RawMaterial {name:'Natural Gas (feedstock)'})
+MERGE (s)-[:SOURCED_FROM {demo:true, risk_flags:['ENERGY_RISK','SANCTIONS_RISK']}]->(r);
+MATCH (s:Supplier {name:'Siltronic AG'}), (r:RawMaterial {name:'High-Purity Quartz'})
+MERGE (s)-[:SOURCED_FROM {demo:true}]->(r);
+MATCH (s:Supplier {name:'Freeport-McMoRan'}), (r:RawMaterial {name:'Process Water (Atacama)'})
+MERGE (s)-[:SOURCED_FROM {demo:true, risk_flags:['WATER_STRESS']}]->(r);
+
+// ---- More certificates ----
+MERGE (iso45001:Certificate {name:'ISO 45001:2018', issuer:'TUV SUD',
+  valid_until:'2027-08-01', demo:true});
+MERGE (sedex:Certificate {name:'SEDEX SMETA Audit', issuer:'Sedex',
+  valid_until:'2026-06-30', demo:true});
+MERGE (lksg:Certificate {name:'LkSG Compliance (German Supply Chain Act)',
+  issuer:'TUV Rheinland', valid_until:'2027-01-01', demo:true});
+
+MATCH (s:Supplier {name:'Glencore'}), (c:Certificate {name:'ISO 14001:2015'})
+MERGE (s)-[:CERTIFIED_BY {demo:true}]->(c);
+MATCH (s:Supplier {name:'Vale SA'}), (c:Certificate {name:'ISO 45001:2018'})
+MERGE (s)-[:CERTIFIED_BY {demo:true}]->(c);
+MATCH (s:Supplier {name:'Bosch'}), (c:Certificate {name:'LkSG Compliance (German Supply Chain Act)'})
+MERGE (s)-[:CERTIFIED_BY {demo:true}]->(c);
+MATCH (s:Supplier {name:'ZF Friedrichshafen'}), (c:Certificate {name:'LkSG Compliance (German Supply Chain Act)'})
+MERGE (s)-[:CERTIFIED_BY {demo:true}]->(c);
+MATCH (s:Supplier {name:'Sri Trang Agro-Industry'}), (c:Certificate {name:'SEDEX SMETA Audit'})
+MERGE (s)-[:CERTIFIED_BY {demo:true}]->(c);
+
+// ---- Geopolitical Event nodes ----
+MERGE (evt1:Event {name:'China Rare Earth Export Controls 2023',
+  date:'2023-07-03', type:'REGULATORY', affected_material:'Gallium/Germanium',
+  impact:'HIGH', demo:true});
+MERGE (evt2:Event {name:'Russia Ukraine War — Gas Supply Disruption',
+  date:'2022-02-24', type:'CONFLICT', affected_material:'Natural Gas',
+  impact:'HIGH', demo:true});
+MERGE (evt3:Event {name:'DRC Artisanal Mining Child Labour Reports 2022',
+  date:'2022-01-01', type:'ESG', affected_material:'Cobalt',
+  impact:'MEDIUM', demo:true});
+MERGE (evt4:Event {name:'EU Critical Raw Materials Act 2024',
+  date:'2024-03-18', type:'REGULATORY', affected_material:'Rare Earths/Silicon',
+  impact:'MEDIUM', demo:true});
+
+MATCH (r:RawMaterial {name:'Rare Earth Elements'}), (e:Event {name:'China Rare Earth Export Controls 2023'})
+MERGE (r)-[:AFFECTED_BY {demo:true}]->(e);
+MATCH (r:RawMaterial {name:'Natural Gas (feedstock)'}), (e:Event {name:'Russia Ukraine War — Gas Supply Disruption'})
+MERGE (r)-[:AFFECTED_BY {demo:true}]->(e);
+MATCH (r:RawMaterial {name:'Cobalt Hydroxide'}), (e:Event {name:'DRC Artisanal Mining Child Labour Reports 2022'})
+MERGE (r)-[:AFFECTED_BY {demo:true}]->(e);
+
+// ============================================================
+// VERIFICATION (extended v3)
+// MATCH (n) WHERE n.demo = true RETURN labels(n)[0] AS type, count(n) AS count ORDER BY count DESC;
+// Expected: Supplier ~30, RawMaterial ~17, Certificate ~9, Company ~6, Product ~5, Event ~4
 // ============================================================
