@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scenario Stress Test — UC4</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; color: #e2e8f0; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+#header { background: #111420; border-bottom: 1px solid #1e2235; padding: 10px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+#header h1 { font-size: 14px; font-weight: 700; color: #818cf8; }
+#header .sub { font-size: 11px; color: #4a5568; }
+.kpi-row { margin-left: auto; display: flex; gap: 24px; }
+.kpi { text-align: right; }
+.kpi-v { font-size: 20px; font-weight: 700; }
+.kpi-l { font-size: 10px; color: #4a5568; text-transform: uppercase; }
+.kpi-v.red { color: #ef4444; }
+.kpi-v.ora { color: #f97316; }
+.kpi-v.yel { color: #fbbf24; }
+.kpi-v.blu { color: #818cf8; }
+
+#main { flex: 1; overflow: hidden; display: flex; gap: 0; }
+#left  { flex: 1; display: flex; flex-direction: column; gap: 0; overflow: hidden; }
+#right { width: 340px; border-left: 1px solid #1e2235; overflow-y: auto; flex-shrink: 0; }
+
+/* Scenario selector */
+#scenario-list { padding: 10px 12px; border-bottom: 1px solid #1a1d2e; flex-shrink: 0; }
+#scenario-list h3 { font-size: 10px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; }
+.sc-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 5px;
+  cursor: pointer; font-size: 11px; margin-bottom: 2px; border: 1px solid transparent; transition: all 0.12s; }
+.sc-row:hover { background: rgba(129,140,248,0.05); }
+.sc-row.active { background: #141b35; border-color: #3d4d80; }
+.sc-rep { width: 64px; text-align: right; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 10px; flex-shrink: 0; }
+.rep-CRITICAL { color: #ef4444; background: rgba(239,68,68,0.1); }
+.rep-HIGH     { color: #f97316; background: rgba(249,115,22,0.1); }
+.rep-MEDIUM   { color: #fbbf24; background: rgba(251,191,36,0.1); }
+.rep-LOW      { color: #34d399; background: rgba(52,211,153,0.1); }
+.sc-name { flex: 1; color: #94a3b8; }
+.sc-worst { color: #ef4444; font-weight: 700; width: 70px; text-align: right; font-size: 11px; }
+
+/* Main chart area */
+#chart-area { flex: 1; overflow: hidden; position: relative; }
+#impact-svg  { width: 100%; height: 100%; }
+
+/* Detail panel */
+#detail { padding: 14px; }
+#detail h3 { font-size: 12px; color: #818cf8; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid #1a1d2e; }
+.d-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #0f1117; font-size: 11px; }
+.d-label { color: #4a5568; }
+.d-val { color: #e2e8f0; font-weight: 600; max-width: 160px; text-align: right; }
+.d-val.red { color: #ef4444; }
+.d-val.grn { color: #34d399; }
+
+.case-block { margin-top: 12px; }
+.case-block h4 { font-size: 10px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.case-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 11px; }
+.case-label { width: 52px; color: #4a5568; }
+.case-bar { height: 10px; border-radius: 5px; min-width: 4px; }
+.case-val  { color: #94a3b8; font-size: 10px; }
+
+.alt-section { margin-top: 14px; }
+.alt-section h4 { font-size: 10px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.alt-row { display: flex; align-items: center; gap: 6px; font-size: 11px; margin-bottom: 4px; }
+.alt-name { flex: 1; color: #94a3b8; }
+.alt-cap { color: #818cf8; font-size: 10px; }
+.alt-lead { color: #64748b; font-size: 10px; }
+.country-badge { padding: 1px 5px; border-radius: 3px; font-size: 9px; font-weight: 600; background: rgba(129,140,248,0.1); color: #818cf8; }
+
+/* tooltip */
+#tooltip { position: fixed; background: #1a1d2e; border: 1px solid #2d3252; border-radius: 6px;
+  padding: 8px 12px; font-size: 11px; pointer-events: none; z-index: 100;
+  opacity: 0; transition: opacity 0.1s; max-width: 240px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <h1>Supply Chain Scenario Stress Test</h1>
+    <div class="sub">7 disruption scenarios · Scania AB · Annual revenue: €19.5B</div>
+  </div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-v red" id="kpi-worst">€98.7B</div><div class="kpi-l">Combined Worst-Case</div></div>
+    <div class="kpi"><div class="kpi-v ora" id="kpi-base">€38.2B</div><div class="kpi-l">Combined Base-Case</div></div>
+    <div class="kpi"><div class="kpi-v red" id="kpi-critical">3</div><div class="kpi-l">Critical Scenarios</div></div>
+    <div class="kpi"><div class="kpi-v yel" id="kpi-switch-now">3</div><div class="kpi-l">SWITCH_NOW Actions</div></div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="left">
+    <div id="scenario-list">
+      <h3>Scenarios (sorted by worst-case impact)</h3>
+      <div id="sc-rows"></div>
+    </div>
+    <div id="chart-area">
+      <svg id="impact-svg"></svg>
+    </div>
+  </div>
+  <div id="right">
+    <div id="detail">
+      <h3>Select a scenario</h3>
+      <div id="detail-content" style="color:#2d3252;font-size:12px;padding:20px 0;text-align:center">
+        Click a scenario row or bar
+      </div>
+    </div>
+  </div>
+</div>
+<div id="tooltip"></div>
+
+<script>
+/* ── Scenario data (mirrors scenario_modeler.py) ──────────── */
+const DAILY_REV = 19_500_000_000 / 250;
+
+const SCENARIOS = [
+  {
+    id:'CHINA_EXPORT_CTRL', name:'China Export Controls (RE+Battery)', rep:'CRITICAL',
+    suppliers:['CATL','Ganfeng','Shanshan','Proterial'], products:['SCANIA-L-340-BEV'],
+    contract:980_000_000, buffer:7, altPremium:0.45,
+    impacts:{best:{halt:60,rev:5148000000,alt:44100000,legal:80000000,total:5272100000},
+             base:{halt:150,rev:11700000000,alt:88200000,legal:80000000,total:11868200000},
+             worst:{halt:365,rev:28470000000,alt:176400000,legal:80000000,total:28726400000}},
+    alts:[{name:'MP Materials',country:'US',cap:15,wks:52},{name:'Lynas Rare Earths',country:'AU',cap:20,wks:40},{name:'Northvolt',country:'SE',cap:25,wks:52}],
+    cbam:'-€20M',recovery:'2027-08'
+  },
+  {
+    id:'XINJIANG_BAN', name:'Full UFLPA Xinjiang Ban', rep:'CRITICAL',
+    suppliers:['Shanshan','Ganfeng','CATL'], products:['SCANIA-L-340-BEV'],
+    contract:920_000_000, buffer:10, altPremium:0.28,
+    impacts:{best:{halt:45,rev:2730000000,alt:25760000,legal:120000000,total:2875760000},
+             base:{halt:120,rev:7800000000,alt:51520000,legal:120000000,total:7971520000},
+             worst:{halt:300,rev:21060000000,alt:103040000,legal:120000000,total:21283040000}},
+    alts:[{name:'BASF Battery Materials',country:'DE',cap:40,wks:16},{name:'Umicore BM',country:'BE',cap:50,wks:12},{name:'Albemarle',country:'US',cap:35,wks:20}],
+    cbam:'-€15M (saved)',recovery:'2027-02'
+  },
+  {
+    id:'CATL_DEFAULT', name:'CATL Supply Failure', rep:'HIGH',
+    suppliers:['CATL'], products:['SCANIA-L-340-BEV'],
+    contract:820_000_000, buffer:14, altPremium:0.35,
+    impacts:{best:{halt:30,rev:624000000,alt:28700000,legal:50000000,total:702700000},
+             base:{halt:90,rev:5616000000,alt:57400000,legal:50000000,total:5723400000},
+             worst:{halt:180,rev:13416000000,alt:114800000,legal:50000000,total:13580800000}},
+    alts:[{name:'Samsung SDI',country:'KR',cap:60,wks:24},{name:'LG Energy Solution',country:'KR',cap:80,wks:28},{name:'Northvolt',country:'SE',cap:30,wks:52}],
+    cbam:'€0',recovery:'2026-12'
+  },
+  {
+    id:'ATACAMA_QUAKE', name:'Atacama Earthquake (Li brine)', rep:'LOW',
+    suppliers:['SQM','Albemarle','Lithium Brine'], products:['SCANIA-L-340-BEV'],
+    contract:65_000_000, buffer:21, altPremium:0.30,
+    impacts:{best:{halt:30,rev:702000000,alt:975000,legal:10000000,total:712975000},
+             base:{halt:90,rev:5382000000,alt:1950000,legal:10000000,total:5393950000},
+             worst:{halt:180,rev:11934000000,alt:3900000,legal:10000000,total:11947900000}},
+    alts:[{name:'Ganfeng',country:'CN',cap:60,wks:6},{name:'Livent',country:'US',cap:40,wks:8},{name:'Piedmont Li',country:'US',cap:25,wks:16}],
+    cbam:'€0',recovery:'2026-09'
+  },
+  {
+    id:'NORILSK_FULL_SANC', name:'Norilsk Full Secondary Sanctions', rep:'CRITICAL',
+    suppliers:['Norilsk Nickel'], products:['SCANIA-L-340-BEV'],
+    contract:95_000_000, buffer:21, altPremium:0.22,
+    impacts:{best:{halt:20,rev:0,alt:1045000,legal:200000000,total:201045000},
+             base:{halt:60,rev:2808000000,alt:2090000,legal:200000000,total:3010090000},
+             worst:{halt:150,rev:8580000000,alt:4180000,legal:200000000,total:8784180000}},
+    alts:[{name:'BHP Nickel West',country:'AU',cap:70,wks:8},{name:'Vale (nickel)',country:'BR',cap:60,wks:10},{name:'Wyloo Metals',country:'AU',cap:30,wks:14}],
+    cbam:'+€22.5M (saved)',recovery:'2026-11'
+  },
+  {
+    id:'RUSSIA_SUPPLY_HALT', name:'Full Russia Supply Halt', rep:'HIGH',
+    suppliers:['Norilsk Nickel','Severstal'], products:['SCANIA-R-500','SCANIA-L-340-BEV','SCANIA-G-410'],
+    contract:180_000_000, buffer:30, altPremium:0.18,
+    impacts:{best:{halt:14,rev:0,alt:1620000,legal:350000000,total:351620000},
+             base:{halt:45,rev:1170000000,alt:3240000,legal:350000000,total:1523240000},
+             worst:{halt:120,rev:6240000000,alt:6480000,legal:350000000,total:6596480000}},
+    alts:[{name:'SSAB extra',country:'SE',cap:80,wks:4},{name:'BHP Nickel',country:'AU',cap:70,wks:8}],
+    cbam:'+€22.5M',recovery:'2026-10'
+  },
+  {
+    id:'SSAB_STRIKE', name:'SSAB Industrial Strike', rep:'MEDIUM',
+    suppliers:['SSAB'], products:['SCANIA-R-500','SCANIA-G-410'],
+    contract:35_000_000, buffer:14, altPremium:0.12,
+    impacts:{best:{halt:7,rev:0,alt:210000,legal:5000000,total:5210000},
+             base:{halt:21,rev:0,alt:420000,legal:5000000,total:5420000},
+             worst:{halt:60,rev:2340000000,alt:1260000,legal:5000000,total:2346260000}},
+    alts:[{name:'ArcelorMittal',country:'LU',cap:90,wks:2},{name:'Salzgitter',country:'DE',cap:70,wks:3},{name:'ThyssenKrupp',country:'DE',cap:80,wks:2}],
+    cbam:'€0',recovery:'2026-08'
+  }
+];
+
+SCENARIOS.sort((a,b) => b.impacts.worst.total - a.impacts.worst.total);
+
+let selected = SCENARIOS[0];
+
+function fmtB(v) {
+  if (Math.abs(v) >= 1e9) return `€${(v/1e9).toFixed(1)}B`;
+  if (Math.abs(v) >= 1e6) return `€${(v/1e6).toFixed(0)}M`;
+  return `€${v.toFixed(0)}`;
+}
+
+const repCols = {CRITICAL:'#ef4444', HIGH:'#f97316', MEDIUM:'#fbbf24', LOW:'#34d399'};
+
+/* ── Scenario list ──────────────────────────────────────────── */
+function buildScList() {
+  const el = document.getElementById('sc-rows');
+  el.innerHTML = SCENARIOS.map(s => `
+    <div class="sc-row ${s === selected ? 'active' : ''}" onclick="selectScenario('${s.id}')" id="scrow-${s.id}">
+      <span class="sc-rep rep-${s.rep}">${s.rep}</span>
+      <span class="sc-name">${s.name}</span>
+      <span class="sc-worst" style="color:${repCols[s.rep]}">${fmtB(s.impacts.worst.total)}</span>
+    </div>
+  `).join('');
+}
+
+/* ── Impact waterfall chart ─────────────────────────────────── */
+function drawChart(s) {
+  const el = document.getElementById('impact-svg');
+  const W = el.clientWidth || 500, H = el.clientHeight || 300;
+  const svg = d3.select('#impact-svg').attr('width',W).attr('height',H);
+  svg.selectAll('*').remove();
+
+  const margin = {top:20, right:30, bottom:60, left:60};
+  const iw = W - margin.left - margin.right;
+  const ih = H - margin.top  - margin.bottom;
+  const g  = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const cases = ['best','base','worst'];
+  const comps = ['rev','alt','legal'];
+  const compCols = {rev:'#ef4444', alt:'#f97316', legal:'#fbbf24'};
+  const compLabels = {rev:'Revenue@Risk', alt:'Alt Transition', legal:'Legal/Sanctions'};
+
+  const grouped = cases.map(c => ({
+    case: c,
+    rev:   s.impacts[c].rev || 0,
+    alt:   s.impacts[c].alt || 0,
+    legal: s.impacts[c].legal || 0,
+    total: s.impacts[c].total,
+  }));
+
+  const x0 = d3.scaleBand().domain(cases).range([0,iw]).padding(0.3);
+  const x1 = d3.scaleBand().domain(comps).range([0, x0.bandwidth()]).padding(0.05);
+  const maxV = d3.max(grouped, d => d.total);
+  const y  = d3.scaleLinear().domain([0, maxV]).range([ih,0]).nice();
+
+  // Gridlines
+  g.append('g').call(d3.axisLeft(y).ticks(5).tickSize(-iw).tickFormat(''))
+   .call(g => g.select('.domain').remove())
+   .call(g => g.selectAll('.tick line').attr('stroke','#1e2235'));
+
+  // Bars
+  grouped.forEach(d => {
+    comps.forEach(comp => {
+      const val = d[comp];
+      if (val <= 0) return;
+      g.append('rect')
+        .attr('x', x0(d.case) + x1(comp))
+        .attr('y', y(val))
+        .attr('width', x1.bandwidth())
+        .attr('height', ih - y(val))
+        .attr('fill', compCols[comp])
+        .attr('opacity', d.case === 'base' ? 0.9 : 0.6)
+        .attr('rx', 2)
+        .on('mouseenter', (e) => {
+          const tip = document.getElementById('tooltip');
+          tip.innerHTML = `<strong>${d.case.toUpperCase()} — ${compLabels[comp]}</strong><br>${fmtB(val)}`;
+          tip.style.opacity='1'; tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-10)+'px';
+        })
+        .on('mouseleave', () => { document.getElementById('tooltip').style.opacity='0'; });
+    });
+
+    // Total line
+    g.append('line')
+      .attr('x1', x0(d.case)).attr('x2', x0(d.case) + x0.bandwidth())
+      .attr('y1', y(d.total)).attr('y2', y(d.total))
+      .attr('stroke', repCols[s.rep]).attr('stroke-width', 2).attr('stroke-dasharray','4,2');
+
+    // Total label
+    g.append('text')
+      .attr('x', x0(d.case) + x0.bandwidth()/2).attr('y', y(d.total) - 5)
+      .attr('text-anchor','middle').attr('font-size',11).attr('font-weight',700)
+      .attr('fill', repCols[s.rep]).text(fmtB(d.total));
+  });
+
+  // Axes
+  g.append('g').attr('transform',`translate(0,${ih})`).call(
+    d3.axisBottom(x0).tickSize(0).tickFormat(d => d.toUpperCase())
+  ).call(g => g.select('.domain').attr('stroke','#1e2235'))
+   .selectAll('text').attr('fill','#64748b').attr('font-size',11).attr('dy',14);
+
+  g.append('g').call(
+    d3.axisLeft(y).ticks(5).tickFormat(d => `€${d/1e9}B`)
+  ).call(g => g.select('.domain').attr('stroke','#1e2235'))
+   .selectAll('text').attr('fill','#4a5568').attr('font-size',9);
+
+  // Legend
+  const leg = g.append('g').attr('transform', `translate(${iw - 200},${-15})`);
+  comps.forEach((c, i) => {
+    leg.append('rect').attr('x', i*90).attr('y',0).attr('width',10).attr('height',10).attr('rx',2).attr('fill',compCols[c]);
+    leg.append('text').attr('x', i*90+14).attr('y',9).attr('font-size',9).attr('fill','#64748b').text(compLabels[c]);
+  });
+}
+
+/* ── Detail panel ───────────────────────────────────────────── */
+function showDetail(s) {
+  const maxImpact = s.impacts.worst.total;
+  const altsHtml = s.alts.map(a => `
+    <div class="alt-row">
+      <span class="alt-name">${a.name}</span>
+      <span class="country-badge">${a.country}</span>
+      <span class="alt-cap">${a.cap}% cap</span>
+      <span class="alt-lead">${a.wks}wk lead</span>
+    </div>
+  `).join('');
+
+  const casesHtml = ['best','base','worst'].map(c => {
+    const imp = s.impacts[c];
+    const w = Math.round((imp.total / maxImpact) * 140);
+    const col = c === 'worst' ? '#ef4444' : c === 'base' ? '#f97316' : '#34d399';
+    return `<div class="case-row">
+      <span class="case-label">${c.toUpperCase()}</span>
+      <div class="case-bar" style="width:${w}px;background:${col};opacity:0.8"></div>
+      <span class="case-val">${fmtB(imp.total)}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('detail-content').innerHTML = `
+    <div class="d-row"><span class="d-label">Scenario</span><span class="d-val">${s.name}</span></div>
+    <div class="d-row"><span class="d-label">Rep. Risk</span><span class="d-val" style="color:${repCols[s.rep]}">${s.rep}</span></div>
+    <div class="d-row"><span class="d-label">Affected</span><span class="d-val">${s.suppliers.join(', ')}</span></div>
+    <div class="d-row"><span class="d-label">Products</span><span class="d-val">${s.products.join(', ')}</span></div>
+    <div class="d-row"><span class="d-label">Contract value</span><span class="d-val red">${fmtB(s.contract)}/yr</span></div>
+    <div class="d-row"><span class="d-label">Inv. buffer</span><span class="d-val">${s.buffer} days</span></div>
+    <div class="d-row"><span class="d-label">Recovery target</span><span class="d-val">${s.recovery}</span></div>
+    <div class="d-row"><span class="d-label">CBAM change</span><span class="d-val grn">${s.cbam}</span></div>
+
+    <div class="case-block">
+      <h4>Impact by Case</h4>
+      ${casesHtml}
+    </div>
+
+    <div class="alt-section">
+      <h4>Available Alternatives (${s.alts.length})</h4>
+      ${altsHtml}
+    </div>
+
+    ${s.rep === 'CRITICAL' ? `<div style="margin-top:14px;padding:10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.25);border-radius:5px;font-size:11px;color:#ef4444;line-height:1.6">
+      <strong>CRITICAL:</strong> Worst-case impact ${fmtB(s.impacts.worst.total)} exceeds €5B threshold. Immediate board-level escalation + alternative qualification required.
+    </div>` : ''}
+  `;
+}
+
+/* ── Controller ─────────────────────────────────────────────── */
+function selectScenario(id) {
+  selected = SCENARIOS.find(s => s.id === id);
+  document.querySelectorAll('.sc-row').forEach(r => r.classList.remove('active'));
+  const row = document.getElementById(`scrow-${id}`);
+  if (row) row.classList.add('active');
+  drawChart(selected);
+  showDetail(selected);
+}
+
+function drawAll() {
+  buildScList();
+  drawChart(selected);
+  showDetail(selected);
+}
+
+window.addEventListener('resize', () => { drawChart(selected); });
+requestAnimationFrame(() => requestAnimationFrame(drawAll));
+</script>
+</body>
+</html>
