@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SupplyLens 3D — Evidence Graph</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #060810; color: #e2e8f0; font-family: 'Segoe UI', system-ui, sans-serif; overflow: hidden; }
+
+#container { width: 100vw; height: 100vh; position: relative; }
+
+/* Header overlay */
+#hdr { position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+  background: linear-gradient(to bottom, rgba(6,8,16,0.95), transparent);
+  padding: 12px 20px; display: flex; align-items: center; gap: 16px; pointer-events: none; }
+#hdr h1 { font-size: 15px; font-weight: 700; color: #818cf8; letter-spacing: 0.02em; }
+#hdr .sub { font-size: 11px; color: #3d4a6a; }
+#hdr .pill { pointer-events: all; padding: 3px 10px; border-radius: 20px; font-size: 10px;
+  border: 1px solid rgba(129,140,248,0.3); color: #818cf8; background: rgba(129,140,248,0.08); cursor: pointer; }
+#hdr .pill:hover { background: rgba(129,140,248,0.18); }
+
+/* Controls */
+#controls { position: absolute; bottom: 20px; left: 20px; z-index: 10;
+  display: flex; flex-direction: column; gap: 6px; }
+.ctrl-btn { padding: 6px 14px; background: rgba(13,16,25,0.9); border: 1px solid #1e2235;
+  border-radius: 5px; color: #94a3b8; font-size: 11px; cursor: pointer; }
+.ctrl-btn:hover { border-color: #818cf8; color: #818cf8; }
+.ctrl-btn.active { border-color: #818cf8; color: #818cf8; background: rgba(129,140,248,0.1); }
+
+/* Legend */
+#legend { position: absolute; top: 60px; right: 16px; z-index: 10;
+  background: rgba(6,8,16,0.85); border: 1px solid #1a1d2e; border-radius: 8px; padding: 12px 14px; }
+.leg-title { font-size: 10px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.leg-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; font-size: 10px; color: #64748b; }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; }
+.leg-line { width: 20px; height: 2px; }
+
+/* Evidence panel */
+#evidence-panel { position: absolute; right: 0; top: 0; bottom: 0; width: 340px; z-index: 20;
+  background: rgba(10,13,20,0.96); border-left: 1px solid #1e2235;
+  transform: translateX(340px); transition: transform 0.25s ease; overflow-y: auto; }
+#evidence-panel.open { transform: translateX(0); }
+#ev-header { padding: 14px 16px; border-bottom: 1px solid #1e2235; }
+#ev-close { float: right; background: none; border: none; color: #64748b; cursor: pointer; font-size: 16px; }
+#ev-name { font-size: 14px; font-weight: 600; color: #e2e8f0; }
+#ev-meta { font-size: 11px; color: #4a5568; margin-top: 3px; }
+#ev-body { padding: 14px 16px; }
+.ev-section { margin-bottom: 16px; }
+.ev-section-title { font-size: 10px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.ev-fact { background: #111420; border: 1px solid #1a1d2e; border-radius: 5px; padding: 8px 10px; margin-bottom: 6px; }
+.ev-claim { font-size: 11px; color: #cbd5e1; line-height: 1.45; }
+.ev-source { font-size: 10px; color: #4a5568; margin-top: 4px; }
+.ev-source span { color: #818cf8; }
+.ev-confidence { font-size: 9px; padding: 1px 5px; border-radius: 3px; float: right; }
+.conf-high   { background: rgba(52,211,153,0.15); color: #34d399; }
+.conf-med    { background: rgba(251,191,36,0.15); color: #fbbf24; }
+.conf-low    { background: rgba(239,68,68,0.15); color: #ef4444; }
+.flag-chip { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 9px;
+  font-weight: 600; margin: 2px; }
+.flag-red    { background: rgba(239,68,68,0.15);   color: #ef4444; }
+.flag-orange { background: rgba(249,115,22,0.15);  color: #f97316; }
+.flag-yellow { background: rgba(251,191,36,0.15);  color: #fbbf24; }
+.flag-green  { background: rgba(52,211,153,0.1);   color: #34d399; }
+.flag-blue   { background: rgba(129,140,248,0.15); color: #818cf8; }
+
+/* Tier labels overlay */
+#tier-labels { position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
+  z-index: 10; display: flex; flex-direction: column; gap: 0; pointer-events: none; }
+.tier-label { font-size: 10px; color: rgba(100,116,139,0.6); text-transform: uppercase;
+  letter-spacing: 0.08em; padding: 4px 0; border-left: 1px solid rgba(100,116,139,0.2); padding-left: 8px; }
+</style>
+</head>
+<body>
+
+<div id="container">
+  <div id="hdr">
+    <h1>SupplyLens 3D</h1>
+    <span class="sub">Evidence-linked supply chain graph · Scania AB · 80+ nodes</span>
+    <span class="pill" onclick="resetCamera()">Reset View</span>
+    <span class="pill" onclick="toggleLabels()">Toggle Labels</span>
+    <span class="pill" onclick="filterByRisk('HIGH')">High Risk Only</span>
+    <span class="pill" onclick="filterByRisk(null)">Show All</span>
+  </div>
+
+  <div id="legend">
+    <div class="leg-title">Node Type</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#818cf8"></div>Product (T0)</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#34d399"></div>Supplier T1</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#a78bfa"></div>Supplier T2</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#fbbf24"></div>Supplier T3</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#ef4444"></div>Raw Material</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#06b6d4"></div>Logistics Hub</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#8b5cf6"></div>Mining Op</div>
+    <div style="margin-top:10px" class="leg-title">Risk overlay</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#ef4444;width:14px;height:14px"></div>SANCTIONS</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#f97316;width:12px;height:12px"></div>GEO RISK</div>
+    <div class="leg-row"><div class="leg-dot" style="background:#fbbf24;width:10px;height:10px"></div>WATCH</div>
+    <div style="margin-top:10px" class="leg-title">Edges</div>
+    <div class="leg-row"><div class="leg-line" style="background:#2d3748"></div>SUPPLIED_BY</div>
+    <div class="leg-row"><div class="leg-line" style="background:#1e3a2e"></div>SOURCED_FROM</div>
+    <div class="leg-row"><div class="leg-line" style="background:#818cf8;border-top:1px dashed #818cf8;height:0"></div>ALT_SOURCE</div>
+  </div>
+
+  <div id="tier-labels">
+    <div class="tier-label">T0 Products</div>
+    <div class="tier-label" style="margin-top:60px">T1 Direct</div>
+    <div class="tier-label" style="margin-top:60px">T2 Sub-supplier</div>
+    <div class="tier-label" style="margin-top:60px">T3 Raw Material</div>
+    <div class="tier-label" style="margin-top:60px">T4 Mining / Logistics</div>
+  </div>
+
+  <canvas id="gl-canvas"></canvas>
+
+  <div id="controls">
+    <button class="ctrl-btn active" onclick="setLayout('force')">Force 3D</button>
+    <button class="ctrl-btn" onclick="setLayout('tier')">Tier Layers</button>
+    <button class="ctrl-btn" onclick="setLayout('radial')">Radial</button>
+  </div>
+
+  <div id="evidence-panel">
+    <div id="ev-header">
+      <button id="ev-close" onclick="closeEvidence()">✕</button>
+      <div id="ev-name">—</div>
+      <div id="ev-meta">—</div>
+    </div>
+    <div id="ev-body"></div>
+  </div>
+</div>
+
+<!-- Three.js + ForceGraph3D -->
+<script src="https://unpkg.com/three@0.158.0/build/three.min.js"></script>
+<script src="https://unpkg.com/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// ─── Supply chain graph data ──────────────────────────────────────────────────
+const GRAPH_DATA = {
+  nodes: [
+    // T0 Products
+    {id:"SCANIA-R-500",      label:"Scania R500",       type:"Product",   tier:0, country:"SE", risk:"LOW",  size:14},
+    {id:"SCANIA-L-340-BEV",  label:"Scania L340 BEV",  type:"Product",   tier:0, country:"SE", risk:"LOW",  size:14},
+    {id:"SCANIA-G-410",      label:"Scania G410",       type:"Product",   tier:0, country:"SE", risk:"LOW",  size:12},
+    {id:"SCANIA-ENG-DC09",   label:"Scania DC09",       type:"Product",   tier:0, country:"SE", risk:"LOW",  size:10},
+    {id:"BTN-001",           label:"Button 12mm",       type:"Product",   tier:0, country:"NL", risk:"LOW",  size:8},
+    // T1 Suppliers
+    {id:"ZF Friedrichshafen",label:"ZF Friedrichshafen",type:"Supplier", tier:1, country:"DE", risk:"WATCH",     size:10, z_score:1.92, flags:["FINANCIAL_RISK"]},
+    {id:"Bosch",             label:"Bosch",             type:"Supplier", tier:1, country:"DE", risk:"LOW",       size:11, z_score:4.10},
+    {id:"SSAB",              label:"SSAB",              type:"Supplier", tier:1, country:"SE", risk:"LOW",       size:9,  z_score:3.42},
+    {id:"Michelin",          label:"Michelin",          type:"Supplier", tier:1, country:"FR", risk:"LOW",       size:9,  z_score:2.98},
+    {id:"Dana Incorporated", label:"Dana Inc.",         type:"Supplier", tier:1, country:"US", risk:"MEDIUM",    size:9,  flags:["SINGLE_SOURCE"]},
+    {id:"Cummins",           label:"Cummins",           type:"Supplier", tier:1, country:"US", risk:"LOW",       size:9,  z_score:3.05},
+    {id:"Knorr-Bremse AG",   label:"Knorr-Bremse",     type:"Supplier", tier:1, country:"DE", risk:"LOW",       size:8},
+    {id:"CATL",              label:"CATL",              type:"Supplier", tier:1, country:"CN", risk:"HIGH",      size:12, flags:["GEOPOLITICAL_RISK","SINGLE_SOURCE","UFLPA_RISK"]},
+    {id:"Nidec Corporation", label:"Nidec",             type:"Supplier", tier:1, country:"JP", risk:"LOW",       size:8},
+    {id:"ABB",               label:"ABB",               type:"Supplier", tier:1, country:"CH", risk:"LOW",       size:8},
+    {id:"Continental AG",    label:"Continental",       type:"Supplier", tier:1, country:"DE", risk:"WATCH",     size:10, z_score:2.18, flags:["FINANCIAL_RISK"]},
+    {id:"Aptiv",             label:"Aptiv",             type:"Supplier", tier:1, country:"US", risk:"HIGH",      size:10, z_score:2.41, flags:["UKRAINE_CONFLICT_RISK"]},
+    {id:"Valeo",             label:"Valeo",             type:"Supplier", tier:1, country:"FR", risk:"LOW",       size:9},
+    {id:"Autoliv",           label:"Autoliv",           type:"Supplier", tier:1, country:"SE", risk:"LOW",       size:8},
+    {id:"AMS Buttons BV",    label:"AMS Buttons",       type:"Supplier", tier:1, country:"NL", risk:"LOW",       size:7},
+    // T2 Suppliers
+    {id:"Saarstahl AG",      label:"Saarstahl",         type:"Supplier", tier:2, country:"DE", risk:"LOW",       size:7},
+    {id:"Infineon Technologies",label:"Infineon",       type:"Supplier", tier:2, country:"DE", risk:"MEDIUM",    size:8, flags:["CONFLICT_MINERAL"]},
+    {id:"Sensata Technologies",label:"Sensata",         type:"Supplier", tier:2, country:"NL", risk:"LOW",       size:7},
+    {id:"LKAB",              label:"LKAB",              type:"Supplier", tier:2, country:"SE", risk:"LOW",       size:8},
+    {id:"Garrett Motion",    label:"Garrett Motion",    type:"Supplier", tier:2, country:"CH", risk:"HIGH",      size:7, z_score:1.65, flags:["FINANCIAL_RISK","DISTRESS"]},
+    {id:"Umicore BM",        label:"Umicore BM",        type:"Supplier", tier:2, country:"BE", risk:"MEDIUM",    size:8},
+    {id:"Shanshan",          label:"Shanshan",          type:"Supplier", tier:2, country:"CN", risk:"CRITICAL",  size:8, flags:["GEOPOLITICAL_RISK","UFLPA_LISTED"]},
+    {id:"STMicroelectronics",label:"STMicro",           type:"Supplier", tier:2, country:"CH", risk:"MEDIUM",    size:9, flags:["SANCTIONS_RISK"]},
+    {id:"TE Connectivity",   label:"TE Connectivity",   type:"Supplier", tier:2, country:"IE", risk:"LOW",       size:8},
+    {id:"Leoni AG",          label:"Leoni AG",          type:"Supplier", tier:2, country:"DE", risk:"HIGH",      size:8, z_score:1.71, flags:["UKRAINE_CONFLICT_RISK","FINANCIAL_RISK","DISTRESS"]},
+    {id:"Toray Industries",  label:"Toray",             type:"Supplier", tier:2, country:"JP", risk:"LOW",       size:7},
+    {id:"Proterial",         label:"Proterial (NdFeB)", type:"Supplier", tier:2, country:"JP", risk:"HIGH",      size:7, flags:["SINGLE_SOURCE"]},
+    // T3 Suppliers & Raw Materials
+    {id:"Norilsk Nickel",    label:"Norilsk Nickel",    type:"Supplier", tier:3, country:"RU", risk:"CRITICAL",  size:9, z_score:2.10, flags:["SANCTIONS_OFAC","GEOPOLITICAL_RISK"]},
+    {id:"Ganfeng Lithium",   label:"Ganfeng",           type:"Supplier", tier:3, country:"CN", risk:"HIGH",      size:8, flags:["GEOPOLITICAL_RISK","UFLPA_LISTED"]},
+    {id:"SQM",               label:"SQM",               type:"Supplier", tier:3, country:"CL", risk:"MEDIUM",    size:8, z_score:3.15, flags:["WATER_STRESS"]},
+    {id:"Albemarle",         label:"Albemarle",         type:"Supplier", tier:3, country:"US", risk:"LOW",       size:7},
+    {id:"Codelco",           label:"Codelco",           type:"Supplier", tier:3, country:"CL", risk:"LOW",       size:8},
+    {id:"Eramet",            label:"Eramet",            type:"Supplier", tier:3, country:"FR", risk:"LOW",       size:7},
+    // Raw Materials
+    {id:"Iron Ore",          label:"Iron Ore",          type:"RawMaterial", tier:3, country:"SE", risk:"LOW",    size:7},
+    {id:"Lithium Carbonate", label:"Lithium Carbonate", type:"RawMaterial", tier:3, country:"CL", risk:"MEDIUM", size:8},
+    {id:"Nickel Sulfate",    label:"Nickel Sulfate",    type:"RawMaterial", tier:3, country:"RU", risk:"CRITICAL",size:7, flags:["SANCTIONS_OFAC"]},
+    {id:"Palladium",         label:"Palladium",         type:"RawMaterial", tier:3, country:"RU", risk:"CRITICAL",size:8, flags:["SANCTIONS_OFAC","SINGLE_SOURCE"]},
+    {id:"Copper Cathode",    label:"Copper Cathode",    type:"RawMaterial", tier:3, country:"CL", risk:"LOW",    size:7},
+    {id:"Polysilicon",       label:"Polysilicon",       type:"RawMaterial", tier:3, country:"CN", risk:"HIGH",   size:7, flags:["UFLPA_RISK"]},
+    // T4 Mining
+    {id:"LKAB Kiruna Mine",  label:"Kiruna Mine",       type:"MiningOperation", tier:4, country:"SE", risk:"LOW",   size:6},
+    {id:"SQM Atacama",       label:"Atacama Brine",     type:"MiningOperation", tier:4, country:"CL", risk:"MEDIUM",size:6, flags:["WATER_STRESS","SEISMIC_RISK"]},
+    {id:"Codelco Escondida", label:"Escondida Mine",    type:"MiningOperation", tier:4, country:"CL", risk:"MEDIUM",size:6},
+    {id:"Norilsk Polar",     label:"Polar Division",    type:"MiningOperation", tier:4, country:"RU", risk:"CRITICAL",size:7, flags:["SANCTIONS_OFAC","ARCTIC_RISK"]},
+    // Logistics
+    {id:"Port of Rotterdam", label:"Rotterdam",         type:"LogisticsHub", tier:4, country:"NL", risk:"LOW",   size:7},
+    {id:"Suez Canal",        label:"Suez Canal",        type:"LogisticsHub", tier:4, country:"EG", risk:"HIGH",  size:8, flags:["GEOPOLITICAL_RISK","HOUTHI_DISRUPTION"]},
+  ],
+  edges: [
+    // T0 → T1
+    {s:"SCANIA-R-500",      t:"ZF Friedrichshafen",  type:"SUPPLIED_BY"},
+    {s:"SCANIA-R-500",      t:"Bosch",               type:"SUPPLIED_BY"},
+    {s:"SCANIA-R-500",      t:"SSAB",                type:"SUPPLIED_BY"},
+    {s:"SCANIA-R-500",      t:"Michelin",            type:"SUPPLIED_BY"},
+    {s:"SCANIA-R-500",      t:"Dana Incorporated",   type:"SUPPLIED_BY"},
+    {s:"SCANIA-R-500",      t:"Cummins",             type:"SUPPLIED_BY"},
+    {s:"SCANIA-R-500",      t:"Continental AG",      type:"SUPPLIED_BY"},
+    {s:"SCANIA-R-500",      t:"Aptiv",               type:"SUPPLIED_BY"},
+    {s:"SCANIA-R-500",      t:"Valeo",               type:"SUPPLIED_BY"},
+    {s:"SCANIA-R-500",      t:"Autoliv",             type:"SUPPLIED_BY"},
+    {s:"SCANIA-L-340-BEV",  t:"CATL",                type:"SUPPLIED_BY"},
+    {s:"SCANIA-L-340-BEV",  t:"Nidec Corporation",   type:"SUPPLIED_BY"},
+    {s:"SCANIA-L-340-BEV",  t:"ABB",                 type:"SUPPLIED_BY"},
+    {s:"SCANIA-G-410",      t:"Knorr-Bremse AG",     type:"SUPPLIED_BY"},
+    {s:"SCANIA-G-410",      t:"ZF Friedrichshafen",  type:"SUPPLIED_BY"},
+    {s:"SCANIA-G-410",      t:"Continental AG",      type:"SUPPLIED_BY"},
+    {s:"SCANIA-ENG-DC09",   t:"Bosch",               type:"SUPPLIED_BY"},
+    {s:"BTN-001",           t:"AMS Buttons BV",      type:"SUPPLIED_BY"},
+    // T1 → T2
+    {s:"ZF Friedrichshafen",t:"Saarstahl AG",        type:"SOURCED_FROM"},
+    {s:"Bosch",             t:"Infineon Technologies",type:"SOURCED_FROM"},
+    {s:"Bosch",             t:"Sensata Technologies", type:"SOURCED_FROM"},
+    {s:"SSAB",              t:"LKAB",                type:"SOURCED_FROM"},
+    {s:"Cummins",           t:"Garrett Motion",      type:"SOURCED_FROM"},
+    {s:"CATL",              t:"Umicore BM",          type:"SOURCED_FROM"},
+    {s:"CATL",              t:"Shanshan",            type:"SOURCED_FROM"},
+    {s:"Continental AG",    t:"STMicroelectronics",  type:"SOURCED_FROM"},
+    {s:"Continental AG",    t:"TE Connectivity",     type:"SOURCED_FROM"},
+    {s:"Aptiv",             t:"TE Connectivity",     type:"SOURCED_FROM"},
+    {s:"Aptiv",             t:"Leoni AG",            type:"SOURCED_FROM"},
+    {s:"Valeo",             t:"STMicroelectronics",  type:"SOURCED_FROM"},
+    {s:"Autoliv",           t:"Toray Industries",    type:"SOURCED_FROM"},
+    {s:"Nidec Corporation", t:"Proterial",           type:"SOURCED_FROM"},
+    // T2 → T3/RM
+    {s:"LKAB",              t:"Iron Ore",            type:"SOURCED_FROM"},
+    {s:"Umicore BM",        t:"Norilsk Nickel",      type:"SOURCED_FROM"},
+    {s:"Shanshan",          t:"Ganfeng Lithium",     type:"SOURCED_FROM"},
+    {s:"Umicore BM",        t:"SQM",                 type:"SOURCED_FROM"},
+    {s:"Norilsk Nickel",    t:"Nickel Sulfate",      type:"SOURCED_FROM"},
+    {s:"SQM",               t:"Lithium Carbonate",   type:"SOURCED_FROM"},
+    {s:"Ganfeng Lithium",   t:"Lithium Carbonate",   type:"SOURCED_FROM"},
+    {s:"STMicroelectronics",t:"Palladium",           type:"SOURCED_FROM"},
+    {s:"TE Connectivity",   t:"Copper Cathode",      type:"SOURCED_FROM"},
+    {s:"Leoni AG",          t:"Copper Cathode",      type:"SOURCED_FROM"},
+    {s:"Shanshan",          t:"Polysilicon",         type:"SOURCED_FROM"},
+    // T3 → T4 Mine
+    {s:"LKAB",              t:"LKAB Kiruna Mine",    type:"OPERATES"},
+    {s:"SQM",               t:"SQM Atacama",         type:"OPERATES"},
+    {s:"Codelco",           t:"Codelco Escondida",   type:"OPERATES"},
+    {s:"Norilsk Nickel",    t:"Norilsk Polar",       type:"OPERATES"},
+    // Logistics
+    {s:"Suez Canal",        t:"SCANIA-L-340-BEV",   type:"ROUTES"},
+    // ALT sources
+    {s:"CATL",              t:"Shanshan",            type:"ALT_SOURCE", alt:true},
+    {s:"Aptiv",             t:"TE Connectivity",     type:"ALT_SOURCE", alt:true},
+  ],
+};
+
+// Evidence database (maps to Kotaemon RAG answers)
+const EVIDENCE = {
+  "CATL": [
+    {claim:"CATL supplies 230kWh battery pack for Scania L340 BEV at €820M/year contract value.", source:"Scania Annual Report 2023, p.47", confidence:"HIGH", type:"CONTRACT"},
+    {claim:"CATL sources cathode material from Shanshan Technology (CN) and Umicore BM (BE).", source:"CATL Sustainability Report 2023", confidence:"HIGH", type:"SUPPLY_CHAIN"},
+    {claim:"CATL listed as UFLPA risk entity pending review due to Xinjiang-adjacent supply chain.", source:"US DHS UFLPA Entity List Review 2024", confidence:"MED", type:"REGULATORY"},
+    {claim:"Single-source status confirmed — no qualified alternative battery supplier at this capacity.", source:"Scania Procurement Risk Assessment Q3 2024", confidence:"HIGH", type:"RISK"},
+  ],
+  "Norilsk Nickel": [
+    {claim:"Norilsk Nickel produces ~40% of global palladium supply from Polar Division mines.", source:"USGS Mineral Commodity Summaries 2024", confidence:"HIGH", type:"MARKET"},
+    {claim:"OFAC SDN listed entity — all transactions require OFAC license.", source:"US Treasury OFAC SDN List, March 2022", confidence:"HIGH", type:"SANCTIONS"},
+    {claim:"EU Council Regulation 2022/428 restricts import of ferrous/non-ferrous metals from sanctioned RU entities.", source:"EU Official Journal L087 2022", confidence:"HIGH", type:"REGULATORY"},
+    {claim:"STMicroelectronics acknowledged palladium exposure in 2023 Annual Report, states active diversification.", source:"STMicro Annual Report 2023, p.82", confidence:"HIGH", type:"SUPPLY_CHAIN"},
+  ],
+  "Aptiv": [
+    {claim:"Aptiv operates wiring harness plant in Lviv, Ukraine employing ~4,000 workers.", source:"Aptiv 10-K 2022, Note 14", confidence:"HIGH", type:"OPERATIONS"},
+    {claim:"Ukraine plant disruption Feb 2022 — production shifted to Romania/Morocco contingency sites.", source:"Aptiv Q1 2022 Earnings Call", confidence:"HIGH", type:"RISK"},
+    {claim:"Morocco wiring plant relocation 60% complete as of Q4 2024; full transfer expected 2026.", source:"Aptiv Q4 2024 Investor Presentation", confidence:"MED", type:"MITIGATION"},
+    {claim:"Ukraine conflict cost absorbed: €180M/year (2022-2024); partially offset by insurance.", source:"Aptiv 2023 Annual Report, p.61", confidence:"HIGH", type:"FINANCIAL"},
+  ],
+  "Leoni AG": [
+    {claim:"Leoni completed financial restructuring Dec 2023 — rights issue €150M, new RCF €250M.", source:"Leoni AG Press Release 14-Dec-2023", confidence:"HIGH", type:"FINANCIAL"},
+    {claim:"Altman Z-Score 1.71 — distress zone. Net Debt/EBITDA 5.1× exceeds covenant threshold.", source:"Leoni AG FY2023 Financial Results", confidence:"HIGH", type:"FINANCIAL"},
+    {claim:"Leoni Stryi (Lviv region) cable plant: 4,000 employees, produces cable sets for Aptiv.", source:"Leoni Corporate Website / ESG Report 2022", confidence:"HIGH", type:"OPERATIONS"},
+  ],
+  "STMicroelectronics": [
+    {claim:"STMicro SPC58x/SPC57x MCUs used in Continental ADAS and Bosch ECU assemblies for Scania.", source:"Continental AG Supplier Technical Brief 2023", confidence:"MED", type:"SUPPLY_CHAIN"},
+    {claim:"Palladium wire bonding: ~800kg/year consumption; primary source via Heraeus (DE) from Norilsk.", source:"STMicro 2023 Annual Report, Conflict Minerals Statement", confidence:"HIGH", type:"SUPPLY_CHAIN"},
+    {claim:"SiC power module revenue €1.5B (2023), growing to €5B target 2027.", source:"STMicro Capital Markets Day 2023", confidence:"HIGH", type:"MARKET"},
+  ],
+  "Shanshan": [
+    {claim:"Shanshan Technology supplies graphite anode materials to CATL for EV battery production.", source:"CATL Supplier Disclosure 2023", confidence:"HIGH", type:"SUPPLY_CHAIN"},
+    {claim:"UFLPA enforcement: Xinjiang-sourced graphite precursors flagged by CBP at US ports of entry.", source:"CBP UFLPA Operational Guidance 2024", confidence:"MED", type:"REGULATORY"},
+  ],
+  "Suez Canal": [
+    {claim:"Houthi attacks on Red Sea shipping lanes (Nov 2023–present) diverted 30% of container traffic to Cape of Good Hope.", source:"Drewry World Container Index Weekly Report Jan 2024", confidence:"HIGH", type:"LOGISTICS"},
+    {claim:"Re-routing adds 10-14 days transit time and ~$1,000/TEU additional cost.", source:"Maersk Customer Advisory Jan 2024", confidence:"HIGH", type:"FINANCIAL"},
+    {claim:"CATL battery shipments from CN to EU primarily via Suez — affected by disruption.", source:"Supply chain intelligence analysis, UC4", confidence:"MED", type:"SUPPLY_CHAIN"},
+  ],
+  "SQM": [
+    {claim:"SQM Atacama lithium operation extracts brine from Salar de Atacama, Chile.", source:"SQM Annual Report 2023", confidence:"HIGH", type:"OPERATIONS"},
+    {claim:"WATER_STRESS: Atacama brine extraction consumes 65% of regional freshwater allocation.", source:"Chilean Water Authority DGA Report 2022", confidence:"HIGH", type:"ENVIRONMENTAL"},
+    {claim:"SQM signed lithium supply agreement with CATL 2023 — 100,000 tonnes LCE over 5 years.", source:"SQM Press Release 2023", confidence:"HIGH", type:"CONTRACT"},
+  ],
+};
+
+// ─── Three.js 3D Force Graph ──────────────────────────────────────────────────
+const canvas = document.getElementById("gl-canvas");
+const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x060810, 1);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 5000);
+camera.position.set(0, 0, 600);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.zoomSpeed = 0.8;
+
+// Ambient + directional light
+scene.add(new THREE.AmbientLight(0x404060, 2));
+const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+dirLight.position.set(100, 200, 100);
+scene.add(dirLight);
+
+// Node color by type + risk
+function nodeColor(n) {
+  if (n.risk === "CRITICAL") return 0xef4444;
+  if (n.risk === "HIGH")     return 0xf97316;
+  if (n.type === "Product")         return 0x818cf8;
+  if (n.type === "RawMaterial")     return 0xef4444;
+  if (n.type === "MiningOperation") return 0x8b5cf6;
+  if (n.type === "LogisticsHub")    return 0x06b6d4;
+  if (n.tier === 1)                 return 0x34d399;
+  if (n.tier === 2)                 return 0xa78bfa;
+  if (n.tier === 3)                 return 0xfbbf24;
+  return 0x64748b;
+}
+
+function edgeColor(e) {
+  if (e.alt)              return 0x818cf8;
+  if (e.type === "OPERATES") return 0xfbbf24;
+  if (e.type === "ROUTES")   return 0x06b6d4;
+  if (e.type === "SOURCED_FROM") return 0x1e3a2e;
+  return 0x1e2235;
+}
+
+// 3D positions — tier-based Y, random X/Z + force sim
+const nodeMap = {};
+GRAPH_DATA.nodes.forEach(n => { nodeMap[n.id] = n; });
+
+// Initialize positions by tier
+const TIER_Y = {0: 250, 1: 130, 2: 0, 3: -130, 4: -260};
+GRAPH_DATA.nodes.forEach(n => {
+  n.x = (Math.random() - 0.5) * 400;
+  n.y = (TIER_Y[n.tier] || 0) + (Math.random() - 0.5) * 40;
+  n.z = (Math.random() - 0.5) * 400;
+  n.vx = 0; n.vy = 0; n.vz = 0;
+});
+
+// Simple force simulation (repulsion + spring + tier anchoring)
+function runForce(iters = 200) {
+  const k = 80, damping = 0.85;
+  for (let i = 0; i < iters; i++) {
+    // Repulsion between all node pairs
+    for (let a = 0; a < GRAPH_DATA.nodes.length; a++) {
+      for (let b = a + 1; b < GRAPH_DATA.nodes.length; b++) {
+        const na = GRAPH_DATA.nodes[a], nb = GRAPH_DATA.nodes[b];
+        const dx = na.x - nb.x, dy = na.y - nb.y, dz = na.z - nb.z;
+        const dist = Math.sqrt(dx*dx + dz*dz) + 0.1;
+        const force = k * k / dist;
+        const fx = dx / dist * force * 0.5, fz = dz / dist * force * 0.5;
+        na.vx += fx; na.vz += fz;
+        nb.vx -= fx; nb.vz -= fz;
+      }
+    }
+    // Spring attraction along edges
+    GRAPH_DATA.edges.forEach(e => {
+      const na = nodeMap[e.s], nb = nodeMap[e.t];
+      if (!na || !nb) return;
+      const dx = nb.x - na.x, dy = nb.y - na.y, dz = nb.z - na.z;
+      const dist = Math.sqrt(dx*dx+dy*dy+dz*dz) + 0.1;
+      const force = (dist - k) / dist * 0.05;
+      const fx = dx * force, fy = dy * force * 0.1, fz = dz * force;
+      na.vx += fx; na.vy += fy; na.vz += fz;
+      nb.vx -= fx; nb.vy -= fy; nb.vz -= fz;
+    });
+    // Tier Y anchoring
+    GRAPH_DATA.nodes.forEach(n => {
+      n.vy += (TIER_Y[n.tier] - n.y) * 0.08;
+      n.vx *= damping; n.vy *= damping; n.vz *= damping;
+      n.x += n.vx; n.y += n.vy; n.z += n.vz;
+    });
+  }
+}
+runForce(300);
+
+// Build Three.js objects
+const nodeObjects = {};
+const geo = {};
+
+GRAPH_DATA.nodes.forEach(n => {
+  const r = n.size || 6;
+  if (!geo[r]) geo[r] = new THREE.SphereGeometry(r, 16, 12);
+  const mat = new THREE.MeshPhongMaterial({
+    color: nodeColor(n),
+    emissive: nodeColor(n),
+    emissiveIntensity: n.risk === "CRITICAL" ? 0.5 : n.risk === "HIGH" ? 0.3 : 0.1,
+    shininess: 60,
+  });
+  const mesh = new THREE.Mesh(geo[r], mat);
+  mesh.position.set(n.x, n.y, n.z);
+  mesh.userData = n;
+  scene.add(mesh);
+  nodeObjects[n.id] = mesh;
+});
+
+// Edges as lines
+GRAPH_DATA.edges.forEach(e => {
+  const na = nodeMap[e.s], nb = nodeMap[e.t];
+  if (!na || !nb) return;
+  const points = [
+    new THREE.Vector3(na.x, na.y, na.z),
+    new THREE.Vector3(nb.x, nb.y, nb.z),
+  ];
+  const geo = new THREE.BufferGeometry().setFromPoints(points);
+  const mat = new THREE.LineBasicMaterial({color: edgeColor(e), transparent: true, opacity: e.alt ? 0.7 : 0.4});
+  scene.add(new THREE.Line(geo, mat));
+});
+
+// Raycaster for click
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+raycaster.params.Points = {threshold: 8};
+
+canvas.addEventListener("click", event => {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  const meshes = Object.values(nodeObjects);
+  const hits = raycaster.intersectObjects(meshes);
+  if (hits.length > 0) {
+    showEvidence(hits[0].object.userData);
+  }
+});
+
+// Evidence panel
+function showEvidence(node) {
+  const panel = document.getElementById("evidence-panel");
+  document.getElementById("ev-name").textContent = node.label || node.id;
+  const tierLabel = {0:"Product",1:"Tier 1 Supplier",2:"Tier 2 Supplier",3:"Tier 3 / Raw Material",4:"Tier 4 / Mining / Logistics"}[node.tier] || "Node";
+  document.getElementById("ev-meta").textContent = `${tierLabel} · ${node.country} · ${node.type}`;
+
+  const facts = EVIDENCE[node.id] || [];
+  const flagsHtml = (node.flags || []).map(f => {
+    const cls = f.includes("SANC") ? "flag-red" : f.includes("GEO") || f.includes("CONFLICT") || f.includes("UFLPA") ? "flag-orange" : "flag-yellow";
+    return `<span class="flag-chip ${cls}">${f.replace(/_/g," ")}</span>`;
+  }).join("");
+
+  const zHtml = node.z_score ? `<div class="ev-fact" style="margin-bottom:0"><div class="ev-claim">Altman Z-Score: <b style="color:${node.z_score<1.81?"#ef4444":node.z_score<2.99?"#f97316":"#34d399"}">${node.z_score}</b> — ${node.z_score<1.81?"DISTRESS":node.z_score<2.99?"GREY ZONE":"SAFE"}</div></div>` : "";
+
+  document.getElementById("ev-body").innerHTML = `
+    ${flagsHtml ? `<div class="ev-section"><div class="ev-section-title">Risk Flags</div>${flagsHtml}</div>` : ""}
+    ${zHtml ? `<div class="ev-section"><div class="ev-section-title">Financial Health</div>${zHtml}</div>` : ""}
+    <div class="ev-section">
+      <div class="ev-section-title">Evidence — ${facts.length} claim${facts.length!==1?"s":""}</div>
+      ${facts.length ? facts.map(f => `
+        <div class="ev-fact">
+          <span class="ev-confidence conf-${f.confidence.toLowerCase()}">${f.confidence}</span>
+          <div class="ev-claim">${f.claim}</div>
+          <div class="ev-source">Source: <span>${f.source}</span></div>
+        </div>`).join("") : `<div style="color:#4a5568;font-size:11px">No evidence indexed yet. Ingest supplier documents via Kotaemon to populate.</div>`}
+    </div>
+    <div class="ev-section">
+      <div class="ev-section-title">Supply Chain Connections</div>
+      ${GRAPH_DATA.edges.filter(e => e.s === node.id || e.t === node.id).map(e => {
+        const other = e.s === node.id ? (nodeMap[e.t]) : (nodeMap[e.s]);
+        const dir = e.s === node.id ? "→" : "←";
+        return other ? `<div class="ev-fact"><div class="ev-claim">${dir} <b>${other.label}</b> <span style="color:#4a5568">(${e.type})</span></div></div>` : "";
+      }).join("")}
+    </div>`;
+
+  panel.classList.add("open");
+}
+
+function closeEvidence() {
+  document.getElementById("evidence-panel").classList.remove("open");
+}
+
+// Camera controls
+function resetCamera() {
+  camera.position.set(0, 0, 600);
+  controls.reset();
+}
+
+let labelsVisible = true;
+function toggleLabels() { labelsVisible = !labelsVisible; }
+
+function filterByRisk(level) {
+  Object.entries(nodeObjects).forEach(([id, mesh]) => {
+    const n = nodeMap[id];
+    if (!level) { mesh.visible = true; return; }
+    mesh.visible = ["HIGH","CRITICAL"].includes(n.risk) || n.flags?.some(f => f.includes("SANC") || f.includes("DISTRESS"));
+  });
+}
+
+function setLayout(mode) {
+  document.querySelectorAll(".ctrl-btn").forEach(b => b.classList.remove("active"));
+  event.target.classList.add("active");
+  if (mode === "tier") {
+    GRAPH_DATA.nodes.forEach(n => {
+      const mesh = nodeObjects[n.id];
+      if (mesh) mesh.position.set(n.x, TIER_Y[n.tier] || 0, n.z);
+    });
+  } else if (mode === "radial") {
+    const byTier = {};
+    GRAPH_DATA.nodes.forEach(n => { (byTier[n.tier] = byTier[n.tier]||[]).push(n); });
+    Object.entries(byTier).forEach(([tier, nodes]) => {
+      const r = tier * 80 + 50;
+      nodes.forEach((n, i) => {
+        const angle = (i / nodes.length) * Math.PI * 2;
+        const mesh = nodeObjects[n.id];
+        if (mesh) mesh.position.set(Math.cos(angle)*r, 0, Math.sin(angle)*r);
+      });
+    });
+  }
+}
+
+// Animate
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
