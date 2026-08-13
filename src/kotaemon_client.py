@@ -216,6 +216,79 @@ class KotaemonClient:
             return first
         return str(first)
 
+    @staticmethod
+    def extract_citations(answer: str) -> list[dict]:
+        """Parse [Source: doc_name, p.N] citations from a Kotaemon answer.
+
+        Kotaemon appends citations in formats like:
+          [Source: Scania Annual Report 2023, p.42]
+          [1] Bosch Supplier Portal 2023, page 12
+          (Source: ZF Annual Report, section 3.2)
+
+        Returns list of dicts: {doc, page, raw}
+        """
+        import re
+        citations = []
+        seen = set()
+
+        # Pattern 1: [Source: doc, p.N]  or  [Source: doc, page N]
+        for m in re.finditer(
+            r'\[Source:\s*([^\],]+?)(?:,\s*p(?:age)?\.?\s*(\d+))?\]',
+            answer, re.IGNORECASE
+        ):
+            doc = m.group(1).strip()
+            page = m.group(2) or ""
+            key = (doc.lower(), page)
+            if key not in seen:
+                seen.add(key)
+                citations.append({"doc": doc, "page": page, "raw": m.group(0)})
+
+        # Pattern 2: (Source: doc, section X.Y)
+        for m in re.finditer(
+            r'\(Source:\s*([^\)]+?)\)',
+            answer, re.IGNORECASE
+        ):
+            raw = m.group(0)
+            doc = m.group(1).strip()
+            key = (doc.lower(), "")
+            if key not in seen:
+                seen.add(key)
+                citations.append({"doc": doc, "page": "", "raw": raw})
+
+        # Pattern 3: numbered footnotes  [1] Doc title, p.N  or  [n] Doc title 20XX
+        for m in re.finditer(
+            r'\[\d+\]\s+([A-Z][^\n,]+?(?:20\d\d|Report|Annual|Filing|List)?)'
+            r'(?:,\s*p(?:age)?\.?\s*(\d+))?(?:\n|$)',
+            answer
+        ):
+            doc = m.group(1).strip().rstrip('.,')
+            page = m.group(2) or ""
+            key = (doc.lower(), page)
+            if key not in seen and len(doc) > 5:
+                seen.add(key)
+                citations.append({"doc": doc, "page": page, "raw": m.group(0).strip()})
+
+        return citations
+
+    def query_with_citations(self, question: str,
+                             query_timeout: int = 40) -> dict:
+        """RAG query that returns both answer text and extracted citations.
+
+        Returns:
+            {
+              "answer": str,
+              "citations": [{"doc": str, "page": str, "raw": str}, ...],
+              "has_citations": bool,
+            }
+        """
+        answer = self.query(question, query_timeout=query_timeout)
+        citations = self.extract_citations(answer) if answer else []
+        return {
+            "answer": answer,
+            "citations": citations,
+            "has_citations": len(citations) > 0,
+        }
+
     def ingest_text(self, doc_name: str, text: str,
                     metadata: dict | None = None) -> bool:
         """Upload a text document to Kotaemon for indexing.

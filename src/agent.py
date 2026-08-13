@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from neo4j_client import Neo4jClient
 from kotaemon_client import KotaemonClient
 from sanctions_screener import screen_supplier
+from evidence_store import store_evidence
 
 log = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -173,10 +174,25 @@ def kotaemon_rag(state: EnrichState) -> dict:
     for name in list(state["texts"].keys()):
         question = KOTAEMON_RAG_QUERY.format(company=name)
         try:
-            rag_answer = _ktm.query(question, query_timeout=25)
+            result = _ktm.query_with_citations(question, query_timeout=25)
+            rag_answer = result["answer"]
             if rag_answer and len(rag_answer) > 50:
                 augmented[name] = state["texts"][name] + "\n\n[Kotaemon RAG]\n" + rag_answer
                 log.info("kotaemon_rag: %s → +%d chars from RAG", name, len(rag_answer))
+                # Store each citation as an evidence claim on the supplier node
+                for cit in result["citations"]:
+                    try:
+                        store_evidence(
+                            node_name=name,
+                            claim=f"Kotaemon RAG answer re: {name} supply chain — see source.",
+                            source_doc=cit["doc"],
+                            claim_type="SUPPLY_CHAIN",
+                            confidence="MED",
+                            source_excerpt=f"Page {cit['page']}" if cit["page"] else "",
+                            reviewed=False,
+                        )
+                    except Exception:
+                        pass
             else:
                 log.debug("kotaemon_rag: %s → no useful RAG answer", name)
         except Exception as exc:
@@ -419,6 +435,30 @@ def compliance_check(state: EnrichState) -> dict:
     return {"inferred": updated, "errors": errors}
 
 
+def _store_inferred_evidence(node_name: str, source: str,
+                             component: str, node: dict) -> None:
+    """Write one SUPPLY_CHAIN evidence claim for an LLM-inferred link."""
+    try:
+        claim = (
+            f"LLM inferred supply link: {source} sources '{component}' "
+            f"from {node_name} (country={node.get('country','?')})."
+        )
+        conf_score = float(node.get("confidence", 0.7))
+        conf = "HIGH" if conf_score >= 0.85 else ("MED" if conf_score >= 0.5 else "LOW")
+        store_evidence(
+            node_name=node_name,
+            claim=claim,
+            source_doc="LLM inference (LangGraph agent)",
+            claim_type="SUPPLY_CHAIN",
+            confidence=conf,
+            source_excerpt=f"Component: {component}; supplier: {source}",
+            ingest_date="",
+            reviewed=False,
+        )
+    except Exception as exc:
+        log.debug("_store_inferred_evidence: %s — %s", node_name, exc)
+
+
 def merge(state: EnrichState) -> dict:
     """MERGE inferred nodes into Neo4j; queue newly-found Suppliers for next depth."""
     db = _neo4j()
@@ -469,6 +509,8 @@ def merge(state: EnrichState) -> dict:
                         {"src": source, "tgt": name, "component": component},
                     )
                     edges_added += 1
+                    # Store evidence claim for the inferred supply link
+                    _store_inferred_evidence(name, source, component, node)
                 nodes_added += 1
                 if name not in processed:
                     newly_found.append(name)
@@ -498,6 +540,7 @@ def merge(state: EnrichState) -> dict:
                         {"src": source, "tgt": name, "component": component},
                     )
                     edges_added += 1
+                    _store_inferred_evidence(name, source, component, node)
                 nodes_added += 1
 
         except Exception as exc:
