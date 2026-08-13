@@ -195,6 +195,15 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; colo
   <div class="tab" onclick="switchTab('edrm')" id="tab-edrm">
     <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2" rx="1"/><rect x="1" y="6" width="10" height="2" rx="1"/><rect x="1" y="10" width="12" height="2" rx="1"/><rect x="1" y="14" width="7" height="2" rx="1"/><circle cx="13" cy="11" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12.2 11 l.8.8 1.5-1.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg> EDRM
   </div>
+  <div class="tab" onclick="switchTab('logrisk')" id="tab-logrisk">
+    <svg viewBox="0 0 16 16" fill="currentColor"><path d="M2 8 Q4 4 8 8 Q12 12 14 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="2" fill="currentColor" opacity="0.8"/><line x1="1" y1="2" x2="1" y2="14" stroke="currentColor" stroke-width="1" opacity="0.4"/><line x1="1" y1="14" x2="15" y2="14" stroke="currentColor" stroke-width="1" opacity="0.4"/></svg> Logistics Risk
+  </div>
+  <div class="tab" onclick="switchTab('finmonitor')" id="tab-finmonitor">
+    <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="10" width="3" height="5" rx="1"/><rect x="5" y="6" width="3" height="9" rx="1"/><rect x="9" y="3" width="3" height="12" rx="1"/><rect x="13" y="7" width="2" height="8" rx="1"/><polyline points="2.5,9 6.5,5 10.5,2 14,6" fill="none" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/></svg> Fin Monitor
+  </div>
+  <div class="tab" onclick="switchTab('kotaemon')" id="tab-kotaemon">
+    <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="6" r="4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 10 L8 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M5 14 L11 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="6.5" cy="5.5" r="0.8" fill="currentColor"/><circle cx="9.5" cy="5.5" r="0.8" fill="currentColor"/><path d="M6.5 7.5 Q8 8.5 9.5 7.5" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg> Kotaemon
+  </div>
   <div class="header-right">
     <div class="status-pill ok" id="neo4j-status"><span class="dot"></span>Neo4j</div>
     <div class="status-pill err" id="kotaemon-status"><span class="dot"></span>Kotaemon</div>
@@ -339,6 +348,21 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; colo
   <!-- EDRM TRACKER -->
   <div class="panel" id="edrm-panel">
     <iframe src="edrm_tracker.html" id="edrm-iframe" style="width:100%;height:100%;border:none"></iframe>
+  </div>
+
+  <!-- LOGISTICS RISK -->
+  <div class="panel" id="logrisk-panel">
+    <iframe src="logistics_risk.html" id="logrisk-iframe" style="width:100%;height:100%;border:none"></iframe>
+  </div>
+
+  <!-- FINANCIAL MONITOR -->
+  <div class="panel" id="finmonitor-panel">
+    <iframe src="financial_monitor.html" id="finmonitor-iframe" style="width:100%;height:100%;border:none"></iframe>
+  </div>
+
+  <!-- KOTAEMON SEARCH -->
+  <div class="panel" id="kotaemon-panel">
+    <iframe src="kotaemon_search.html" id="kotaemon-iframe" style="width:100%;height:100%;border:none"></iframe>
   </div>
 
 </div>

@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SupplyLens — Logistics Route Risk</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+* { box-sizing: border-box; margin:0; padding:0; }
+body { background:#0f1117; color:#e2e8f0; font-family:'Segoe UI',system-ui,sans-serif; }
+
+#header { background:#1a1d2e; border-bottom:1px solid #2d3748; padding:10px 20px; display:flex; align-items:center; gap:16px; }
+h1 { font-size:15px; font-weight:700; color:#818cf8; }
+.sub { font-size:11px; color:#64748b; }
+
+/* Summary row */
+#summary { display:flex; gap:0; border-bottom:1px solid #1e293b; }
+.sb { flex:1; padding:12px 18px; border-right:1px solid #1e293b; text-align:center; }
+.sb:last-child { border-right:none; }
+.sb-n { font-size:26px; font-weight:800; }
+.sb-l { font-size:10px; color:#475569; margin-top:3px; }
+
+#main { display:flex; height:calc(100vh - 96px); overflow:hidden; }
+#left { width:420px; flex-shrink:0; overflow-y:auto; border-right:1px solid #1e293b; padding:12px; }
+#left::-webkit-scrollbar { width:4px; }
+#left::-webkit-scrollbar-thumb { background:#334155; border-radius:2px; }
+#right { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+#chart-area { flex:1; padding:16px; display:flex; flex-direction:column; gap:14px; overflow-y:auto; }
+
+/* Route cards */
+.route-card { background:#12161f; border:1px solid #1e293b; border-radius:6px; padding:12px 14px; cursor:pointer; transition:border-color 0.2s; }
+.route-card:hover, .route-card.active { border-color:#818cf8; background:#1a1d2e; }
+.route-card.CRITICAL { border-left:3px solid #ef4444; }
+.route-card.HIGH { border-left:3px solid #f97316; }
+.route-card.MEDIUM { border-left:3px solid #fbbf24; }
+.route-card.LOW { border-left:3px solid #34d399; }
+
+.rc-header { display:flex; align-items:center; justify-content:space-between; }
+.rc-name { font-size:13px; font-weight:700; color:#e2e8f0; }
+.rc-risk { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; }
+.risk-CRITICAL { background:#450a0a; color:#f87171; }
+.risk-HIGH { background:#431407; color:#fb923c; }
+.risk-MEDIUM { background:#451a03; color:#fbbf24; }
+.risk-LOW { background:#052e16; color:#86efac; }
+
+.rc-region { font-size:10px; color:#475569; margin-top:2px; }
+.rc-prob { font-size:22px; font-weight:800; margin:8px 0 4px; }
+.rc-prob-bar { height:5px; background:#1e293b; border-radius:3px; overflow:hidden; }
+.rc-prob-fill { height:100%; border-radius:3px; }
+.rc-stats { display:flex; gap:16px; margin-top:8px; font-size:11px; color:#64748b; }
+.rc-stat span { color:#94a3b8; font-weight:600; }
+
+.rc-threats { margin-top:8px; }
+.rc-threat { font-size:10px; color:#64748b; padding:2px 0; display:flex; align-items:center; gap:6px; }
+.rc-threat::before { content:'•'; color:#475569; }
+
+.rc-suppliers { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
+.sup-tag { font-size:9px; background:#1e293b; border:1px solid #334155; border-radius:3px; padding:1px 5px; color:#94a3b8; }
+
+/* Chart area */
+.chart-title { font-size:12px; font-weight:700; color:#94a3b8; text-transform:uppercase; letter-spacing:0.08em; }
+.chart-box { background:#12161f; border:1px solid #1e293b; border-radius:6px; padding:14px; }
+
+/* Probability chart */
+#prob-chart svg { overflow:visible; }
+
+/* Route map legend */
+.map-legend { display:flex; gap:12px; font-size:10px; color:#64748b; margin-top:8px; flex-wrap:wrap; }
+.map-leg { display:flex; align-items:center; gap:5px; }
+.map-dot { width:10px; height:10px; border-radius:50%; }
+
+/* Supplier route matrix */
+.matrix-table { width:100%; border-collapse:collapse; font-size:10px; }
+.matrix-table th { padding:5px 8px; text-align:left; color:#475569; border-bottom:1px solid #1e293b; font-weight:600; white-space:nowrap; }
+.matrix-table td { padding:4px 8px; border-bottom:1px solid #0d1117; color:#94a3b8; }
+.cell-yes { background:#1e3a2f; color:#34d399; text-align:center; font-weight:700; }
+.cell-no { color:#1e293b; text-align:center; }
+.cell-block { background:#3a1a1a; color:#f87171; text-align:center; font-weight:700; }
+
+/* Alt route panel */
+.alt-panel { background:#1a2332; border-radius:4px; padding:8px 12px; margin-top:8px; font-size:11px; }
+.alt-title { color:#475569; font-size:10px; text-transform:uppercase; letter-spacing:0.08em; }
+.alt-route { display:flex; align-items:center; gap:10px; margin-top:6px; color:#94a3b8; }
+.alt-arrow { color:#475569; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <h1>SupplyLens — Logistics Route Risk</h1>
+    <div class="sub">7 chokepoints scored by disruption probability and revenue impact · Scania AB supply chain</div>
+  </div>
+</div>
+
+<div id="summary">
+  <div class="sb"><div class="sb-n" style="color:#818cf8">7</div><div class="sb-l">Routes Tracked</div></div>
+  <div class="sb"><div class="sb-n" style="color:#ef4444">2</div><div class="sb-l">CRITICAL Risk</div></div>
+  <div class="sb"><div class="sb-n" style="color:#fb923c">1</div><div class="sb-l">HIGH Risk</div></div>
+  <div class="sb"><div class="sb-n" style="color:#fbbf24">2</div><div class="sb-l">MEDIUM Risk</div></div>
+  <div class="sb"><div class="sb-n" style="color:#f97316">€456M</div><div class="sb-l">Revenue At Risk</div></div>
+  <div class="sb"><div class="sb-n" style="color:#06b6d4">20</div><div class="sb-l">Suppliers Exposed</div></div>
+</div>
+
+<div id="main">
+  <div id="left" id="route-list"></div>
+  <div id="right">
+    <div id="chart-area">
+      <div class="chart-box">
+        <div class="chart-title">Disruption Probability by Route</div>
+        <svg id="prob-chart" height="200"></svg>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">Revenue at Risk (€M) vs Delay (days)</div>
+        <svg id="scatter-chart" height="200"></svg>
+      </div>
+      <div class="chart-box">
+        <div class="chart-title">Supplier → Route Exposure Matrix</div>
+        <div id="matrix-container" style="overflow-x:auto"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ROUTES = [
+  { id:'trans_sib', name:'Trans-Siberian Railway', region:'Russia / Central Asia',
+    prob:0.95, risk:'CRITICAL', trade_pct:1.5, delay:25, premium:180,
+    rev_risk_m:45.4, chokepoint:false,
+    threats:['EU/UK/US sanctions on Russia','OFAC restrictions','Insurance prohibition','EU import/export bans'],
+    alt_route:'Suez Canal (+25d, +180% cost)',
+    products:['Steel','Aluminium','Palladium','Nickel','Electronics'],
+    suppliers:['Norilsk Nickel','Norilsk Polar Division','RUSAL Aughinish','Leoni AG'],
+    evidence:'EU Council Regulation 833/2014; Scania internal logistics advisory Mar 2022' },
+  { id:'suez', name:'Suez Canal', region:'Middle East / Red Sea',
+    prob:0.65, risk:'CRITICAL', trade_pct:12.0, delay:12, premium:35,
+    rev_risk_m:248.7, chokepoint:true,
+    threats:['Houthi missile/drone attacks (2024)','Yemen conflict escalation','US/UK retaliatory strikes'],
+    alt_route:'Cape of Good Hope (+12d, +35% cost)',
+    products:['Battery packs','Semiconductors','Wiring harnesses','Sensors','Copper','Lithium carbonate'],
+    suppliers:['CATL','STMicroelectronics','Bosch','Infineon Technologies','Leoni AG','Ganfeng Lithium','Samsung SDI','Nidec Corporation','Toray Industries'],
+    evidence:"Lloyd's List Intelligence Red Sea Crisis Report, Feb 2024" },
+  { id:'bosphorus', name:'Bosphorus Strait', region:'Turkey / Black Sea',
+    prob:0.35, risk:'HIGH', trade_pct:1.8, delay:30, premium:55,
+    rev_risk_m:33.5, chokepoint:true,
+    threats:['Ukraine war spillover','Russian mine risk in Black Sea','Montreux Convention restrictions'],
+    alt_route:'Cape of Good Hope (+30d, +55% cost)',
+    products:['Steel','Grain','Iron ore'],
+    suppliers:['Norilsk Nickel','Leoni AG','Saarstahl AG'],
+    evidence:'BIMCO Black Sea Risk Assessment Q3 2022' },
+  { id:'hormuz', name:'Strait of Hormuz', region:'Persian Gulf / Iran',
+    prob:0.30, risk:'MEDIUM', trade_pct:21.0, delay:14, premium:45,
+    rev_risk_m:0, chokepoint:true,
+    threats:['Iran-Israel tensions','Iranian vessel seizures','IRGC tanker harassment'],
+    alt_route:'Saudi IPSA pipeline (oil only)',
+    products:['Crude oil','LNG','Chemical feedstocks','Polymer resins'],
+    suppliers:['BASF SE','AMS Buttons BV'],
+    evidence:'EIA Strait of Hormuz Fact Sheet 2024' },
+  { id:'panama', name:'Panama Canal', region:'Central America',
+    prob:0.25, risk:'MEDIUM', trade_pct:5.0, delay:22, premium:18,
+    rev_risk_m:83.7, chokepoint:true,
+    threats:['El Niño drought (low water levels 2023-24)','Vessel queue backlogs','Draft restrictions -3m'],
+    alt_route:'Cape Horn (+22d, +18% cost)',
+    products:['LNG','Container cargo','Chemical tankers'],
+    suppliers:['Dana Incorporated','Cummins Inc','Cabot Corporation','Albemarle Corp','AVX Tantalum','Codelco','SQM'],
+    evidence:'Panama Canal Authority Water Level Advisory, Nov 2023' },
+  { id:'malacca', name:'Strait of Malacca', region:'Southeast Asia',
+    prob:0.10, risk:'LOW', trade_pct:25.0, delay:4, premium:8,
+    rev_risk_m:43.0, chokepoint:true,
+    threats:['Piracy (historic low)','Vessel congestion','Monsoon weather'],
+    alt_route:'Lombok Strait (+4d, +8% cost)',
+    products:['Semiconductors','Rare earth elements','Battery cells','Natural rubber'],
+    suppliers:['CATL','Ganfeng Lithium','China Rare Earth Group','STMicroelectronics','Infineon Technologies','Samsung SDI','Toray Industries','Sri Trang Agro-Industry'],
+    evidence:'IMO Malacca Strait Patrol Annual Report 2023' },
+  { id:'cape', name:'Cape of Good Hope', region:'South Africa',
+    prob:0.05, risk:'LOW', trade_pct:4.5, delay:0, premium:0,
+    rev_risk_m:2.4, chokepoint:false,
+    threats:['Cape Town weather','Vessel technical issues'],
+    alt_route:'N/A — this is the alt route',
+    products:['Any Asia→Europe cargo diverted from Suez'],
+    suppliers:['Vale SA'],
+    evidence:'Clarksons Research Cape Route Diversion Analysis Q1 2024' },
+];
+
+const PROB_COLOR = { CRITICAL:'#ef4444', HIGH:'#f97316', MEDIUM:'#fbbf24', LOW:'#34d399' };
+
+// ─── Route cards ───────────────────────────────────────────────────────────
+
+const list = document.getElementById('left');
+ROUTES.forEach((r, i) => {
+  const probPct = Math.round(r.prob * 100);
+  const supTags = r.suppliers.slice(0, 4).map(s =>
+    `<span class="sup-tag">${s}</span>`).join('') +
+    (r.suppliers.length > 4 ? `<span class="sup-tag">+${r.suppliers.length-4}</span>` : '');
+  const threats = r.threats.map(t => `<div class="rc-threat">${t}</div>`).join('');
+
+  const card = document.createElement('div');
+  card.className = `route-card ${r.risk}`;
+  card.id = `card-${r.id}`;
+  if (i === 0) card.classList.add('active');
+  card.innerHTML = `
+    <div class="rc-header">
+      <div class="rc-name">${r.name}</div>
+      <span class="rc-risk risk-${r.risk}">${r.risk}</span>
+    </div>
+    <div class="rc-region">${r.region} · ${r.trade_pct}% world trade</div>
+    <div class="rc-prob" style="color:${PROB_COLOR[r.risk]}">${probPct}%</div>
+    <div style="font-size:10px;color:#475569;margin-bottom:4px">Annual disruption probability</div>
+    <div class="rc-prob-bar"><div class="rc-prob-fill" style="width:${probPct}%;background:${PROB_COLOR[r.risk]}"></div></div>
+    <div class="rc-stats">
+      <div>Rev@Risk <span>€${r.rev_risk_m}M</span></div>
+      <div>Delay <span>+${r.delay}d</span></div>
+      <div>Premium <span>+${r.premium}%</span></div>
+    </div>
+    <div class="rc-threats">${threats}</div>
+    <div class="rc-suppliers">${supTags}</div>
+    <div class="alt-panel">
+      <div class="alt-title">Alt Route</div>
+      <div class="alt-route"><span class="alt-arrow">↪</span> ${r.alt_route}</div>
+    </div>
+  `;
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.route-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+  });
+  list.appendChild(card);
+});
+
+// ─── Probability bar chart ─────────────────────────────────────────────────
+
+function drawProbChart() {
+  const el = document.getElementById('prob-chart');
+  const W = el.parentElement.clientWidth - 28;
+  const H = 200;
+  el.setAttribute('width', W);
+
+  const svg = d3.select(el);
+  svg.selectAll('*').remove();
+
+  const margin = { top:10, right:60, bottom:60, left:160 };
+  const w = W - margin.left - margin.right;
+  const h = H - margin.top - margin.bottom;
+
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const data = [...ROUTES].sort((a, b) => b.prob - a.prob);
+
+  const y = d3.scaleBand().domain(data.map(d => d.name)).range([0, h]).padding(0.25);
+  const x = d3.scaleLinear().domain([0, 1]).range([0, w]);
+
+  // Grid lines
+  g.append('g').attr('class','grid').selectAll('line')
+    .data(x.ticks(5)).join('line')
+    .attr('x1', d => x(d)).attr('x2', d => x(d))
+    .attr('y1', 0).attr('y2', h)
+    .attr('stroke','#1e293b').attr('stroke-dasharray','2,2');
+
+  // Bars
+  g.selectAll('.bar').data(data).join('rect')
+    .attr('class','bar')
+    .attr('y', d => y(d.name))
+    .attr('x', 0)
+    .attr('height', y.bandwidth())
+    .attr('width', d => x(d.prob))
+    .attr('fill', d => PROB_COLOR[d.risk])
+    .attr('opacity', 0.85)
+    .attr('rx', 2);
+
+  // Labels
+  g.selectAll('.bar-lbl').data(data).join('text')
+    .attr('x', d => x(d.prob) + 5)
+    .attr('y', d => y(d.name) + y.bandwidth()/2 + 4)
+    .attr('fill', '#94a3b8').attr('font-size', 10)
+    .text(d => `${Math.round(d.prob*100)}% · €${d.rev_risk_m}M`);
+
+  // Y axis
+  g.append('g').call(d3.axisLeft(y).tickSize(0))
+    .call(g2 => g2.select('.domain').remove())
+    .selectAll('text').attr('fill','#64748b').attr('font-size',10);
+
+  // X axis
+  g.append('g').attr('transform', `translate(0,${h})`)
+    .call(d3.axisBottom(x).tickFormat(d3.format('.0%')).tickSize(3).ticks(5))
+    .call(g2 => g2.select('.domain').attr('stroke','#334155'))
+    .selectAll('text').attr('fill','#475569').attr('font-size',9);
+}
+
+// ─── Scatter: Revenue at Risk vs Delay ───────────────────────────────────
+
+function drawScatter() {
+  const el = document.getElementById('scatter-chart');
+  const W = el.parentElement.clientWidth - 28;
+  const H = 200;
+  el.setAttribute('width', W);
+
+  const svg = d3.select(el);
+  svg.selectAll('*').remove();
+
+  const margin = { top:10, right:20, bottom:40, left:55 };
+  const w = W - margin.left - margin.right;
+  const h = H - margin.top - margin.bottom;
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const x = d3.scaleLinear().domain([0, d3.max(ROUTES, d => d.delay) + 5]).range([0, w]);
+  const y = d3.scaleLinear().domain([0, d3.max(ROUTES, d => d.rev_risk_m) + 20]).range([h, 0]);
+  const r = d3.scaleSqrt().domain([0, 1]).range([4, 22]);
+
+  g.append('g').attr('transform',`translate(0,${h})`).call(d3.axisBottom(x).ticks(5))
+    .call(g2 => g2.select('.domain').attr('stroke','#334155'))
+    .selectAll('text').attr('fill','#475569').attr('font-size',9);
+  g.append('g').call(d3.axisLeft(y).ticks(5).tickFormat(d => `€${d}M`))
+    .call(g2 => g2.select('.domain').attr('stroke','#334155'))
+    .selectAll('text').attr('fill','#475569').attr('font-size',9);
+
+  g.append('text').attr('x', w/2).attr('y', h+32).attr('text-anchor','middle')
+    .attr('fill','#475569').attr('font-size',9).text('Additional Delay (days)');
+  g.append('text').attr('transform','rotate(-90)').attr('x',-h/2).attr('y',-42)
+    .attr('text-anchor','middle').attr('fill','#475569').attr('font-size',9).text('Revenue at Risk (€M)');
+
+  // Grid
+  g.selectAll('.xgrid').data(x.ticks(5)).join('line')
+    .attr('x1',d=>x(d)).attr('x2',d=>x(d)).attr('y1',0).attr('y2',h)
+    .attr('stroke','#1e293b').attr('stroke-dasharray','2,2');
+
+  // Bubbles
+  const tip = d3.select('body').append('div')
+    .style('position','absolute').style('background','#1e293b')
+    .style('border','1px solid #334155').style('border-radius','4px')
+    .style('padding','6px 10px').style('font-size','10px')
+    .style('pointer-events','none').style('opacity',0);
+
+  g.selectAll('.bubble').data(ROUTES).join('circle')
+    .attr('cx', d => x(d.delay))
+    .attr('cy', d => y(d.rev_risk_m))
+    .attr('r', d => r(d.prob))
+    .attr('fill', d => PROB_COLOR[d.risk])
+    .attr('opacity', 0.7)
+    .attr('stroke', d => PROB_COLOR[d.risk])
+    .attr('stroke-width', 1)
+    .on('mouseover', (event, d) => {
+      tip.style('opacity',1).html(
+        `<b>${d.name}</b><br>Prob: ${Math.round(d.prob*100)}%<br>Rev@Risk: €${d.rev_risk_m}M<br>Delay: +${d.delay}d`
+      );
+    })
+    .on('mousemove', event => {
+      tip.style('left', (event.pageX+10)+'px').style('top', (event.pageY-20)+'px');
+    })
+    .on('mouseout', () => tip.style('opacity',0));
+
+  g.selectAll('.blabel').data(ROUTES.filter(d => d.rev_risk_m > 20 || d.delay > 15))
+    .join('text')
+    .attr('x', d => x(d.delay)+r(d.prob)+3)
+    .attr('y', d => y(d.rev_risk_m)+3)
+    .attr('fill','#64748b').attr('font-size',9)
+    .text(d => d.name.split(' ')[0]);
+}
+
+// ─── Supplier × Route matrix ──────────────────────────────────────────────
+
+function drawMatrix() {
+  const ROUTE_IDS = ROUTES.map(r => r.id);
+  const ROUTE_NAMES = ROUTES.map(r => r.name.split(' ')[0] + (r.name.includes('Strait') ? ' Str.' : r.name.includes('Canal') ? ' Canal' : r.name.includes('Railway') ? ' Rail' : ''));
+
+  const SUPPLIER_MAP = {
+    'CATL':              ['suez','malacca'],
+    'Ganfeng Lithium':   ['suez','malacca'],
+    'STMicroelectronics':['malacca'],
+    'Infineon':          ['malacca'],
+    'Leoni AG':          ['suez','bosphorus'],
+    'Samsung SDI':       ['suez','malacca'],
+    'Nidec Corp.':       ['suez','malacca'],
+    'Toray Industries':  ['suez','malacca'],
+    'Norilsk Nickel':    ['bosphorus'],
+    'Norilsk Polar':     ['trans_sib'],
+    'RUSAL':             ['trans_sib'],
+    'SQM':               ['panama'],
+    'Codelco':           ['panama'],
+    'Dana Inc.':         ['panama'],
+    'Cummins Inc':       ['panama'],
+    'Albemarle':         ['panama'],
+    'AVX Tantalum':      ['panama'],
+    'Vale SA':           ['cape'],
+    'Sri Trang':         ['malacca'],
+    'BASF SE':           [],
+  };
+
+  let html = `<table class="matrix-table"><thead><tr><th>Supplier</th>`;
+  ROUTE_NAMES.forEach(n => { html += `<th style="text-align:center">${n}</th>`; });
+  html += '</tr></thead><tbody>';
+
+  Object.entries(SUPPLIER_MAP).forEach(([sup, routes]) => {
+    html += `<tr><td>${sup}</td>`;
+    ROUTE_IDS.forEach(rid => {
+      const route = ROUTES.find(r => r.id === rid);
+      const isBlocked = rid === 'trans_sib' && (sup.includes('Norilsk') || sup.includes('RUSAL'));
+      if (isBlocked) {
+        html += `<td class="cell-block">✗</td>`;
+      } else if (routes.includes(rid)) {
+        html += `<td class="cell-yes">✓</td>`;
+      } else {
+        html += `<td class="cell-no">·</td>`;
+      }
+    });
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  document.getElementById('matrix-container').innerHTML = html;
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────
+
+drawProbChart();
+drawScatter();
+drawMatrix();
+window.addEventListener('resize', () => { drawProbChart(); drawScatter(); });
+</script>
+</body>
+</html>

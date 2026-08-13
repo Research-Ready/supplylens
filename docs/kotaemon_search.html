@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SupplyLens — Kotaemon RAG Search</title>
+<style>
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:#0f1117; color:#e2e8f0; font-family:'Segoe UI',system-ui,sans-serif; height:100vh; display:flex; flex-direction:column; overflow:hidden; }
+
+#header { background:#1a1d2e; border-bottom:1px solid #2d3748; padding:10px 20px; display:flex; align-items:center; gap:12px; flex-shrink:0; }
+h1 { font-size:15px; font-weight:700; color:#818cf8; }
+.sub { font-size:11px; color:#64748b; }
+#status-pill { font-size:10px; padding:3px 10px; border-radius:10px; margin-left:auto; }
+#status-pill.online { background:#052e16; color:#34d399; border:1px solid #34d399; }
+#status-pill.offline { background:#450a0a; color:#f87171; border:1px solid #f87171; }
+#status-pill.checking { background:#1e293b; color:#64748b; border:1px solid #334155; }
+
+#main { display:flex; flex:1; overflow:hidden; }
+
+/* Left panel — docs & context */
+#left { width:280px; flex-shrink:0; border-right:1px solid #1e293b; display:flex; flex-direction:column; overflow:hidden; }
+#left-header { padding:10px 12px; border-bottom:1px solid #1e293b; font-size:11px; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.08em; }
+#doc-list { flex:1; overflow-y:auto; padding:8px; }
+#doc-list::-webkit-scrollbar { width:4px; }
+#doc-list::-webkit-scrollbar-thumb { background:#334155; border-radius:2px; }
+
+.doc-item { padding:8px 10px; border-radius:4px; cursor:pointer; border:1px solid transparent; margin-bottom:3px; transition:all 0.15s; }
+.doc-item:hover, .doc-item.active { background:#1a1d2e; border-color:#334155; }
+.doc-name { font-size:11px; font-weight:600; color:#e2e8f0; }
+.doc-meta { font-size:9px; color:#475569; margin-top:2px; }
+.doc-tag { font-size:8px; padding:1px 5px; border-radius:3px; margin-top:3px; display:inline-block; }
+.tag-annual { background:#1e3a5f; color:#60a5fa; }
+.tag-risk { background:#450a0a; color:#f87171; }
+.tag-supplier { background:#064e3b; color:#34d399; }
+.tag-sanctions { background:#4a044e; color:#e879f9; }
+.tag-env { background:#052e16; color:#86efac; }
+.tag-market { background:#1c1917; color:#a8a29e; }
+
+#indexed-count { padding:8px 12px; border-top:1px solid #1e293b; font-size:10px; color:#475569; flex-shrink:0; }
+
+/* Right panel — chat */
+#right { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+#suggested { display:flex; gap:8px; padding:10px 16px; border-bottom:1px solid #1e293b; flex-wrap:wrap; flex-shrink:0; }
+.suggest-btn { background:#1e293b; border:1px solid #334155; color:#94a3b8; padding:5px 12px; border-radius:16px; font-size:11px; cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+.suggest-btn:hover { background:#2d3748; color:#e2e8f0; border-color:#818cf8; }
+
+#chat-area { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; }
+#chat-area::-webkit-scrollbar { width:4px; }
+#chat-area::-webkit-scrollbar-thumb { background:#334155; border-radius:2px; }
+
+.msg { max-width:80%; padding:10px 14px; border-radius:8px; font-size:12px; line-height:1.6; }
+.msg.user { background:#312e81; color:#c7d2fe; align-self:flex-end; border-radius:8px 8px 2px 8px; }
+.msg.bot { background:#1a1d2e; color:#cbd5e1; align-self:flex-start; border-radius:8px 8px 8px 2px; border:1px solid #1e293b; }
+.msg.system { background:transparent; color:#475569; align-self:center; font-size:10px; font-style:italic; }
+.msg.bot .citations { margin-top:8px; border-top:1px solid #1e293b; padding-top:8px; }
+.cit-title { font-size:9px; color:#475569; text-transform:uppercase; letter-spacing:0.08em; margin-bottom:4px; }
+.cit-item { font-size:10px; color:#6366f1; margin-top:2px; padding:2px 0; }
+.cit-item::before { content:'[Source] '; color:#475569; }
+.confidence { display:inline-block; font-size:9px; padding:1px 6px; border-radius:3px; margin-top:4px; }
+.conf-high { background:#422006; color:#fb923c; }
+.conf-med { background:#1c1917; color:#a8a29e; }
+.conf-demo { background:#1e1b4b; color:#818cf8; }
+.typing { display:flex; gap:4px; align-items:center; padding:10px 14px; background:#1a1d2e; border-radius:8px; align-self:flex-start; border:1px solid #1e293b; }
+.typing-dot { width:6px; height:6px; border-radius:50%; background:#475569; animation:pulse 1.2s ease-in-out infinite; }
+.typing-dot:nth-child(2) { animation-delay:0.2s; }
+.typing-dot:nth-child(3) { animation-delay:0.4s; }
+@keyframes pulse { 0%,80%,100%{opacity:0.3;transform:scale(0.8)} 40%{opacity:1;transform:scale(1)} }
+
+#input-row { padding:12px 16px; border-top:1px solid #1e293b; display:flex; gap:10px; flex-shrink:0; }
+#query-input { flex:1; background:#1e293b; border:1px solid #334155; color:#e2e8f0; padding:8px 14px; border-radius:6px; font-size:13px; font-family:inherit; }
+#query-input::placeholder { color:#475569; }
+#query-input:focus { outline:none; border-color:#818cf8; }
+#send-btn { background:#312e81; border:1px solid #818cf8; color:#c7d2fe; padding:8px 18px; border-radius:6px; cursor:pointer; font-size:12px; transition:all 0.2s; }
+#send-btn:hover { background:#4c1d95; }
+#send-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+/* Offline banner */
+#offline-banner { background:#1a1215; border:1px solid #7f1d1d; border-radius:6px; padding:12px 16px; margin:16px; font-size:12px; color:#fca5a5; }
+#offline-banner strong { color:#f87171; }
+#offline-banner code { background:#0f0a0a; padding:2px 6px; border-radius:3px; font-size:11px; color:#fca5a5; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <h1>Kotaemon — Supplier Document RAG Search</h1>
+    <div class="sub">Chat with ingested supplier docs: annual reports, filings, risk assessments</div>
+  </div>
+  <div id="status-pill" class="checking">Checking CT120...</div>
+</div>
+
+<div id="main">
+  <!-- Doc list -->
+  <div id="left">
+    <div id="left-header">Indexed Documents</div>
+    <div id="doc-list"></div>
+    <div id="indexed-count">Loading...</div>
+  </div>
+
+  <!-- Chat -->
+  <div id="right">
+    <div id="suggested">
+      <span style="font-size:10px;color:#475569;align-self:center">Try:</span>
+      <button class="suggest-btn" onclick="sendSuggestion(this)">Who supplies steel to Scania?</button>
+      <button class="suggest-btn" onclick="sendSuggestion(this)">What is CATL's UFLPA compliance status?</button>
+      <button class="suggest-btn" onclick="sendSuggestion(this)">What are Leoni AG's financial risks?</button>
+      <button class="suggest-btn" onclick="sendSuggestion(this)">Suez Canal alternatives for battery transport?</button>
+      <button class="suggest-btn" onclick="sendSuggestion(this)">Which suppliers have sanctions exposure?</button>
+    </div>
+    <div id="chat-area"></div>
+    <div id="input-row">
+      <input type="text" id="query-input" placeholder="Ask about any supplier, material, risk, or supply chain relationship..." />
+      <button id="send-btn" onclick="sendQuery()">Ask</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const KOTAEMON_URL = 'http://10.0.1.120:8501';
+
+// Demo documents (shown when Kotaemon offline)
+const DEMO_DOCS = [
+  { name:'Scania Annual Report 2023', supplier:'Scania AB', type:'annual', pages:312,
+    topics:['supply chain strategy','EV transition','sustainability'] },
+  { name:'CATL Investor Day 2023', supplier:'CATL', type:'risk', pages:88,
+    topics:['battery roadmap','lithium supply','UFLPA compliance'] },
+  { name:'ZF Friedrichshafen Annual Report 2023', supplier:'ZF Friedrichshafen', type:'annual', pages:280,
+    topics:['gearbox supply','WABCO integration','eMobility'] },
+  { name:'Aptiv 8-K Filing Feb 2022', supplier:'Aptiv PLC', type:'risk', pages:12,
+    topics:['Ukraine production halt','wiring harness','force majeure'] },
+  { name:'Leoni AG Press Release Oct 2023', supplier:'Leoni AG', type:'risk', pages:4,
+    topics:['insolvency restructuring','StaRUG','Sergio Holding'] },
+  { name:'OFAC SDN List Update Mar 2024', supplier:'Norilsk Nickel', type:'sanctions', pages:6,
+    topics:['OFAC designation','EO 14024','palladium supply'] },
+  { name:'SSAB HYBRIT Progress Report 2023', supplier:'SSAB', type:'env', pages:45,
+    topics:['fossil-free steel','DOMEX grade','Scania partnership'] },
+  { name:'STMicro Capital Markets Day 2023', supplier:'STMicroelectronics', type:'supplier', pages:134,
+    topics:['TSMC N3E','automotive MCU','SiC power'] },
+  { name:'SQM Annual Report 2023', supplier:'SQM', type:'annual', pages:220,
+    topics:['lithium brine','Atacama water','CATL offtake agreement'] },
+  { name:'Lloyd\'s List Red Sea Crisis Feb 2024', supplier:'Suez Canal', type:'risk', pages:28,
+    topics:['Houthi attacks','Cape rerouting','shipping rates'] },
+  { name:'EU CRMA Implementation Guidance 2024', supplier:'EU Regulation', type:'risk', pages:56,
+    topics:['critical raw materials','2030 targets','strategic projects'] },
+  { name:'UFLPA Entity List Jun 2024', supplier:'CATL/Brunp', type:'sanctions', pages:8,
+    topics:['Brunp Recycling','Xinjiang','forced labour'] },
+  { name:'Chilean Senate Mining Report 2023', supplier:'SQM/Codelco', type:'env', pages:74,
+    topics:['water rights','Atacama DGA','production quota'] },
+  { name:'Bosch Supplier Portal 2023', supplier:'Bosch', type:'supplier', pages:22,
+    topics:['fuel injection','sensor supply','tier 2 requirements'] },
+  { name:'Norilsk Nickel Production Report 2023', supplier:'Norilsk Nickel', type:'market', pages:64,
+    topics:['palladium output','nickel grades','Polar Division'] },
+  { name:'AlixPartners Auto Outlook 2021', supplier:'Industry', type:'market', pages:48,
+    topics:['chip shortage','7.7M units lost','STMicro Infineon'] },
+  { name:'Codelco Annual Report 2023', supplier:'Codelco', type:'annual', pages:196,
+    topics:['copper output','water risk','DGA review'] },
+  { name:'Infineon Automotive Chip Report 2023', supplier:'Infineon Technologies', type:'supplier', pages:55,
+    topics:['ADAS MCU','TSMC allocation','automotive roadmap'] },
+  { name:'Leoni Sustainability Report 2022', supplier:'Leoni AG', type:'env', pages:88,
+    topics:['Ukraine Stryi plant','7000 workers','Romanian capacity'] },
+  { name:'Aptiv Q4 2023 Earnings Call', supplier:'Aptiv PLC', type:'market', pages:18,
+    topics:['Morocco/Tunisia diversification','MENA capacity','Ukraine exposure'] },
+];
+
+const TAG_MAP = {
+  annual:'tag-annual', risk:'tag-risk', supplier:'tag-supplier',
+  sanctions:'tag-sanctions', env:'tag-env', market:'tag-market'
+};
+const TAG_LABEL = {
+  annual:'Annual Report', risk:'Risk Filing', supplier:'Supplier Profile',
+  sanctions:'Sanctions', env:'Environmental', market:'Market Research'
+};
+
+// ─── Doc list ───────────────────────────────────────────────────────────
+
+const docList = document.getElementById('doc-list');
+DEMO_DOCS.forEach((d, i) => {
+  const el = document.createElement('div');
+  el.className = 'doc-item' + (i === 0 ? ' active' : '');
+  el.innerHTML = `
+    <div class="doc-name">${d.name}</div>
+    <div class="doc-meta">${d.supplier} · ${d.pages}pp</div>
+    <span class="doc-tag ${TAG_MAP[d.type]}">${TAG_LABEL[d.type]}</span>
+  `;
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.doc-item').forEach(x => x.classList.remove('active'));
+    el.classList.add('active');
+    appendMessage('system', `Context scoped to: ${d.name}`);
+  });
+  docList.appendChild(el);
+});
+document.getElementById('indexed-count').textContent = `${DEMO_DOCS.length} documents indexed (demo)`;
+
+// ─── Health check ────────────────────────────────────────────────────────
+
+let kotaemonOnline = false;
+
+async function checkHealth() {
+  const pill = document.getElementById('status-pill');
+  pill.className = 'checking';
+  pill.textContent = 'Checking CT120...';
+  try {
+    const r = await fetch(`${KOTAEMON_URL}/`, { mode:'no-cors', signal:AbortSignal.timeout(3000) });
+    kotaemonOnline = true;
+    pill.className = 'online';
+    pill.textContent = 'CT120 Online';
+  } catch {
+    kotaemonOnline = false;
+    pill.className = 'offline';
+    pill.textContent = 'CT120 Offline — Demo Mode';
+  }
+}
+
+checkHealth();
+setInterval(checkHealth, 30000);
+
+// ─── Chat ────────────────────────────────────────────────────────────────
+
+const chatArea = document.getElementById('chat-area');
+const input = document.getElementById('query-input');
+const sendBtn = document.getElementById('send-btn');
+
+function appendMessage(role, html, citations = []) {
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+  let content = html;
+  if (citations.length > 0) {
+    content += `<div class="citations"><div class="cit-title">Sources</div>`;
+    citations.forEach(c => { content += `<div class="cit-item">${c}</div>`; });
+    content += '</div>';
+  }
+  div.innerHTML = content;
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+  return div;
+}
+
+function appendTyping() {
+  const div = document.createElement('div');
+  div.className = 'typing';
+  div.id = 'typing-indicator';
+  div.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  chatArea.appendChild(div);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typing-indicator');
+  if (el) el.remove();
+}
+
+// Demo answers for when Kotaemon offline
+const DEMO_ANSWERS = {
+  'steel': {
+    answer:`Based on the indexed supplier documents, Scania AB sources high-strength steel from <strong>SSAB</strong> (Sweden, Tier 1) and receives steel billets via <strong>Saarstahl AG</strong> (Germany, Tier 2 to ZF Friedrichshafen).
+
+SSAB supplies DOMEX 700MC and Strenx 900 grades — 45,000 tonnes/year under a 10-year frame agreement. The HYBRIT fossil-free steel partnership is active; first commercial delivery confirmed August 2021.
+
+Upstream: SSAB sources iron ore from <strong>LKAB</strong> (Sweden, Tier 2) and <strong>Vale SA</strong> (Brazil, Tier 3). The LKAB Kiruna mine is the primary upstream source (67.84°N latitude — Europe's largest iron ore mine).`,
+    citations:['SSAB HYBRIT Progress Report 2023, p.22','Scania Annual Report 2023, p.87','LKAB Annual Report 2023, p.34'],
+    conf:'conf-high'
+  },
+  'catl': {
+    answer:`CATL compliance status regarding UFLPA (Uyghur Forced Labor Prevention Act):
+
+<strong>Non-compliant subsidiary:</strong> Brunp Recycling Technology Co Ltd (CATL subsidiary) was added to the UFLPA Entity List in June 2024. This creates a rebuttable presumption of forced labour in battery materials sourced from Xinjiang supply chains.
+
+<strong>Risk to Scania:</strong> CATL holds an €820M 5-year battery supply contract for Scania BEV fleet (SCANIA-L-340-BEV). US-market vehicles using CATL cells face import risk. European market: UFLPA has no direct jurisdiction but EU Battery Regulation (2023/1542) requires supply chain due diligence.
+
+<strong>Mitigation:</strong> Samsung SDI (KR, ALT supplier) is approved as alternative. Lead time to qualify: 18-24 months.`,
+    citations:['UFLPA Entity List Jun 2024','Scania Annual Report 2023, p.142','EU Battery Regulation 2023/1542'],
+    conf:'conf-high'
+  },
+  'leoni': {
+    answer:`Leoni AG financial risk summary from indexed filings:
+
+<strong>Insolvency restructuring (2023):</strong> Leoni AG emerged from StaRUG insolvency restructuring October 2023. New majority shareholder: Sergio Holding (Stefan Pierer group). €650M debt written off. Altman Z-Score: 1.71 (distress zone, &lt; 1.81).
+
+<strong>Ukraine exposure:</strong> Leoni's Stryi facility (Lviv region, Ukraine) has been suspended since February 24, 2022. 7,000 workers furloughed. Capacity replaced by Romanian plant (partial substitute, 60% capacity match).
+
+<strong>Current status:</strong> Net Debt/EBITDA 5.9× (above covenant threshold 5.5×). Credit rating: B. HIGH supply chain risk — ND/EBITDA breach triggers procurement team notification.`,
+    citations:["Leoni AG Press Release 2023-10-15",'Leoni Sustainability Report 2022, p.56','Leoni Restructuring Plan Q3 2023'],
+    conf:'conf-high'
+  },
+  'suez': {
+    answer:`Alternative shipping routes for battery transport avoiding Suez Canal:
+
+<strong>Current situation (2024):</strong> Houthi attacks on Red Sea shipping since Nov 2023 forced 60% of Asia-Europe container traffic via Cape of Good Hope. CATL battery shipments China→Sweden rerouted; +14 days; +€280/tonne premium.
+
+<strong>Available alternatives:</strong>
+1. <strong>Cape of Good Hope</strong> — +12-14 days, +35% freight cost. Currently primary alt for Scania. Handled via Port of Rotterdam (80% of Scania inbound).
+2. <strong>Air freight (emergency)</strong> — Used Q1 2024 for 2,400 ECU modules at €12M premium. Not viable for battery packs (weight, DG restrictions).
+3. <strong>Rail via Middle Corridor</strong> — Trans-Caspian route (Kazakhstan-Azerbaijan-Turkey). Capacity limited; 25-30 days; 15% cost premium. Viable for non-hazmat goods.
+
+<strong>Recommendation:</strong> Maintain 10-week buffer stock on CATL battery packs. Activate Middle Corridor for electronics components &lt;100kg.`,
+    citations:["Lloyd's List Red Sea Crisis Feb 2024, p.8",'Scania Internal Logistics Q1 2024','Clarksons Cape Route Analysis'],
+    conf:'conf-med'
+  },
+  'sanctions': {
+    answer:`Suppliers with confirmed sanctions exposure in the Scania supply chain:
+
+<strong>OFAC SDN (US Treasury, EO 14024):</strong>
+• <strong>Norilsk Nickel</strong> — Polar Division + 3 subsidiaries designated March 2024. 40% global palladium supply. Alternative: Impala Platinum (ZA), Sibanye-Stillwater (US). Lead time: 9-18 months.
+• <strong>RUSAL Aughinish</strong> — alumina refinery (Ireland), OFAC risk via parent EN+ Group.
+
+<strong>UFLPA Entity List (US DHS):</strong>
+• <strong>Brunp Recycling</strong> (CATL subsidiary) — June 2024. Forces rebuttable presumption on battery materials.
+• <strong>Hoshine Silicon</strong> — polysilicon. Affects STMicroelectronics upstream.
+• <strong>Ganfeng Lithium</strong> — UFLPA risk flag active.
+
+<strong>EU/UK Sanctions (Ukraine war):</strong>
+• All Russian-origin materials now require EUC (End User Certificate). Trans-Siberian route prohibited.
+
+<strong>Action required:</strong> Quarterly sanctions screening on all T2/T3 suppliers via OFAC SDN + EU Consolidated List.`,
+    citations:['OFAC SDN List Update Mar 2024','UFLPA Entity List Jun 2024','EU Council Regulation 833/2014'],
+    conf:'conf-high'
+  },
+};
+
+function getDemoAnswer(query) {
+  const q = query.toLowerCase();
+  if (q.includes('steel') || q.includes('ssab') || q.includes('lkab')) return DEMO_ANSWERS['steel'];
+  if (q.includes('catl') || q.includes('uflpa') || q.includes('battery compliance')) return DEMO_ANSWERS['catl'];
+  if (q.includes('leoni') || q.includes('financial risk') || q.includes('leoni')) return DEMO_ANSWERS['leoni'];
+  if (q.includes('suez') || q.includes('alternative') || q.includes('shipping') || q.includes('transport')) return DEMO_ANSWERS['suez'];
+  if (q.includes('sanction') || q.includes('ofac') || q.includes('exposure')) return DEMO_ANSWERS['sanctions'];
+
+  // Generic fallback
+  return {
+    answer:`Based on the indexed supplier documents, I found relevant information about your query.
+
+<strong>Note:</strong> Kotaemon CT120 is currently offline. Showing demo responses from the SupplyLens evidence store. To connect to live Kotaemon RAG, ensure CT120 is provisioned (<code>bash scripts/provision_ct120.sh</code>) and documents are ingested (<code>python3 scripts/ingest_kotaemon.py</code>).
+
+The SupplyLens dataset contains 20+ synthetic supplier profiles covering Scania's full T1–T3 supply chain including: ZF, Bosch, SSAB, Michelin, Dana, CATL, STMicro, Infineon, Leoni, and 40+ others.`,
+    citations:['SupplyLens Evidence Store (demo dataset)'],
+    conf:'conf-demo'
+  };
+}
+
+async function sendQuery() {
+  const q = input.value.trim();
+  if (!q) return;
+
+  input.value = '';
+  sendBtn.disabled = true;
+
+  appendMessage('user', q);
+  appendTyping();
+
+  await new Promise(r => setTimeout(r, 800 + Math.random() * 1200));
+  removeTyping();
+
+  let answer, citations, conf;
+
+  if (kotaemonOnline) {
+    // Real Kotaemon call
+    try {
+      const resp = await fetch(`${KOTAEMON_URL}/api/queue/join`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({data:[q, null], fn_index:0, session_hash: Math.random().toString(36).slice(2)})
+      });
+      const d = await resp.json();
+      answer = d.data?.[0]?.[0]?.[1] || d.data?.[0] || 'No answer returned from Kotaemon.';
+      citations = [];
+      conf = 'conf-med';
+      // Extract citations
+      const cit_re = /\[Source:\s*([^\]]+)\]/gi;
+      let m;
+      while ((m = cit_re.exec(answer)) !== null) citations.push(m[1]);
+    } catch(e) {
+      const demo = getDemoAnswer(q);
+      answer = demo.answer + '<br><br><span style="color:#475569;font-size:10px">⚠ Kotaemon API error — showing demo response</span>';
+      citations = demo.citations;
+      conf = demo.conf;
+    }
+  } else {
+    // Demo mode
+    const demo = getDemoAnswer(q);
+    answer = demo.answer;
+    citations = demo.citations;
+    conf = demo.conf;
+  }
+
+  const confLabel = conf === 'conf-high' ? 'HIGH confidence' : conf === 'conf-med' ? 'MED confidence' : 'Demo data';
+  const msgEl = appendMessage('bot', answer, citations);
+  msgEl.innerHTML += `<span class="confidence ${conf}">${confLabel}</span>`;
+
+  sendBtn.disabled = false;
+  input.focus();
+}
+
+function sendSuggestion(btn) {
+  input.value = btn.textContent;
+  sendQuery();
+}
+
+input.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) sendQuery(); });
+
+// Welcome message
+appendMessage('bot',
+  `Welcome to <strong>SupplyLens Kotaemon Search</strong>. Ask any question about the Scania AB supply chain — suppliers, materials, risks, sanctions, financial health, or logistics.
+
+${!kotaemonOnline ? '<span style="color:#f97316">Kotaemon CT120 is offline — running in demo mode with pre-loaded supply chain knowledge.</span><br>Deploy CT120: <code>bash scripts/provision_ct120.sh</code> · Index docs: <code>python3 scripts/ingest_kotaemon.py</code>' : 'Connected to Kotaemon RAG (CT120) with ' + DEMO_DOCS.length + ' supplier documents indexed.'}
+
+<span style="color:#475569;font-size:10px">Evidence citations will appear below each answer.</span>`
+);
+</script>
+</body>
+</html>

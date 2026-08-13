@@ -1918,3 +1918,388 @@ MERGE (s)-[:AFFECTED_BY {impact:'Battery pack shipments China→Sweden rerouted;
 // MATCH (s:Supplier {name:'CATL'})-[:AFFECTED_BY]->(e:Event)
 // RETURN e.name, e.source_doc, e.source_url, e.source_excerpt
 // ============================================================
+
+// ============================================================
+// v10 — Autonomous Truck + AI Supply Chain depth
+// Adds: NVIDIA DRIVE platform, Mobileye, Knorr-Bremse, Parker Hannifin,
+//       Luminar LiDAR, HERE Maps, ASML (lithography), TSMC (foundry),
+//       ARM Holdings, Waymo-derived autonomy stack dependencies
+//       New product: SCANIA-AXL (autonomous concept truck)
+//       Events: NVIDIA Export Controls 2023, ASML China Restriction
+// ============================================================
+
+// ── Autonomous Truck Product ──────────────────────────────────────────────────
+
+MERGE (axl:Product {sku:'SCANIA-AXL', demo:true})
+ON CREATE SET
+  axl.name        = 'Scania AXL Autonomous Concept',
+  axl.category    = 'Autonomous Truck',
+  axl.description = 'Level 4 autonomous truck concept; no cab; NVIDIA DRIVE Orin compute; 360° LiDAR+radar+camera fusion; designed for closed mining/port environments',
+  axl.tier_depth  = 4,
+  axl.demo        = true;
+
+// ── T1 Autonomous AI Suppliers ────────────────────────────────────────────────
+
+MERGE (nvidia:Supplier {name:'NVIDIA Corporation', demo:true})
+ON CREATE SET
+  nvidia.country         = 'US',
+  nvidia.tier            = 1,
+  nvidia.website         = 'https://www.nvidia.com/en-us/self-driving-cars/',
+  nvidia.risk_flags      = ['EXPORT_CONTROL_RISK','GEOPOLITICAL_RISK','SINGLE_SOURCE'],
+  nvidia.contract_value_eur = 95000000,
+  nvidia.lead_time_days  = 52,
+  nvidia.annual_volume_eur = 95000000,
+  nvidia.altman_z_score  = 6.12,
+  nvidia.net_debt_ebitda = -1.2,
+  nvidia.credit_rating   = 'A+',
+  nvidia.financial_risk  = 'STABLE',
+  nvidia.demo            = true;
+
+MERGE (mobileye:Supplier {name:'Mobileye Global', demo:true})
+ON CREATE SET
+  mobileye.country         = 'IL',
+  mobileye.tier            = 1,
+  mobileye.website         = 'https://www.mobileye.com',
+  mobileye.risk_flags      = ['GEOPOLITICAL_RISK'],
+  mobileye.contract_value_eur = 42000000,
+  mobileye.lead_time_days  = 44,
+  mobileye.altman_z_score  = 3.45,
+  mobileye.credit_rating   = 'BBB+',
+  mobileye.financial_risk  = 'STABLE',
+  mobileye.demo            = true;
+
+MERGE (knorr:Supplier {name:'Knorr-Bremse AG', demo:true})
+ON CREATE SET
+  knorr.country         = 'DE',
+  knorr.tier            = 1,
+  knorr.website         = 'https://www.knorr-bremse.com',
+  knorr.risk_flags      = [],
+  knorr.contract_value_eur = 68000000,
+  knorr.lead_time_days  = 20,
+  knorr.altman_z_score  = 3.21,
+  knorr.credit_rating   = 'A-',
+  knorr.financial_risk  = 'STABLE',
+  knorr.demo            = true;
+
+MERGE (luminar:Supplier {name:'Luminar Technologies', demo:true})
+ON CREATE SET
+  luminar.country         = 'US',
+  luminar.tier            = 1,
+  luminar.website         = 'https://www.luminartech.com',
+  luminar.risk_flags      = ['SINGLE_SOURCE','FINANCIAL_DISTRESS'],
+  luminar.contract_value_eur = 28000000,
+  luminar.lead_time_days  = 90,
+  luminar.altman_z_score  = 1.44,
+  luminar.net_debt_ebitda = 8.2,
+  luminar.credit_rating   = 'B-',
+  luminar.financial_risk  = 'DISTRESS',
+  luminar.demo            = true;
+
+MERGE (here:Supplier {name:'HERE Technologies', demo:true})
+ON CREATE SET
+  here.country         = 'NL',
+  here.tier            = 1,
+  here.website         = 'https://www.here.com',
+  here.risk_flags      = [],
+  here.contract_value_eur = 18000000,
+  here.lead_time_days  = 14,
+  here.altman_z_score  = 2.88,
+  here.credit_rating   = 'BB+',
+  here.financial_risk  = 'STABLE',
+  here.demo            = true;
+
+MERGE (parker:Supplier {name:'Parker Hannifin', demo:true})
+ON CREATE SET
+  parker.country         = 'US',
+  parker.tier            = 1,
+  parker.website         = 'https://www.parker.com',
+  parker.risk_flags      = [],
+  parker.contract_value_eur = 55000000,
+  parker.lead_time_days  = 28,
+  parker.altman_z_score  = 2.94,
+  parker.credit_rating   = 'BBB',
+  parker.financial_risk  = 'WATCH',
+  parker.demo            = true;
+
+// ── T2 Semiconductor foundry + IP layers ─────────────────────────────────────
+
+MERGE (tsmc:Supplier {name:'TSMC', demo:true})
+ON CREATE SET
+  tsmc.country         = 'TW',
+  tsmc.tier            = 2,
+  tsmc.website         = 'https://www.tsmc.com',
+  tsmc.risk_flags      = ['GEOPOLITICAL_RISK','SINGLE_SOURCE'],
+  tsmc.contract_value_eur = 0,
+  tsmc.lead_time_days  = 52,
+  tsmc.altman_z_score  = 5.11,
+  tsmc.credit_rating   = 'AA-',
+  tsmc.financial_risk  = 'STABLE',
+  tsmc.cbam_applicable = false,
+  tsmc.demo            = true;
+
+MERGE (arm:Supplier {name:'ARM Holdings', demo:true})
+ON CREATE SET
+  arm.country         = 'GB',
+  arm.tier            = 2,
+  arm.website         = 'https://www.arm.com',
+  arm.risk_flags      = ['SINGLE_SOURCE'],
+  arm.contract_value_eur = 0,
+  arm.lead_time_days  = 0,
+  arm.altman_z_score  = 4.22,
+  arm.credit_rating   = 'A',
+  arm.financial_risk  = 'STABLE',
+  arm.demo            = true;
+
+MERGE (asml:Supplier {name:'ASML Holding', demo:true})
+ON CREATE SET
+  asml.country         = 'NL',
+  asml.tier            = 2,
+  asml.website         = 'https://www.asml.com',
+  asml.risk_flags      = ['EXPORT_CONTROL_RISK','SINGLE_SOURCE'],
+  asml.contract_value_eur = 0,
+  asml.lead_time_days  = 0,
+  asml.altman_z_score  = 5.88,
+  asml.credit_rating   = 'AA',
+  asml.financial_risk  = 'STABLE',
+  asml.demo            = true;
+
+MERGE (synopsys:Supplier {name:'Synopsys', demo:true})
+ON CREATE SET
+  synopsys.country      = 'US',
+  synopsys.tier         = 2,
+  synopsys.risk_flags   = [],
+  synopsys.demo         = true;
+
+MERGE (cadence:Supplier {name:'Cadence Design Systems', demo:true})
+ON CREATE SET
+  cadence.country      = 'US',
+  cadence.tier         = 2,
+  cadence.risk_flags   = [],
+  cadence.demo         = true;
+
+// ── T3 Raw materials for semiconductor fab ────────────────────────────────────
+
+MERGE (r_silicon_wafer:RawMaterial {name:'Silicon Wafers (300mm)', demo:true})
+ON CREATE SET
+  r_silicon_wafer.origin        = 'JP',
+  r_silicon_wafer.material_type = 'Semiconductor',
+  r_silicon_wafer.inferred      = false,
+  r_silicon_wafer.demo          = true;
+
+MERGE (r_photoresist:RawMaterial {name:'EUV Photoresist', demo:true})
+ON CREATE SET
+  r_photoresist.origin        = 'JP',
+  r_photoresist.material_type = 'Chemical',
+  r_photoresist.risk_flags    = ['SINGLE_SOURCE'],
+  r_photoresist.demo          = true;
+
+MERGE (r_neon:RawMaterial {name:'Neon Gas (semiconductor)', demo:true})
+ON CREATE SET
+  r_neon.origin        = 'UA',
+  r_neon.material_type = 'Industrial Gas',
+  r_neon.risk_flags    = ['GEOPOLITICAL_RISK'],
+  r_neon.inferred      = false,
+  r_neon.demo          = true;
+
+MERGE (r_hafnium:RawMaterial {name:'Hafnium (gate dielectric)', demo:true})
+ON CREATE SET
+  r_hafnium.origin        = 'FR',
+  r_hafnium.material_type = 'Rare Metal',
+  r_hafnium.risk_flags    = ['SINGLE_SOURCE'],
+  r_hafnium.demo          = true;
+
+MERGE (r_germanium:RawMaterial {name:'Germanium (semiconductor)', demo:true})
+ON CREATE SET
+  r_germanium.origin        = 'CN',
+  r_germanium.material_type = 'Critical Mineral',
+  r_germanium.risk_flags    = ['EXPORT_CONTROL_RISK','GEOPOLITICAL_RISK'],
+  r_germanium.demo          = true;
+
+// T3 Suppliers
+MERGE (shin_etsu:Supplier {name:'Shin-Etsu Chemical', demo:true})
+ON CREATE SET shin_etsu.country='JP', shin_etsu.tier=3, shin_etsu.risk_flags=[], shin_etsu.demo=true;
+
+MERGE (jsr:Supplier {name:'JSR Corporation', demo:true})
+ON CREATE SET jsr.country='JP', jsr.tier=3,
+  jsr.risk_flags=['SINGLE_SOURCE'],
+  jsr.note='Dominant EUV photoresist supplier; nationalized by METI 2023',
+  jsr.demo=true;
+
+MERGE (cryoin:Supplier {name:'Cryoin Engineering', demo:true})
+ON CREATE SET cryoin.country='UA', cryoin.tier=3,
+  cryoin.risk_flags=['GEOPOLITICAL_RISK'],
+  cryoin.note='Ukraine-based neon purification; plant at Odessa damaged 2022',
+  cryoin.demo=true;
+
+MERGE (orano:Supplier {name:'Orano (hafnium)', demo:true})
+ON CREATE SET orano.country='FR', orano.tier=3, orano.risk_flags=[], orano.demo=true;
+
+// ── Product → T1 relationships: AXL ──────────────────────────────────────────
+
+MATCH (p:Product {sku:'SCANIA-AXL'}), (s:Supplier {name:'NVIDIA Corporation'})
+MERGE (p)-[:SUPPLIED_BY {component:'DRIVE Orin SoC (254 TOPS); 2× per vehicle', contract_value:95000000, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-AXL'}), (s:Supplier {name:'Mobileye Global'})
+MERGE (p)-[:SUPPLIED_BY {component:'EyeQ6H ADAS chip + REM mapping', contract_value:42000000, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-AXL'}), (s:Supplier {name:'Knorr-Bremse AG'})
+MERGE (p)-[:SUPPLIED_BY {component:'Autonomous braking + steering ECU', contract_value:68000000, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-AXL'}), (s:Supplier {name:'Luminar Technologies'})
+MERGE (p)-[:SUPPLIED_BY {component:'Iris+ LiDAR (250m range, 10Hz)', contract_value:28000000, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-AXL'}), (s:Supplier {name:'HERE Technologies'})
+MERGE (p)-[:SUPPLIED_BY {component:'HD maps + live traffic API', contract_value:18000000, demo:true}]->(s);
+
+MATCH (p:Product {sku:'SCANIA-AXL'}), (s:Supplier {name:'Parker Hannifin'})
+MERGE (p)-[:SUPPLIED_BY {component:'Electrohydraulic steering actuators', contract_value:55000000, demo:true}]->(s);
+
+// Also link R-500 to NVIDIA (ADAS feature set)
+MATCH (p:Product {sku:'SCANIA-R-500'}), (s:Supplier {name:'NVIDIA Corporation'})
+MERGE (p)-[:SUPPLIED_BY {component:'DRIVE Orin (ADAS assist, L2+)', contract_value:40000000, demo:true}]->(s);
+
+// ── T1 → T2 ──────────────────────────────────────────────────────────────────
+
+MATCH (s1:Supplier {name:'NVIDIA Corporation'}), (s2:Supplier {name:'TSMC'})
+MERGE (s1)-[:SOURCED_FROM {component:'N4P process wafers (DRIVE Orin fab)', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Mobileye Global'}), (s2:Supplier {name:'TSMC'})
+MERGE (s1)-[:SOURCED_FROM {component:'N7 wafers (EyeQ6H fab)', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'NVIDIA Corporation'}), (s2:Supplier {name:'ARM Holdings'})
+MERGE (s1)-[:SOURCED_FROM {component:'ARM Cortex-A78AE CPU core IP licence', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'NVIDIA Corporation'}), (s2:Supplier {name:'Synopsys'})
+MERGE (s1)-[:SOURCED_FROM {component:'Design IP + verification EDA tools', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'TSMC'}), (s2:Supplier {name:'ASML Holding'})
+MERGE (s1)-[:SOURCED_FROM {component:'EUV lithography systems (NXE:3600D)', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Infineon Technologies'}), (s2:Supplier {name:'TSMC'})
+MERGE (s1)-[:SOURCED_FROM {component:'N28 automotive MCU fab (some SKUs)', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'STMicroelectronics'}), (s2:Supplier {name:'TSMC'})
+MERGE (s1)-[:SOURCED_FROM {component:'N3E advanced node (ADAS MCU roadmap)', demo:true}]->(s2);
+
+// ── T2 → T3 materials ────────────────────────────────────────────────────────
+
+MATCH (s1:Supplier {name:'TSMC'}), (s2:Supplier {name:'Shin-Etsu Chemical'})
+MERGE (s1)-[:SOURCED_FROM {component:'300mm prime silicon wafers', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'TSMC'}), (s2:Supplier {name:'JSR Corporation'})
+MERGE (s1)-[:SOURCED_FROM {component:'EUV photoresist (sole qualified supplier)', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'TSMC'}), (s2:Supplier {name:'Cryoin Engineering'})
+MERGE (s1)-[:SOURCED_FROM {component:'Ultra-pure neon gas for excimer lasers', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'TSMC'}), (s2:Supplier {name:'Orano (hafnium)'})
+MERGE (s1)-[:SOURCED_FROM {component:'Hafnium oxide gate dielectric', demo:true}]->(s2);
+
+MATCH (s1:Supplier {name:'Shin-Etsu Chemical'}), (r:RawMaterial {name:'Silicon Wafers (300mm)'})
+MERGE (s1)-[:SOURCED_FROM {component:'Polysilicon → CZ crystal → sliced wafer', demo:true}]->(r);
+
+MATCH (s1:Supplier {name:'JSR Corporation'}), (r:RawMaterial {name:'EUV Photoresist'})
+MERGE (s1)-[:SOURCED_FROM {component:'Metal-oxide EUV resist synthesis', demo:true}]->(r);
+
+MATCH (s1:Supplier {name:'Cryoin Engineering'}), (r:RawMaterial {name:'Neon Gas (semiconductor)'})
+MERGE (s1)-[:SOURCED_FROM {component:'Neon purification from atmospheric air separation', demo:true}]->(r);
+
+// Germanium export controls (China 2023)
+MATCH (s:Supplier {name:'Infineon Technologies'}), (r:RawMaterial {name:'Germanium (semiconductor)'})
+MERGE (s)-[:SOURCED_FROM {component:'Germanium substrate for SiGe transistors', inferred:true, confidence:0.7, demo:true}]->(r);
+
+// ── New Events: NVIDIA export controls + ASML China restriction ───────────────
+
+MERGE (ev_nv:Event {id:'EVT-NVIDIA-EXPORT-CTRL-2023'})
+ON CREATE SET
+  ev_nv.name         = 'NVIDIA A100/H100 Export Controls to China 2023',
+  ev_nv.date         = '2023-10-17',
+  ev_nv.severity     = 'HIGH',
+  ev_nv.impact       = 'SUPPLY_CHAIN_RESTRUCTURE',
+  ev_nv.description  = 'BIS expanded export restrictions on NVIDIA A100, H100, and successor chips to China and 21 other countries. NVIDIA DRIVE Orin (automotive) currently exempt but supply chain monitoring required.',
+  ev_nv.source_doc   = 'US Bureau of Industry and Security — Updated Export Controls AI Chips, Oct 2023',
+  ev_nv.source_url   = 'https://www.bis.gov/sites/default/files/2023-10/2023-22532.pdf',
+  ev_nv.source_excerpt = 'A100, H100 and equivalent performance chips controlled to China, Russia, 21 other destinations. DRIVE Orin (automotive-qualified L4 SoC) subject to emerging control review.',
+  ev_nv.evidence_type = 'REGULATORY',
+  ev_nv.demo         = true;
+
+MERGE (ev_asml:Event {id:'EVT-ASML-CHINA-RESTRICTION-2023'})
+ON CREATE SET
+  ev_asml.name         = 'ASML EUV/DUV Export Restriction to China 2023',
+  ev_asml.date         = '2023-09-01',
+  ev_asml.severity     = 'HIGH',
+  ev_asml.impact       = 'LONG_TERM_SUPPLY_SHIFT',
+  ev_asml.description  = 'Dutch government revoked ASML export licences for DUV (deep ultraviolet) immersion lithography systems to China. Combined with pre-existing EUV ban, China cannot fabricate leading-edge chips (<7nm). Accelerates chip supply chain bifurcation.',
+  ev_asml.source_doc   = 'Dutch Ministry of Foreign Affairs Export Licence Revocation, Aug 2023',
+  ev_asml.source_url   = 'https://www.government.nl/topics/export-controls',
+  ev_asml.source_excerpt = 'Export licence revoked for DUV immersion systems to Chinese customers effective 1 Sep 2023. ASML revenue impact ~15% (China was 29% of 2022 revenue). Foundry capacity migration accelerated to TSMC Taiwan, Samsung Korea, Intel Foundry US.',
+  ev_asml.evidence_type = 'REGULATORY',
+  ev_asml.demo         = true;
+
+MERGE (ev_neon:Event {id:'EVT-NEON-UKRAINE-SHORTAGE-2022'})
+ON CREATE SET
+  ev_neon.name         = 'Ukraine Neon Gas Supply Disruption 2022',
+  ev_neon.date         = '2022-02-24',
+  ev_neon.severity     = 'CRITICAL',
+  ev_neon.impact       = 'SEMICONDUCTOR_FAB_RISK',
+  ev_neon.description  = 'Ukraine produced 45-54% of global semiconductor-grade neon before the 2022 invasion. Mariupol (Mariupol Illich Steel) and Odessa (Cryoin Engineering) neon plants closed Feb 2022. Chipmakers ran down 2-3 month safety stocks; prices spiked 500%.',
+  ev_neon.source_doc   = 'Reuters Chip Neon Supply Report, March 2022; Techcet Critical Materials Report 2022',
+  ev_neon.source_url   = 'https://www.reuters.com/technology/what-is-neon-why-chip-makers-need-it',
+  ev_neon.source_excerpt = 'Ukraine supplies 45-54% of world neon used in chip-making lasers; Cryoin, Ingas and Iceblick shut Feb 24 2022; spot price +500% within 30 days.',
+  ev_neon.evidence_type = 'GEOPOLITICAL',
+  ev_neon.demo         = true;
+
+// Link events to suppliers
+MATCH (ev:Event {id:'EVT-NVIDIA-EXPORT-CTRL-2023'}), (s:Supplier {name:'NVIDIA Corporation'})
+MERGE (s)-[:AFFECTED_BY {impact:'DRIVE Orin automotive chips under review; supply to China customers blocked', severity:'HIGH', demo:true}]->(ev);
+
+MATCH (ev:Event {id:'EVT-ASML-CHINA-RESTRICTION-2023'}), (s:Supplier {name:'ASML Holding'})
+MERGE (s)-[:AFFECTED_BY {impact:'15% revenue impact; 29% China revenue at risk; EUV+DUV export ban', severity:'HIGH', demo:true}]->(ev);
+
+MATCH (ev:Event {id:'EVT-ASML-CHINA-RESTRICTION-2023'}), (s:Supplier {name:'TSMC'})
+MERGE (s)-[:AFFECTED_BY {impact:'Accelerated Taiwan→fab-abroad migration pressure; US CHIPS Act subsidies', severity:'MEDIUM', demo:true}]->(ev);
+
+MATCH (ev:Event {id:'EVT-NEON-UKRAINE-SHORTAGE-2022'}), (s:Supplier {name:'Cryoin Engineering'})
+MERGE (s)-[:AFFECTED_BY {impact:'Odessa plant closed Feb 24 2022; neon spot price +500%', severity:'CRITICAL', demo:true}]->(ev);
+
+MATCH (ev:Event {id:'EVT-NEON-UKRAINE-SHORTAGE-2022'}), (s:Supplier {name:'TSMC'})
+MERGE (s)-[:AFFECTED_BY {impact:'Ran down 2-3mo safety stock; diversified to Taiwan/US neon suppliers', severity:'HIGH', demo:true}]->(ev);
+
+MATCH (ev:Event {id:'EVT-TAIWAN-STRAIT-2024'}), (s:Supplier {name:'TSMC'})
+MERGE (s)-[:AFFECTED_BY {impact:'ALL advanced node production in Taiwan at risk; CHIPS Act fabs (Arizona N4) cover <15% demand', severity:'CRITICAL', demo:true}]->(ev);
+
+MATCH (ev:Event {id:'EVT-TAIWAN-STRAIT-2024'}), (s:Supplier {name:'NVIDIA Corporation'})
+MERGE (s)-[:AFFECTED_BY {impact:'100% of DRIVE Orin and datacenter GPU production at TSMC Taiwan', severity:'CRITICAL', demo:true}]->(ev);
+
+MATCH (ev:Event {id:'EVT-TAIWAN-STRAIT-2024'}), (s:Supplier {name:'Mobileye Global'})
+MERGE (s)-[:AFFECTED_BY {impact:'EyeQ6H fabbed at TSMC; no qualified alternative foundry for ≤7nm process', severity:'CRITICAL', demo:true}]->(ev);
+
+// ── Luminar financial alert ────────────────────────────────────────────────────
+
+MERGE (la:FinancialAlert {supplier:'Luminar Technologies', alert_type:'ALTMAN_Z_DISTRESS', check_date:'2026-08-13', demo:true})
+ON CREATE SET
+  la.z_score        = 1.44,
+  la.nd_ebitda      = 8.2,
+  la.credit_rating  = 'B-',
+  la.severity       = 'CRITICAL',
+  la.message        = 'Altman Z 1.44 < 1.81. ND/EBITDA 8.2× above covenant 5.5×. Sole-source LiDAR risk. Activate contingency: Hesai (CN, UFLPA risk) or Ouster.',
+  la.demo           = true;
+
+MATCH (s:Supplier {name:'Luminar Technologies'}), (a:FinancialAlert {supplier:'Luminar Technologies', demo:true})
+MERGE (s)-[:HAS_ALERT]->(a);
+
+// ── Knorr-Bremse → ZF integration ────────────────────────────────────────────
+
+MATCH (s1:Supplier {name:'Knorr-Bremse AG'}), (s2:Supplier {name:'ZF Friedrichshafen'})
+MERGE (s1)-[:SOURCED_FROM {component:'Transmission control input signals for integrated braking', demo:true}]->(s2);
+
+// ── v10 summary ────────────────────────────────────────────────────────────────
+// New nodes: NVIDIA, Mobileye, Knorr-Bremse, Luminar, HERE, Parker Hannifin (T1)
+//            TSMC, ARM Holdings, ASML, Synopsys, Cadence (T2)
+//            Shin-Etsu, JSR, Cryoin, Orano (T3)
+//            Silicon Wafers, EUV Photoresist, Neon Gas, Hafnium, Germanium (RawMaterial)
+// New product: SCANIA-AXL (Level 4 autonomous concept)
+// New events (17 total): NVIDIA Export Controls, ASML China Restriction, Neon Ukraine Shortage
+// New FinancialAlert: Luminar Technologies (DISTRESS)
+// Key risks added: Taiwan Strait single-source (TSMC), Neon gas Ukraine, EUV photoresist (JSR sole source)
+// ============================================================
