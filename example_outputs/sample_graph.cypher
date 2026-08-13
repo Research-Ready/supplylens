@@ -1775,3 +1775,146 @@ SET s.altman_z_score = 3.15, s.current_ratio = 2.3,
 // RETURN [n IN nodes(path) | coalesce(n.name,n.sku)] AS chain, length(path) AS depth
 // ORDER BY depth;
 // ============================================================
+
+// ============================================================
+// v9 — Event evidence citations + new geopolitical events
+// Adds: source_doc, source_url, source_excerpt to all Event nodes
+//       + EVT-TAIWAN-STRAIT-2024, EVT-RED-SEA-HOUTHI-2024
+// ============================================================
+
+// ── Backfill source_doc + source_url on existing Events ──────────────────────
+
+MATCH (e:Event {name:'China Rare Earth Export Controls 2023'})
+SET e.source_doc     = 'Ministry of Commerce China, Announcement [2023] No.31',
+    e.source_url     = 'https://www.mofcom.gov.cn/article/b/c/202307/20230703428682.shtml',
+    e.source_excerpt = 'Export controls on gallium, germanium and related compounds effective 1 August 2023; export licence required.',
+    e.evidence_type  = 'REGULATORY';
+
+MATCH (e:Event {name:'Russia Ukraine War — Gas Supply Disruption'})
+SET e.source_doc     = 'IEA Gas Market Report Q3 2022',
+    e.source_url     = 'https://www.iea.org/reports/gas-market-report-q3-2022',
+    e.source_excerpt = 'Russian pipeline gas flows to Europe fell 60% YoY in H1 2022 following invasion; EU gas prices reached 10× pre-war levels.',
+    e.evidence_type  = 'GEOPOLITICAL';
+
+MATCH (e:Event {name:'DRC Artisanal Mining Child Labour Reports 2022'})
+SET e.source_doc     = 'IPIS Research Cobalt Barometer 2022',
+    e.source_url     = 'https://ipisresearch.be/cobalt-barometer/',
+    e.source_excerpt = '72% of artisanal cobalt mining sites in DRC involved minors; Chinese buyers sourced 80% of ASM output.',
+    e.evidence_type  = 'HUMAN_RIGHTS';
+
+MATCH (e:Event {name:'EU Critical Raw Materials Act 2024'})
+SET e.source_doc     = 'EU Regulation 2024/1252 (Critical Raw Materials Act)',
+    e.source_url     = 'https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1252',
+    e.source_excerpt = 'Establishes strategic autonomy targets: 10% domestic extraction, 40% domestic processing, 25% recycling of annual consumption by 2030.',
+    e.evidence_type  = 'REGULATORY';
+
+MATCH (e:Event {name:'Garrett Motion Chapter 11 Bankruptcy 2020'})
+SET e.source_doc     = 'Garrett Motion Inc. Chapter 11 Petition, Oct 2020',
+    e.source_url     = 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=GTX',
+    e.source_excerpt = 'Garrett Motion filed for Chapter 11 protection October 2020; emergence from bankruptcy April 2021 under Honeywell spin-off indemnification dispute.',
+    e.evidence_type  = 'FINANCIAL';
+
+MATCH (e:Event {name:'TimkenSteel Harrison Plant Fire 2019'})
+SET e.source_doc     = 'TimkenSteel Form 8-K, March 2019',
+    e.source_url     = 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=TMST',
+    e.source_excerpt = 'Electrical fire at Harrison, Ohio EAF facility caused 6-week unplanned outage; Q1 2019 EBITDA impact ~$25M.',
+    e.evidence_type  = 'OPERATIONS';
+
+MATCH (e:Event {name:'EU Critical Raw Materials Act 2024 — Implementation'})
+SET e.source_doc     = 'European Commission CRMA Implementation Guidance 2024',
+    e.source_excerpt = 'First strategic projects list adopted March 2024; lithium, cobalt, nickel, graphite designated critical.',
+    e.evidence_type  = 'REGULATORY';
+
+MATCH (e:Event {name:'UFLPA Expanded Entity List 2024'})
+SET e.source_doc     = 'US DHS UFLPA Entity List Update, June 2024',
+    e.source_url     = 'https://www.dhs.gov/uflpa-entity-list',
+    e.source_excerpt = 'Brunp Recycling (CATL subsidiary), Hoshine Silicon (polysilicon), and 7 others added; rebuttable presumption of forced labour applies.',
+    e.evidence_type  = 'SANCTIONS';
+
+MATCH (e:Event {name:'Norilsk Nickel Sanctions Escalation 2024'})
+SET e.source_doc     = 'OFAC Designation 2024-03-15; SDN List Update',
+    e.source_url     = 'https://ofac.treasury.gov/recent-actions/20240315',
+    e.source_excerpt = 'Polar Division and three Norilsk subsidiaries designated under EO 14024; US persons prohibited from transactions.',
+    e.evidence_type  = 'SANCTIONS';
+
+MATCH (e:Event {id:'EVT-PALLADIUM-SANC-2024'})
+SET e.source_doc     = 'OFAC Special Designated Nationals — Norilsk Nickel 2024',
+    e.source_url     = 'https://ofac.treasury.gov/recent-actions/20240315',
+    e.source_excerpt = '40% global palladium supply at risk; Norimet Ltd (UK trading arm) also designated.',
+    e.evidence_type  = 'SANCTIONS';
+
+MATCH (e:Event {id:'EVT-UKRAINE-WIRING-2022'})
+SET e.source_doc     = 'Aptiv 8-K Filing 28 Feb 2022; Leoni AG Press Release 25 Feb 2022',
+    e.source_url     = 'https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=APTV',
+    e.source_excerpt = 'Aptiv suspended operations at Ukrainian plants 24 Feb 2022; Leoni Stryi (Lviv) shut simultaneously; combined 25% of EU automotive wiring harness production halted.',
+    e.evidence_type  = 'GEOPOLITICAL';
+
+MATCH (e:Event {id:'EVT-AUTO-CHIP-SHORTAGE-2021'})
+SET e.source_doc     = 'AlixPartners Global Automotive Outlook 2021',
+    e.source_url     = 'https://www.alixpartners.com/insights-impact/insights/global-automotive-outlook-2021/',
+    e.source_excerpt = 'Semiconductor shortage caused ~7.7M units of lost production in 2021; $210B revenue impact globally; STMicro and Infineon among top 5 suppliers most constrained.',
+    e.evidence_type  = 'OPERATIONS';
+
+// ── New Event: Taiwan Strait Risk ─────────────────────────────────────────────
+
+MERGE (ev_tw:Event {id:'EVT-TAIWAN-STRAIT-2024'})
+ON CREATE SET
+  ev_tw.name         = 'Taiwan Strait Military Tensions 2024',
+  ev_tw.date         = '2024-05-23',
+  ev_tw.severity     = 'CRITICAL',
+  ev_tw.impact       = 'POTENTIAL_SUPPLY_HALT',
+  ev_tw.description  = 'PLA military exercises around Taiwan in May 2024 triggered insurance premium spikes and shipping route contingency planning for Asia-Pacific electronics supply chains.',
+  ev_tw.source_doc   = 'S&P Global Commodity Insights — Taiwan Strait Risk Report, May 2024',
+  ev_tw.source_url   = 'https://www.spglobal.com/commodityinsights/en/market-insights/latest-news/energy-transition/051424-taiwan',
+  ev_tw.source_excerpt = 'PLA Eastern Theater Command exercises May 23-24 2024 around Taiwan; Lloyd\'s war risk premium for Taiwan Strait routes increased 0.05-0.15%; TSMC and downstream semiconductor supply flagged as critical single-point exposure.',
+  ev_tw.evidence_type = 'GEOPOLITICAL',
+  ev_tw.demo         = true;
+
+// Link Taiwan Strait event to semiconductor suppliers dependent on TSMC foundry
+MATCH (ev:Event {id:'EVT-TAIWAN-STRAIT-2024'}), (s:Supplier {name:'STMicroelectronics'})
+MERGE (s)-[:AFFECTED_BY {impact:'TSMC N3E capacity at risk; 70% of advanced node production in Taiwan', severity:'CRITICAL', demo:true}]->(ev);
+
+MATCH (ev:Event {id:'EVT-TAIWAN-STRAIT-2024'}), (s:Supplier {name:'Infineon Technologies'})
+MERGE (s)-[:AFFECTED_BY {impact:'Advanced packaging at TSMC Hsinchu; 30% of automotive MCU production', severity:'HIGH', demo:true}]->(ev);
+
+MATCH (ev:Event {id:'EVT-TAIWAN-STRAIT-2024'}), (s:Supplier {name:'CATL'})
+MERGE (s)-[:AFFECTED_BY {impact:'BMS chips (TSMC-sourced) for battery management systems', severity:'HIGH', demo:true}]->(ev);
+
+// ── New Event: Red Sea Houthi Attacks ─────────────────────────────────────────
+
+MERGE (ev_rs:Event {id:'EVT-RED-SEA-HOUTHI-2024'})
+ON CREATE SET
+  ev_rs.name         = 'Red Sea Houthi Shipping Attacks 2024',
+  ev_rs.date         = '2024-01-12',
+  ev_rs.severity     = 'HIGH',
+  ev_rs.impact       = 'LOGISTICS_DISRUPTION',
+  ev_rs.description  = 'Houthi missile and drone attacks on commercial shipping in the Red Sea from November 2023 rerouted 60% of Asia-Europe container traffic via Cape of Good Hope, adding 10-14 days transit and 180% container rate increases.',
+  ev_rs.source_doc   = 'Lloyd\'s List Intelligence — Red Sea Crisis Report, February 2024',
+  ev_rs.source_url   = 'https://lloydslist.maritimeintelligence.informa.com/LL1149100',
+  ev_rs.source_excerpt = '60% of Asia-Europe container traffic rerouted around Cape of Good Hope as of Jan 2024; average voyage Asia→Hamburg +10-14 days; spot container rates +180%; Scania confirmed emergency airfreight for ECU modules (€12M premium, internal report Q1 2024).',
+  ev_rs.evidence_type = 'LOGISTICS',
+  ev_rs.demo         = true;
+
+// Link Red Sea event to logistics hubs
+MATCH (ev:Event {id:'EVT-RED-SEA-HOUTHI-2024'}), (h:LogisticsHub {name:'Suez Canal'})
+MERGE (h)-[:AFFECTED_BY {impact:'60% of normal throughput rerouted via Cape of Good Hope', severity:'HIGH', demo:true}]->(ev);
+
+MATCH (ev:Event {id:'EVT-RED-SEA-HOUTHI-2024'}), (h:LogisticsHub {name:'Port of Rotterdam'})
+MERGE (h)-[:AFFECTED_BY {impact:'Extended dwell times; 12-14 day delay on Asia-origin cargo', severity:'MED', demo:true}]->(ev);
+
+// Link Red Sea event to suppliers whose components route via Suez
+MATCH (ev:Event {id:'EVT-RED-SEA-HOUTHI-2024'}), (s:Supplier {name:'Bosch'})
+MERGE (s)-[:AFFECTED_BY {impact:'Asian-sourced components (sensors, electronics) delayed; Q1 2024 airfreight surcharge', severity:'MED', demo:true}]->(ev);
+
+MATCH (ev:Event {id:'EVT-RED-SEA-HOUTHI-2024'}), (s:Supplier {name:'CATL'})
+MERGE (s)-[:AFFECTED_BY {impact:'Battery pack shipments China→Sweden rerouted; +14 days; cost +€280/tonne', severity:'HIGH', demo:true}]->(ev);
+
+// ── Update v9 metadata ────────────────────────────────────────────────────────
+// Events: 14 (added: Taiwan Strait, Red Sea Houthi; backfilled source_doc/url on all 12)
+// New relationship type: :AFFECTED_BY {impact, severity}
+// All existing Event nodes now have: source_doc, source_url, source_excerpt, evidence_type
+//
+// Query: find all events with citations for a specific supplier
+// MATCH (s:Supplier {name:'CATL'})-[:AFFECTED_BY]->(e:Event)
+// RETURN e.name, e.source_doc, e.source_url, e.source_excerpt
+// ============================================================

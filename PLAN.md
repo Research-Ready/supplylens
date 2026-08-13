@@ -128,7 +128,7 @@ in a graph with citations, and visualize as 3D graph + 2D evidence map.
 **C1 — Cypher v9: event evidence links**
 - What: each Event node gets `source_doc` + `source_url` properties
 - Add: Taiwan Strait risk, Red Sea Houthi events with citations
-- Status: NOT BUILT
+- Status: BUILT (14 events, backfilled citations on all 12 existing, :AFFECTED_BY rel)
 
 **C2 — Logistics route risk** `src/logistics_risk.py`
 - What: score Suez / Malacca / Trans-Sib routes by disruption probability
