@@ -84,13 +84,13 @@ in a graph with citations, and visualize as 3D graph + 2D evidence map.
 - What: every Neo4j node gets `source_doc`, `source_excerpt`, `confidence` properties
 - Functions: `store_evidence()`, `get_evidence()`, `mark_reviewed()`
 - CLI: `python3 src/evidence_store.py get "Norilsk Nickel"`
-- Status: NOT BUILT
+- Status: BUILT (commit 3a2d19e)
 
 **A2 — Evidence geo map** `docs/evidence_map.html`
 - What: D3 world map, supplier pins at real lat/lon, supply chain arcs,
   click supplier → evidence sidebar (docs, claims, confidence, source)
 - Data: lat/lon already in cypher v8 for mines/logistics
-- Status: NOT BUILT
+- Status: BUILT
 
 **A3 — 3D graph live evidence** (update `docs/supplylens_3d.html`)
 - What: pull evidence from Neo4j via SSH tunnel instead of hardcoded JS
@@ -100,7 +100,7 @@ in a graph with citations, and visualize as 3D graph + 2D evidence map.
 **A4 — EDRM pipeline tracker** `docs/edrm_tracker.html`
 - What: per-supplier status grid — Scraped / Extracted / RAG-indexed / Reviewed
 - Shows: pipeline completeness %, next action per supplier
-- Status: NOT BUILT
+- Status: BUILT
 
 ---
 

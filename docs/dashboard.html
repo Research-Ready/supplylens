@@ -189,6 +189,12 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; colo
   <div class="tab" onclick="switchTab('finhealth')" id="tab-finhealth">
     <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4v4l3 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="1" fill="currentColor"/></svg> Fin Health
   </div>
+  <div class="tab" onclick="switchTab('evidencemap')" id="tab-evidencemap">
+    <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="4" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 6.5 L8 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="3" cy="10" r="2" fill="none" stroke="currentColor" stroke-width="1.2"/><circle cx="13" cy="10" r="2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5 10 L11 10" stroke="currentColor" stroke-width="1" stroke-dasharray="2,1"/></svg> Evidence Map
+  </div>
+  <div class="tab" onclick="switchTab('edrm')" id="tab-edrm">
+    <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="2" width="14" height="2" rx="1"/><rect x="1" y="6" width="10" height="2" rx="1"/><rect x="1" y="10" width="12" height="2" rx="1"/><rect x="1" y="14" width="7" height="2" rx="1"/><circle cx="13" cy="11" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12.2 11 l.8.8 1.5-1.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg> EDRM
+  </div>
   <div class="header-right">
     <div class="status-pill ok" id="neo4j-status"><span class="dot"></span>Neo4j</div>
     <div class="status-pill err" id="kotaemon-status"><span class="dot"></span>Kotaemon</div>
@@ -323,6 +329,16 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; colo
   <!-- FINANCIAL HEALTH -->
   <div class="panel" id="finhealth-panel">
     <iframe src="financial_health.html" id="finhealth-iframe" style="width:100%;height:100%;border:none"></iframe>
+  </div>
+
+  <!-- EVIDENCE MAP -->
+  <div class="panel" id="evidencemap-panel">
+    <iframe src="evidence_map.html" id="evidencemap-iframe" style="width:100%;height:100%;border:none"></iframe>
+  </div>
+
+  <!-- EDRM TRACKER -->
+  <div class="panel" id="edrm-panel">
+    <iframe src="edrm_tracker.html" id="edrm-iframe" style="width:100%;height:100%;border:none"></iframe>
   </div>
 
 </div>
