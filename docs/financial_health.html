@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UC4 — Supplier Financial Health</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; color: #e2e8f0; }
+
+#header { background: #111420; border-bottom: 1px solid #1e2235; padding: 12px 20px; display: flex; align-items: center; gap: 16px; }
+#header h1 { font-size: 14px; font-weight: 700; color: #818cf8; }
+.sub { font-size: 11px; color: #4a5568; }
+.badge { margin-left: auto; font-size: 10px; padding: 2px 8px; border-radius: 20px; background: rgba(129,140,248,0.15); color: #818cf8; border: 1px solid rgba(129,140,248,0.3); }
+
+/* KPI strip */
+#kpi { display: flex; background: #0d1019; border-bottom: 1px solid #1a1d2e; }
+.kpi { padding: 10px 20px; border-right: 1px solid #1a1d2e; }
+.kpi-v { font-size: 22px; font-weight: 700; }
+.kpi-l { font-size: 10px; color: #4a5568; text-transform: uppercase; letter-spacing: 0.07em; }
+.kpi-v.red { color: #ef4444; } .kpi-v.orange { color: #f97316; }
+.kpi-v.green { color: #34d399; } .kpi-v.blue { color: #818cf8; }
+
+/* Layout */
+#grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; }
+.full { grid-column: 1 / -1; }
+.card { background: #0d1019; border: 1px solid #1a1d2e; border-radius: 8px; overflow: hidden; }
+.card-head { padding: 10px 14px; border-bottom: 1px solid #1a1d2e; display: flex; align-items: center; justify-content: space-between; }
+.card-title { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; }
+.card-body { padding: 14px; }
+
+/* Altman Z-score gauge bars */
+.z-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.z-name { font-size: 11px; color: #94a3b8; min-width: 165px; display: flex; flex-direction: column; }
+.z-supplier { color: #e2e8f0; font-weight: 500; }
+.z-tier { font-size: 9px; color: #64748b; }
+.z-track { flex: 1; height: 12px; background: #1a1d2e; border-radius: 3px; overflow: visible; position: relative; }
+.z-fill { height: 100%; border-radius: 3px; }
+/* Zone markers at Z=1.81 and Z=2.99 */
+.z-marker { position: absolute; top: -4px; bottom: -4px; width: 1px; background: rgba(255,255,255,0.15); }
+.z-val { font-size: 11px; font-weight: 700; min-width: 36px; text-align: right; }
+.z-rating { font-size: 9px; min-width: 32px; color: #64748b; }
+
+/* ND/EBITDA table */
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+th { color: #64748b; text-align: left; padding: 5px 8px; border-bottom: 1px solid #1a1d2e; font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; }
+td { padding: 5px 8px; border-bottom: 1px solid rgba(26,29,46,0.5); color: #94a3b8; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(129,140,248,0.04); }
+.risk-badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 700; }
+.risk-DISTRESS    { background: rgba(239,68,68,0.2);   color: #ef4444; }
+.risk-WATCH       { background: rgba(249,115,22,0.2);  color: #f97316; }
+.risk-HEALTHY     { background: rgba(52,211,153,0.15); color: #34d399; }
+.risk-STRONG      { background: rgba(52,211,153,0.2);  color: #34d399; }
+.risk-SANCTIONS   { background: rgba(239,68,68,0.3);   color: #f87171; }
+
+/* Scatter plot */
+#scatter-svg { width: 100%; height: 300px; }
+.dot { cursor: pointer; }
+.dot:hover { stroke-width: 2; }
+.tooltip { position: absolute; background: #111420; border: 1px solid #1e2235; border-radius: 6px; padding: 8px 10px; font-size: 10px; color: #94a3b8; pointer-events: none; display: none; z-index: 10; max-width: 200px; }
+
+/* Credit rating bar */
+.rating-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.rating-name { font-size: 11px; color: #94a3b8; min-width: 140px; }
+.rating-badge { font-size: 10px; font-weight: 700; min-width: 36px; }
+.rating-track { flex: 1; height: 8px; background: #1a1d2e; border-radius: 2px; overflow: hidden; }
+.rating-fill { height: 100%; border-radius: 2px; }
+
+.note-text { font-size: 10px; color: #64748b; margin-top: 3px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>Supplier Financial Health</h1>
+  <span class="sub">Altman Z-Score · Credit Rating · Net Debt / EBITDA</span>
+  <span class="badge">v8 DATA</span>
+</div>
+
+<div id="kpi">
+  <div class="kpi"><div class="kpi-v red"   id="kpi-distress">2</div><div class="kpi-l">Distress Zone (Z&lt;1.81)</div></div>
+  <div class="kpi"><div class="kpi-v orange" id="kpi-watch">6</div><div class="kpi-l">Grey Zone (1.81–2.99)</div></div>
+  <div class="kpi"><div class="kpi-v green"  id="kpi-healthy">4</div><div class="kpi-l">Safe Zone (Z>2.99)</div></div>
+  <div class="kpi"><div class="kpi-v red"    id="kpi-highleverage">3</div><div class="kpi-l">ND/EBITDA > 3×</div></div>
+</div>
+
+<div id="grid">
+
+  <!-- Altman Z-Score Bars -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Altman Z-Score (bankruptcy prediction)</span>
+      <span style="font-size:10px;color:#4a5568">Distress &lt;1.81 · Grey 1.81-2.99 · Safe &gt;2.99</span>
+    </div>
+    <div class="card-body" id="z-bars"></div>
+  </div>
+
+  <!-- Net Debt / EBITDA -->
+  <div class="card">
+    <div class="card-head">
+      <span class="card-title">Net Debt / EBITDA Leverage</span>
+      <span style="font-size:10px;color:#4a5568">&lt;2× safe · &gt;4× distress</span>
+    </div>
+    <div class="card-body" id="leverage-bars"></div>
+  </div>
+
+  <!-- Scatter: Z vs ND/EBITDA -->
+  <div class="card full">
+    <div class="card-head">
+      <span class="card-title">Risk Quadrant — Z-Score vs Leverage</span>
+      <div style="font-size:10px;color:#4a5568;display:flex;gap:12px">
+        <span style="color:#ef4444">● Distress</span>
+        <span style="color:#f97316">● Watch</span>
+        <span style="color:#34d399">● Healthy</span>
+        <span style="color:#818cf8">● Sanctions</span>
+      </div>
+    </div>
+    <div class="card-body" style="position:relative">
+      <svg id="scatter-svg"></svg>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+  </div>
+
+  <!-- Summary table -->
+  <div class="card full">
+    <div class="card-head">
+      <span class="card-title">Financial Health Summary</span>
+    </div>
+    <div class="card-body">
+      <table id="health-table">
+        <thead>
+          <tr>
+            <th>Supplier</th>
+            <th>Tier</th>
+            <th>Country</th>
+            <th>Z-Score</th>
+            <th>ND/EBITDA</th>
+            <th>Rating</th>
+            <th>Status</th>
+            <th>Key Risk Note</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SUPPLIERS = [
+  {name:"Bosch",                tier:1, country:"DE", z:4.10, nd_ebitda:-0.2, rating:"AA-",  risk:"STRONG",    note:"Net cash; private GmbH; AAA-level margins"},
+  {name:"SSAB",                 tier:1, country:"SE", z:3.42, nd_ebitda:0.3,  rating:"BBB",  risk:"STRONG",    note:"Net cash; HYBRIT green steel on track 2026"},
+  {name:"SQM",                  tier:3, country:"CL", z:3.15, nd_ebitda:0.8,  rating:"BBB",  risk:"HEALTHY",   note:"Lithium price normalization; still profitable"},
+  {name:"Michelin",             tier:1, country:"FR", z:2.98, nd_ebitda:1.4,  rating:"BBB+", risk:"HEALTHY",   note:"Strong free cash flow; investment-grade margins"},
+  {name:"STMicroelectronics",   tier:2, country:"CH", z:2.91, nd_ebitda:0.1,  rating:"BBB+", risk:"HEALTHY",   note:"Near-net-cash; strong SiC/ADAS cycle"},
+  {name:"Dana Incorporated",    tier:1, country:"US", z:2.65, nd_ebitda:3.1,  rating:"BB",   risk:"WATCH",     note:"Leverage elevated post-acquisitions; EV transition capex"},
+  {name:"CATL",                 tier:1, country:"CN", z:2.85, nd_ebitda:1.8,  rating:"BBB+", risk:"WATCH",     note:"EV market saturation; overcapacity 2024-25"},
+  {name:"Continental AG",       tier:1, country:"DE", z:2.18, nd_ebitda:2.1,  rating:"BBB-", risk:"WATCH",     note:"Separation delayed; EV transition pressure"},
+  {name:"Aptiv",                tier:1, country:"US", z:2.41, nd_ebitda:2.9,  rating:"BBB",  risk:"WATCH",     note:"Ukraine cost ~€180M/yr; Morocco relocation"},
+  {name:"Shanshan",             tier:2, country:"CN", z:1.88, nd_ebitda:3.2,  rating:"BB-",  risk:"WATCH",     note:"EV slowdown; UFLPA US revenue risk"},
+  {name:"ZF Friedrichshafen",   tier:1, country:"DE", z:1.92, nd_ebitda:3.8,  rating:"BB+",  risk:"WATCH",     note:"Wabco acquisition debt; covenant pressure 3.8× ND/EBITDA"},
+  {name:"Cummins",              tier:1, country:"US", z:3.05, nd_ebitda:1.2,  rating:"A-",   risk:"HEALTHY",   note:"Strong diesel + hybrid mix; solid FCF"},
+  {name:"Norilsk Nickel",       tier:3, country:"RU", z:2.10, nd_ebitda:2.4,  rating:"NR",   risk:"SANCTIONS", note:"Excluded from ratings; dividend frozen; OFAC risk"},
+  {name:"Leoni AG",             tier:2, country:"DE", z:1.71, nd_ebitda:5.1,  rating:"B",    risk:"DISTRESS",  note:"Restructuring 2023; Ukraine losses; rights issue Dec 2023"},
+  {name:"Garrett Motion",       tier:2, country:"CH", z:1.65, nd_ebitda:4.2,  rating:"B+",   risk:"DISTRESS",  note:"Ch.11 emerged 2021; asbestos liability underfunded"},
+  {name:"Umicore BM",           tier:2, country:"BE", z:2.52, nd_ebitda:2.2,  rating:"BBB",  risk:"WATCH",     note:"Battery materials overcapacity; cathode margin pressure"},
+  {name:"Toray Industries",     tier:2, country:"JP", z:2.78, nd_ebitda:1.6,  rating:"BBB+", risk:"HEALTHY",   note:"Carbon fibre demand solid; aerospace + EV"},
+  {name:"TE Connectivity",      tier:2, country:"IE", z:3.21, nd_ebitda:1.1,  rating:"BBB+", risk:"HEALTHY",   note:"Diversified end markets; strong FCF"},
+  {name:"Codelco",              tier:3, country:"CL", z:2.34, nd_ebitda:3.5,  rating:"A-",   risk:"WATCH",     note:"State guarantee elevates rating vs standalone metrics"},
+  {name:"Eramet",               tier:3, country:"FR", z:2.67, nd_ebitda:1.9,  rating:"BB+",  risk:"HEALTHY",   note:"Nickel + manganese; Indonesia ramp positive"},
+];
+
+const COLORS = {DISTRESS:"#ef4444", WATCH:"#f97316", HEALTHY:"#34d399", STRONG:"#34d399", SANCTIONS:"#818cf8"};
+
+function renderZBars() {
+  const sorted = [...SUPPLIERS].sort((a,b) => a.z - b.z);
+  const maxZ = 4.5;
+  document.getElementById("z-bars").innerHTML = sorted.map(s => {
+    const pct = Math.min(100, s.z / maxZ * 100);
+    const color = COLORS[s.risk];
+    const zoneText = s.z < 1.81 ? "DISTRESS" : s.z < 2.99 ? "GREY" : "SAFE";
+    return `<div class="z-row">
+      <div class="z-name"><span class="z-supplier">${s.name}</span><span class="z-tier">T${s.tier} · ${s.country}</span></div>
+      <div class="z-track">
+        <div class="z-fill" style="width:${pct}%;background:${color}"></div>
+        <div class="z-marker" style="left:${1.81/maxZ*100}%"></div>
+        <div class="z-marker" style="left:${2.99/maxZ*100}%"></div>
+      </div>
+      <div class="z-val" style="color:${color}">${s.z.toFixed(2)}</div>
+      <div class="z-rating" style="color:${color};font-size:9px">${zoneText}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderLeverageBars() {
+  const sorted = [...SUPPLIERS].sort((a,b) => b.nd_ebitda - a.nd_ebitda);
+  const maxL = 6;
+  document.getElementById("leverage-bars").innerHTML = sorted.map(s => {
+    const val = Math.max(0, s.nd_ebitda);
+    const pct = Math.min(100, val / maxL * 100);
+    const color = val < 0 ? "#34d399" : val < 2 ? "#34d399" : val < 3 ? "#fbbf24" : val < 4 ? "#f97316" : "#ef4444";
+    const label = s.nd_ebitda < 0 ? "Net Cash" : `${s.nd_ebitda.toFixed(1)}×`;
+    return `<div class="z-row">
+      <div class="z-name"><span class="z-supplier">${s.name}</span><span class="z-tier">T${s.tier} · ${s.country}</span></div>
+      <div class="z-track">
+        <div class="z-fill" style="width:${pct}%;background:${color}"></div>
+        <div class="z-marker" style="left:${2/maxL*100}%"></div>
+        <div class="z-marker" style="left:${4/maxL*100}%"></div>
+      </div>
+      <div class="z-val" style="color:${color};font-size:10px">${label}</div>
+    </div>`;
+  }).join("");
+}
+
+function renderScatter() {
+  const svg = d3.select("#scatter-svg");
+  const W = document.getElementById("scatter-svg").clientWidth;
+  const H = 300;
+  const m = {top:20, right:20, bottom:40, left:50};
+  const w = W - m.left - m.right, h = H - m.top - m.bottom;
+  const g = svg.attr("viewBox",`0 0 ${W} ${H}`).append("g").attr("transform",`translate(${m.left},${m.top})`);
+
+  // Background zones
+  const xS = d3.scaleLinear().domain([0, 5]).range([0, w]);
+  const yS = d3.scaleLinear().domain([-1, 6]).range([h, 0]);
+
+  // Zone backgrounds
+  [[0,1.81,"#ef4444"],[1.81,2.99,"#f97316"],[2.99,5,"#34d399"]].forEach(([x0,x1,c]) => {
+    g.append("rect").attr("x",xS(x0)).attr("y",0).attr("width",xS(x1)-xS(x0)).attr("height",h)
+      .attr("fill",c).attr("opacity",0.04);
+  });
+
+  // Horizontal danger line at 4× ND/EBITDA
+  g.append("line").attr("x1",0).attr("x2",w).attr("y1",yS(4)).attr("y2",yS(4))
+    .attr("stroke","#ef4444").attr("stroke-width",1).attr("stroke-dasharray","4 3").attr("opacity",0.4);
+
+  g.append("g").attr("transform",`translate(0,${h})`).call(d3.axisBottom(xS).ticks(5))
+    .selectAll("text").style("fill","#64748b").style("font-size","10px");
+  g.append("g").call(d3.axisLeft(yS).ticks(5))
+    .selectAll("text").style("fill","#64748b").style("font-size","10px");
+  g.selectAll(".domain,.tick line").style("stroke","#1a1d2e");
+
+  g.append("text").attr("x",w/2).attr("y",h+32).attr("text-anchor","middle").attr("fill","#64748b").attr("font-size","10px").text("Altman Z-Score →");
+  g.append("text").attr("transform","rotate(-90)").attr("x",-h/2).attr("y",-38).attr("text-anchor","middle").attr("fill","#64748b").attr("font-size","10px").text("← Net Debt / EBITDA");
+
+  const tooltip = document.getElementById("tooltip");
+
+  g.selectAll(".dot").data(SUPPLIERS).join("circle")
+    .attr("class","dot")
+    .attr("cx", d => xS(d.z))
+    .attr("cy", d => yS(Math.max(-0.8, d.nd_ebitda)))
+    .attr("r", 7)
+    .attr("fill", d => COLORS[d.risk])
+    .attr("fill-opacity", 0.8)
+    .attr("stroke", d => COLORS[d.risk])
+    .attr("stroke-opacity", 0.4)
+    .on("mouseover", (event, d) => {
+      tooltip.style.display = "block";
+      tooltip.innerHTML = `<b style="color:#e2e8f0">${d.name}</b><br>
+        Z-Score: <b style="color:${COLORS[d.risk]}">${d.z.toFixed(2)}</b><br>
+        ND/EBITDA: <b>${d.nd_ebitda.toFixed(1)}×</b><br>
+        Rating: ${d.rating}<br>
+        <span style="color:#64748b">${d.note}</span>`;
+    })
+    .on("mousemove", event => {
+      tooltip.style.left = (event.offsetX + 12) + "px";
+      tooltip.style.top  = (event.offsetY - 10) + "px";
+    })
+    .on("mouseout", () => { tooltip.style.display = "none"; });
+
+  // Labels for distress nodes
+  SUPPLIERS.filter(s => s.risk === "DISTRESS" || s.risk === "SANCTIONS").forEach(s => {
+    g.append("text").attr("x", xS(s.z) + 9).attr("y", yS(Math.max(-0.8, s.nd_ebitda)) + 4)
+      .attr("fill", COLORS[s.risk]).attr("font-size","9px").text(s.name.split(" ")[0]);
+  });
+}
+
+function renderTable() {
+  const sorted = [...SUPPLIERS].sort((a,b) => {
+    const order = {DISTRESS:0, SANCTIONS:1, WATCH:2, HEALTHY:3, STRONG:4};
+    return order[a.risk] - order[b.risk];
+  });
+  document.querySelector("#health-table tbody").innerHTML = sorted.map(s => {
+    const zColor = s.z < 1.81 ? "#ef4444" : s.z < 2.99 ? "#f97316" : "#34d399";
+    const ndColor = s.nd_ebitda > 4 ? "#ef4444" : s.nd_ebitda > 2 ? "#f97316" : "#34d399";
+    return `<tr>
+      <td style="color:#e2e8f0;font-weight:500">${s.name}</td>
+      <td>T${s.tier}</td>
+      <td>${s.country}</td>
+      <td style="color:${zColor};font-weight:600">${s.z.toFixed(2)}</td>
+      <td style="color:${ndColor};font-weight:600">${s.nd_ebitda < 0 ? "Net Cash" : s.nd_ebitda.toFixed(1)+"×"}</td>
+      <td style="color:#818cf8">${s.rating}</td>
+      <td><span class="risk-badge risk-${s.risk}">${s.risk}</span></td>
+      <td style="font-size:10px;color:#64748b">${s.note}</td>
+    </tr>`;
+  }).join("");
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+  renderZBars();
+  renderLeverageBars();
+  renderScatter();
+  renderTable();
+
+  const distress = SUPPLIERS.filter(s => s.risk === "DISTRESS").length;
+  const watch = SUPPLIERS.filter(s => s.risk === "WATCH").length;
+  const healthy = SUPPLIERS.filter(s => ["HEALTHY","STRONG"].includes(s.risk)).length;
+  const highLev = SUPPLIERS.filter(s => s.nd_ebitda > 3).length;
+  document.getElementById("kpi-distress").textContent = distress;
+  document.getElementById("kpi-watch").textContent = watch;
+  document.getElementById("kpi-healthy").textContent = healthy;
+  document.getElementById("kpi-highleverage").textContent = highLev;
+});
+</script>
+</body>
+</html>

@@ -163,6 +163,193 @@ Key Facts:
 - Average supplier relationship age: 12 years
 - Tier 1 supplier count: ~1,500 globally
 """),
+    ("Continental_AG_profile.txt", """
+Continental AG — Automotive Electronics & ADAS Supplier Profile (UC4)
+
+Company: Continental AG
+Country: Germany (DE)
+Founded: 1871
+HQ: Hanover, Germany
+Tier: 1 (direct supplier to Scania R-500, G-410)
+Annual Revenue: €41.4B (2023)
+Employees: 190,000+
+
+Supply Chain Relationships:
+- SOURCED_FROM: STMicroelectronics (CH) — ADAS processors, MCUs, power ICs
+- SOURCED_FROM: TE Connectivity (IE) — automotive connectors, sensor housings
+- SOURCED_FROM: Infineon Technologies (DE) — radar chips, ECU silicon
+- SOURCED_FROM: TSMC (TW) — advanced node wafers for ADAS SoCs
+
+Key Products Supplied to UC4 Chain:
+- ADAS sensor fusion modules (camera + radar + lidar)
+- Body control modules (BCM) for Scania R-series
+- Fleet telematics hardware (VDO brand)
+- Electronic brake control (ABS/ESC) systems
+
+Risk Factors:
+- SINGLE_SOURCE_PARTIAL: TSMC dependency for 5nm ADAS chips
+- FINANCIAL_RISK: Automotive/Tires business separation delayed; Z-score 2.18
+- EV_TRANSITION: legacy combustion electronics revenues declining
+- Ukraine: component supply disruptions 2022-2023
+
+Financial Health:
+- Altman Z-Score: 2.18 (GREY ZONE)
+- Net Debt/EBITDA: 2.1× (WATCH)
+- Credit Rating: BBB- (Moody's Baa3)
+- Note: separation of auto/tire divisions expected to unlock value
+
+Certifications: IATF 16949, ISO 14001, ISO 26262 (functional safety), ASPICE
+Contract Value (Scania): €180M/year (ADAS + BCM)
+"""),
+    ("Aptiv_profile.txt", """
+Aptiv PLC — Wiring Harness & High-Voltage Connector Supplier Profile (UC4)
+
+Company: Aptiv PLC
+Country: USA (US), major operations in Ukraine
+HQ: Dublin, Ireland (legal); Troy, Michigan (operational)
+Tier: 1 (direct supplier to Scania R-500, G-410)
+Annual Revenue: $17.9B (2023)
+Employees: 180,000
+
+Supply Chain Relationships:
+- SOURCED_FROM: TE Connectivity (IE) — high-voltage connectors, sealing systems
+- SOURCED_FROM: Leoni AG (DE) — cable sub-assemblies (Lviv plant)
+- SOURCED_FROM: Molex (US) — micro-connectors, PCB components
+- SOURCED_FROM: Copper Cathode (CL/Codelco) — wire core material
+
+Key Products Supplied to UC4 Chain:
+- Wiring harness assemblies for Scania R-series cabins
+- High-voltage connection systems (800V BEV architecture)
+- Signal & power distribution modules
+- Smart electrical architecture (zonal controllers)
+
+Risk Factors:
+- UKRAINE_CONFLICT_RISK: ~35% of wiring harness production in Lviv & Uzhhorod, Ukraine
+- GEOPOLITICAL_RISK: Lviv plant 800km from active front (Feb 2022 disruption)
+- FINANCIAL_RISK: Ukraine absorption ~€180M/year; Morocco relocation in progress
+- SINGLE_SOURCE: no qualified alternative for some harness configurations
+
+Financial Health:
+- Altman Z-Score: 2.41 (GREY ZONE — WATCH)
+- Net Debt/EBITDA: 2.9×
+- Credit Rating: BBB (stable)
+- Ukraine relocation to Morocco/Romania: 60% complete (target: 2026)
+
+Certifications: IATF 16949, ISO 14001, ISO 26262, RoHS
+Contract Value (Scania): €95M/year wiring harness
+"""),
+    ("STMicroelectronics_profile.txt", """
+STMicroelectronics — Automotive Semiconductor Supplier Profile (UC4)
+
+Company: STMicroelectronics N.V.
+Country: Switzerland (CH), fabs in France + Italy
+HQ: Geneva, Switzerland
+Tier: 2 (supplies to Continental AG, Valeo, Bosch)
+Annual Revenue: €14.3B (2023)
+
+Supply Chain Relationships:
+- SOURCED_FROM: Palladium (RU/Norilsk) — wire bonding, catalytic metallisation
+- SOURCED_FROM: Polysilicon (CN) — EPI wafer substrate (via SUMCO, Siltronic)
+- SOURCED_FROM: Air Products + Linde — specialty fab gases (ultra-pure)
+- SOURCED_FROM: Applied Materials — fab equipment for Crolles/Catania
+
+Key Products Supplied to UC4 Chain:
+- SPC58x/SPC57x automotive MCUs — safety-critical ECUs (Continental ADAS)
+- SiC MOSFET power modules — EV inverters (Nidec via CATL BEV chain)
+- MEMS accelerometers & gyroscopes — airbag ECUs (Autoliv)
+- Automotive-grade op-amps, voltage regulators
+
+Risk Factors:
+- SANCTIONS_RISK: palladium wire bond dependency on Norilsk (OFAC listed)
+  → STM: 'actively diversifying' to Heraeus, Umicore palladium sources
+- UFLPA_RISK: polysilicon substrate from CN; wafer supply via SUMCO (JP) partially mitigates
+- GEOPOLITICAL_RISK: Crolles fab (FR) + Catania fab (IT) — EU subsidized
+- Automotive chip shortage 2021: lead times hit 26 weeks; improved to 12-16 weeks 2024
+
+Financial Health:
+- Altman Z-Score: 2.91 (approaching SAFE zone)
+- Net Debt/EBITDA: 0.1× (near-net-cash)
+- Credit Rating: BBB+ (positive outlook)
+- SiC revenue: €1.5B (2023), target €5B by 2027
+
+Certifications: IATF 16949, AEC-Q100/Q101, ISO 26262
+Contract Value (Continental+Valeo): ~€340M/year (Scania chain)
+"""),
+    ("Leoni_AG_profile.txt", """
+Leoni AG — Cable & Wiring Systems Supplier Profile (UC4)
+
+Company: Leoni AG
+Country: Germany (DE), major plant in Stryi/Lviv, Ukraine
+HQ: Nuremberg, Germany
+Tier: 2 (supplies to Aptiv, Valeo wiring sub-assemblies)
+Annual Revenue: €5.4B (2023)
+
+Supply Chain Relationships:
+- SOURCED_FROM: Copper Cathode (CL/Codelco) — oxygen-free copper wire
+- Volume: ~85,000 tonnes copper wire/year
+- SOURCED_FROM: Plastic compounds (BASF DE, LyondellBasell NL) — insulation
+- SOURCED_FROM: Aluminium wire (Constellium FR) — weight-saving alternative
+
+Key Products Supplied to UC4 Chain:
+- Automotive cable sets (sub-assemblies for Aptiv wiring harness)
+- Speciality cables for high-voltage EV architectures (up to 800V)
+- Industrial cable harnesses
+
+Risk Factors:
+- UKRAINE_CONFLICT_RISK: Stryi (Lviv region) plant — 4,000 employees
+  → Feb 2022: partial shutdown; relocated 30% production to Tunisia/Morocco
+- FINANCIAL_RISK: DISTRESS ZONE — restructuring completed Dec 2023
+  → Rights issue €150M; new revolving credit facility €250M
+  → Altman Z-Score: 1.71 (DISTRESS)
+- SINGLE_SOURCE: only qualified supplier for certain Aptiv cable specs
+- LkSG_RISK: labour conditions in Ukraine plant flagged 2022
+
+Financial Health:
+- Altman Z-Score: 1.71 (DISTRESS ZONE — HIGH RISK)
+- Net Debt/EBITDA: 5.1× (ELEVATED)
+- Credit Rating: B (CCC+ during restructuring)
+- Current Ratio: 0.92 (<1 = short-term liquidity risk)
+- Post-restructuring: covenants require Z > 1.5 quarterly; Feb 2024 passed
+
+Certifications: IATF 16949, ISO 14001
+"""),
+    ("Codelco_Copper_profile.txt", """
+Codelco — Copper Mining & Refining Profile (UC4)
+
+Company: Corporación Nacional del Cobre de Chile (Codelco)
+Country: Chile (CL)
+Founded: 1976 (nationalization of copper mines)
+HQ: Santiago, Chile
+Tier: 3 (supplies Copper Cathode to TE Connectivity, Leoni, Molex)
+Annual Revenue: $12B+ (2023)
+
+Mining Operations:
+- Escondida Mine (joint: BHP 57.5%, Rio Tinto 30%, JECO Corp 10%, IFC 2.5%)
+  → Largest copper mine globally: 1.2M tonnes/year cathode equivalent
+- Chuquicamata (100% Codelco): underground conversion 2019 — 330kt/year
+- El Teniente (100% Codelco): world's largest underground Cu mine — 450kt/year
+- Andina: Andes high-altitude; 240kt/year
+
+Materials Supplied (to UC4 chain):
+- Copper Cathode (LME Grade A): 99.99% Cu purity
+  → TE Connectivity: ~45kt/year (connector pins)
+  → Leoni AG: ~85kt/year (cable wire cores)
+  → Molex: ~12kt/year (terminal stamping)
+
+Risk Factors:
+- WATER_STRESS: Atacama operations compete with indigenous water rights
+- LABOUR_RISK: 7 strikes since 2010 (most recent: El Teniente 2023, 6 days)
+- SEISMIC_RISK: Chile M7+ earthquakes; Chuquicamata 2019 (no significant damage)
+- SOVEREIGN_RISK: Chilean mining royalty reform 2023 (rate increase 8→11%)
+
+Financial Health:
+- Altman Z-Score: 2.34 (GREY ZONE; state guarantee lifts effective rating)
+- Net Debt/EBITDA: 3.5× (elevated but backstopped by Chilean state)
+- Credit Rating: A- (S&P) — reflects sovereign guarantee
+- Copper price sensitivity: -$0.10/lb = -$150M EBITDA
+
+Environmental: ISO 14001; LME Responsible Sourcing; IRMA audited
+"""),
     ("AVX_Tantalum_profile.txt", """
 AVX Tantalum (Kyocera AVX) — Conflict Mineral Supplier Profile
 

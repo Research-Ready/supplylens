@@ -183,6 +183,12 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; colo
   <div class="tab" onclick="switchTab('netanalytics')" id="tab-netanalytics">
     <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="3" cy="8" r="2" fill="currentColor" opacity="0.7"/><circle cx="13" cy="3" r="2" fill="currentColor" opacity="0.7"/><circle cx="13" cy="13" r="2" fill="currentColor" opacity="0.7"/><circle cx="8" cy="8" r="2" fill="currentColor"/><line x1="5" y1="8" x2="6.5" y2="8" stroke="currentColor" stroke-width="1"/><line x1="9.5" y1="6.5" x2="11.3" y2="4.5" stroke="currentColor" stroke-width="1"/><line x1="9.5" y1="9.5" x2="11.3" y2="11.5" stroke="currentColor" stroke-width="1"/></svg> Network
   </div>
+  <div class="tab" onclick="switchTab('simulation')" id="tab-simulation">
+    <svg viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="9" width="3" height="6" rx="1" fill="currentColor" opacity="0.6"/><rect x="6" y="5" width="3" height="10" rx="1" fill="currentColor" opacity="0.8"/><rect x="11" y="1" width="3" height="14" rx="1" fill="currentColor"/><polyline points="2.5,8 7.5,4 12.5,0" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg> Monte Carlo
+  </div>
+  <div class="tab" onclick="switchTab('finhealth')" id="tab-finhealth">
+    <svg viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4v4l3 2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="1" fill="currentColor"/></svg> Fin Health
+  </div>
   <div class="header-right">
     <div class="status-pill ok" id="neo4j-status"><span class="dot"></span>Neo4j</div>
     <div class="status-pill err" id="kotaemon-status"><span class="dot"></span>Kotaemon</div>
@@ -307,6 +313,16 @@ body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; colo
   <!-- NETWORK ANALYTICS -->
   <div class="panel" id="netanalytics-panel">
     <iframe src="network_analytics.html" id="netanalytics-iframe" style="width:100%;height:100%;border:none"></iframe>
+  </div>
+
+  <!-- MONTE CARLO SIMULATION -->
+  <div class="panel" id="simulation-panel">
+    <iframe src="simulation_dashboard.html" id="simulation-iframe" style="width:100%;height:100%;border:none"></iframe>
+  </div>
+
+  <!-- FINANCIAL HEALTH -->
+  <div class="panel" id="finhealth-panel">
+    <iframe src="financial_health.html" id="finhealth-iframe" style="width:100%;height:100%;border:none"></iframe>
   </div>
 
 </div>
