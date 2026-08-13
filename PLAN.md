@@ -133,12 +133,12 @@ in a graph with citations, and visualize as 3D graph + 2D evidence map.
 **C2 — Logistics route risk** `src/logistics_risk.py`
 - What: score Suez / Malacca / Trans-Sib routes by disruption probability
 - Which products halt, for how long, alt routes + cost premium
-- Status: NOT BUILT
+- Status: BUILT (7 routes, per-supplier routing map, €456M rev-at-risk demo)
 
 **C3 — Financial monitoring script** `scripts/financial_monitor.py`
 - What: weekly check — Z-score thresholds, covenant breach alerts
 - Write alerts to Neo4j, surface in dashboard
-- Status: NOT BUILT
+- Status: BUILT (20 suppliers, Altman Z + ND/EBITDA + credit rating; FinancialAlert nodes)
 
 ---
 
