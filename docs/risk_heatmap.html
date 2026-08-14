@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Risk Heatmap — SupplyLens</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; font-size: 13px; overflow: hidden; display: flex; flex-direction: column; height: 100vh; }
+  .header { background: #1a1d2e; border-bottom: 1px solid #2d3748; padding: 10px 18px; display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+  .header h1 { font-size: 15px; color: #a78bfa; font-weight: 600; }
+  .header .sub { color: #718096; font-size: 11px; }
+
+  .controls { display: flex; gap: 10px; padding: 8px 18px; background: #141720; border-bottom: 1px solid #2d3748; flex-shrink: 0; flex-wrap: wrap; align-items: center; }
+  .ctrl-label { font-size: 11px; color: #718096; }
+  .view-btn { padding: 4px 12px; border-radius: 4px; border: 1px solid #2d3748; background: #1a1d2e; color: #94a3b8; cursor: pointer; font-size: 11px; transition: all 0.15s; }
+  .view-btn.active, .view-btn:hover { border-color: #a78bfa; color: #a78bfa; background: #1a1230; }
+  .legend { display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 11px; color: #718096; }
+  .legend-bar { width: 120px; height: 10px; border-radius: 3px; background: linear-gradient(to right, #1a3a1a, #f56565); }
+
+  .body { flex: 1; display: grid; grid-template-columns: 1fr 280px; overflow: hidden; }
+  #heatmap-wrap { overflow: auto; padding: 16px; }
+  #heatmap-wrap svg { display: block; }
+
+  .side { border-left: 1px solid #2d3748; overflow-y: auto; background: #141720; padding: 14px; }
+  .side-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #718096; margin-bottom: 8px; padding-bottom: 5px; border-bottom: 1px solid #2d3748; }
+
+  .cell-tooltip { position: fixed; background: #1a1d2e; border: 1px solid #4a5568; border-radius: 6px; padding: 10px 14px; pointer-events: none; display: none; z-index: 100; min-width: 200px; max-width: 280px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+  .ct-header { font-weight: 600; margin-bottom: 6px; }
+  .ct-supplier { font-size: 11px; color: #94a3b8; padding: 2px 0; border-bottom: 1px solid #2d3748; }
+  .ct-supplier:last-child { border-bottom: none; }
+
+  .selected-info { padding: 10px 0; }
+  .si-country { font-size: 14px; font-weight: 600; color: #f7fafc; margin-bottom: 6px; }
+  .si-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; border-bottom: 1px solid #1a1d2e; }
+  .si-row:last-child { border-bottom: none; }
+  .si-label { color: #718096; }
+  .si-val { color: #e2e8f0; font-weight: 500; }
+
+  .supplier-list { margin-top: 10px; }
+  .sup-item { padding: 6px 8px; background: #1a1d2e; border-radius: 5px; margin-bottom: 4px; }
+  .sup-item .sup-name { font-size: 12px; font-weight: 500; }
+  .sup-item .sup-flags { font-size: 10px; color: #718096; margin-top: 2px; }
+  .flag-tiny { display: inline-block; padding: 1px 5px; border-radius: 2px; background: #2d3748; color: #94a3b8; margin-right: 3px; font-size: 10px; }
+  .flag-tiny.critical { background: #742a2a; color: #feb2b2; }
+  .flag-tiny.high { background: #7b341e; color: #fed7aa; }
+
+  .placeholder { color: #4a5568; font-size: 12px; padding: 20px 0; text-align: center; }
+
+  .axis-label { fill: #94a3b8; font-size: 12px; font-family: 'Segoe UI', sans-serif; }
+  .axis-label-x { fill: #94a3b8; font-size: 11px; font-family: 'Segoe UI', sans-serif; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Geographic Risk Heatmap</h1>
+  <span class="sub">Country × Risk type concentration — click cell for supplier detail</span>
+</div>
+
+<div class="controls">
+  <span class="ctrl-label">Color by:</span>
+  <button class="view-btn active" onclick="setMode('count')" id="btn-count">Supplier count</button>
+  <button class="view-btn" onclick="setMode('revenue')" id="btn-revenue">Revenue at risk (€M)</button>
+  <button class="view-btn" onclick="setMode('score')" id="btn-score">Max risk score</button>
+  <div class="legend">
+    <span>Low</span>
+    <div class="legend-bar"></div>
+    <span>High</span>
+  </div>
+</div>
+
+<div class="body">
+  <div id="heatmap-wrap"></div>
+  <div class="side">
+    <div class="side-title">Selected Cell</div>
+    <div id="side-content">
+      <div class="placeholder">Click a cell to see supplier details</div>
+    </div>
+  </div>
+</div>
+
+<div class="cell-tooltip" id="tooltip"></div>
+
+<script>
+/* ── data ──────────────────────────────────────────────────────────────────── */
+const RISK_TYPES = [
+  "GEOPOLITICAL", "SANCTIONS", "FINANCIAL", "SINGLE_SOURCE",
+  "REGULATORY", "ENVIRONMENTAL", "LOGISTICS"
+];
+
+const COUNTRIES = [
+  "China", "Taiwan", "Russia", "Ukraine", "Germany", "Japan",
+  "USA", "Chile", "Israel", "Sweden", "France", "Netherlands", "South Korea", "Belgium"
+];
+
+// supplier → { country, tier, rar, risk_score, flags: [{ type, level }] }
+const SUPPLIERS = [
+  { name: "CATL",               country: "China",       tier: 1, rar: 820.0, score: 88,
+    flags: [{t:"GEOPOLITICAL",l:"high"},{t:"REGULATORY",l:"high"}] },
+  { name: "Shenzhen Metal Co",  country: "China",       tier: 2, rar: 28.0,  score: 62,
+    flags: [{t:"GEOPOLITICAL",l:"high"},{t:"SINGLE_SOURCE",l:"high"}] },
+  { name: "Shanshan Corp",      country: "China",       tier: 2, rar: 45.0,  score: 72,
+    flags: [{t:"REGULATORY",l:"high"},{t:"GEOPOLITICAL",l:"high"}] },
+  { name: "Ganfeng Lithium",    country: "China",       tier: 3, rar: 62.0,  score: 70,
+    flags: [{t:"REGULATORY",l:"high"},{t:"GEOPOLITICAL",l:"high"}] },
+  { name: "Natural Graphite (CN)", country: "China",    tier: 3, rar: 40.0,  score: 68,
+    flags: [{t:"REGULATORY",l:"high"},{t:"ENVIRONMENTAL",l:"medium"}] },
+
+  { name: "TSMC",               country: "Taiwan",      tier: 2, rar: 340.0, score: 91,
+    flags: [{t:"GEOPOLITICAL",l:"high"},{t:"SINGLE_SOURCE",l:"high"},{t:"REGULATORY",l:"critical"}] },
+  { name: "ARM Holdings",       country: "Taiwan",      tier: 2, rar: 85.0,  score: 76,
+    flags: [{t:"GEOPOLITICAL",l:"high"},{t:"SINGLE_SOURCE",l:"high"}] },
+
+  { name: "Norilsk Nickel",     country: "Russia",      tier: 3, rar: 178.4, score: 96,
+    flags: [{t:"SANCTIONS",l:"critical"},{t:"GEOPOLITICAL",l:"critical"},{t:"LOGISTICS",l:"high"}] },
+  { name: "Palladium (Russia)", country: "Russia",      tier: 4, rar: 34.0,  score: 88,
+    flags: [{t:"SANCTIONS",l:"critical"},{t:"GEOPOLITICAL",l:"critical"}] },
+
+  { name: "Cryoin Engineering", country: "Ukraine",     tier: 3, rar: 85.0,  score: 82,
+    flags: [{t:"GEOPOLITICAL",l:"critical"},{t:"LOGISTICS",l:"critical"}] },
+  { name: "Leoni AG (Ukraine plant)", country: "Ukraine", tier: 2, rar: 34.7, score: 79,
+    flags: [{t:"GEOPOLITICAL",l:"high"},{t:"FINANCIAL",l:"critical"}] },
+
+  { name: "ZF Friedrichshafen", country: "Germany",    tier: 1, rar: 124.5, score: 72,
+    flags: [{t:"SINGLE_SOURCE",l:"high"},{t:"FINANCIAL",l:"high"}] },
+  { name: "Bosch",              country: "Germany",     tier: 1, rar: 89.2,  score: 28,
+    flags: [] },
+  { name: "Continental AG",     country: "Germany",     tier: 1, rar: 180.0, score: 42,
+    flags: [{t:"LOGISTICS",l:"medium"}] },
+  { name: "Infineon Technologies", country: "Germany",  tier: 2, rar: 45.1,  score: 38,
+    flags: [{t:"SINGLE_SOURCE",l:"high"}] },
+  { name: "Saarstahl AG",       country: "Germany",     tier: 2, rar: 28.0,  score: 22,
+    flags: [{t:"ENVIRONMENTAL",l:"medium"}] },
+
+  { name: "JSR Corporation",    country: "Japan",       tier: 3, rar: 220.0, score: 85,
+    flags: [{t:"SINGLE_SOURCE",l:"high"},{t:"REGULATORY",l:"high"}] },
+  { name: "Shin-Etsu Chemical", country: "Japan",       tier: 3, rar: 55.0,  score: 35,
+    flags: [{t:"SINGLE_SOURCE",l:"medium"}] },
+  { name: "Toray Industries",   country: "Japan",       tier: 2, rar: 33.0,  score: 30,
+    flags: [{t:"LOGISTICS",l:"low"}] },
+
+  { name: "Dana Incorporated",  country: "USA",         tier: 1, rar: 78.0,  score: 32,
+    flags: [] },
+  { name: "Luminar Technologies", country: "USA",       tier: 1, rar: 12.3,  score: 83,
+    flags: [{t:"FINANCIAL",l:"critical"}] },
+  { name: "Air Products",       country: "USA",         tier: 3, rar: 20.0,  score: 18,
+    flags: [] },
+
+  { name: "SQM",                country: "Chile",       tier: 3, rar: 95.6,  score: 44,
+    flags: [{t:"ENVIRONMENTAL",l:"high"},{t:"REGULATORY",l:"medium"}] },
+  { name: "Albemarle",          country: "Chile",       tier: 3, rar: 45.0,  score: 36,
+    flags: [{t:"ENVIRONMENTAL",l:"medium"}] },
+  { name: "Copper Cathode (CL)", country: "Chile",      tier: 4, rar: 22.0,  score: 30,
+    flags: [{t:"ENVIRONMENTAL",l:"medium"}] },
+
+  { name: "Mobileye Global",    country: "Israel",      tier: 1, rar: 28.0,  score: 65,
+    flags: [{t:"GEOPOLITICAL",l:"high"},{t:"LOGISTICS",l:"medium"}] },
+
+  { name: "SSAB",               country: "Sweden",      tier: 1, rar: 67.3,  score: 44,
+    flags: [{t:"ENVIRONMENTAL",l:"medium"},{t:"REGULATORY",l:"high"}] },
+  { name: "LKAB",               country: "Sweden",      tier: 2, rar: 32.0,  score: 22,
+    flags: [{t:"ENVIRONMENTAL",l:"low"}] },
+
+  { name: "Michelin",           country: "France",      tier: 1, rar: 44.0,  score: 20,
+    flags: [] },
+
+  { name: "Sensata Technologies", country: "Netherlands", tier: 2, rar: 28.0, score: 24,
+    flags: [] },
+  { name: "ASML Holding",       country: "Netherlands", tier: 2, rar: 180.0, score: 72,
+    flags: [{t:"REGULATORY",l:"critical"},{t:"SINGLE_SOURCE",l:"critical"},{t:"GEOPOLITICAL",l:"high"}] },
+
+  { name: "Samsung SDI",        country: "South Korea", tier: 1, rar: 55.0,  score: 35,
+    flags: [{t:"LOGISTICS",l:"medium"}] },
+
+  { name: "Umicore",            country: "Belgium",     tier: 2, rar: 38.0,  score: 28,
+    flags: [{t:"ENVIRONMENTAL",l:"medium"}] },
+];
+
+/* ── build matrix ─────────────────────────────────────────────────────────── */
+function buildMatrix(mode) {
+  // matrix[country][riskType] = { count, rar, maxScore, suppliers }
+  const mat = {};
+  COUNTRIES.forEach(c => {
+    mat[c] = {};
+    RISK_TYPES.forEach(rt => mat[c][rt] = { count: 0, rar: 0, maxScore: 0, suppliers: [] });
+  });
+
+  SUPPLIERS.forEach(s => {
+    if (!mat[s.country]) return;
+    if (s.flags.length === 0) {
+      // Count in LOGISTICS as baseline presence
+      const rt = "LOGISTICS";
+      mat[s.country][rt].count++;
+      mat[s.country][rt].rar += s.rar;
+      mat[s.country][rt].maxScore = Math.max(mat[s.country][rt].maxScore, s.score);
+      mat[s.country][rt].suppliers.push(s);
+    }
+    s.flags.forEach(f => {
+      const rt = f.t;
+      if (!mat[s.country][rt]) return;
+      mat[s.country][rt].count++;
+      mat[s.country][rt].rar += s.rar;
+      mat[s.country][rt].maxScore = Math.max(mat[s.country][rt].maxScore, s.score);
+      if (!mat[s.country][rt].suppliers.find(x => x.name === s.name)) {
+        mat[s.country][rt].suppliers.push(s);
+      }
+    });
+  });
+
+  return mat;
+}
+
+/* ── D3 render ─────────────────────────────────────────────────────────────── */
+let currentMode = "count";
+let selectedCell = null;
+
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll(".view-btn").forEach(b => b.classList.remove("active"));
+  document.getElementById("btn-"+mode).classList.add("active");
+  drawHeatmap();
+}
+
+function drawHeatmap() {
+  const wrap = document.getElementById("heatmap-wrap");
+  wrap.innerHTML = "";
+
+  const mat = buildMatrix(currentMode);
+
+  const margin = { top: 20, right: 10, bottom: 120, left: 140 };
+  const cellW = 72, cellH = 38;
+  const width  = RISK_TYPES.length * cellW;
+  const height = COUNTRIES.length * cellH;
+  const svgW   = width + margin.left + margin.right;
+  const svgH   = height + margin.top + margin.bottom;
+
+  const svg = d3.select(wrap)
+    .append("svg")
+    .attr("width", svgW)
+    .attr("height", svgH);
+
+  const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // value extractor
+  const getValue = (cell) => {
+    if (currentMode === "count")   return cell.count;
+    if (currentMode === "revenue") return cell.rar;
+    return cell.maxScore;
+  };
+
+  const allVals = [];
+  COUNTRIES.forEach(c => RISK_TYPES.forEach(rt => allVals.push(getValue(mat[c][rt]))));
+  const maxVal = Math.max(...allVals) || 1;
+
+  const colorScale = d3.scaleSequential()
+    .domain([0, maxVal])
+    .interpolator(t => {
+      if (t === 0) return "#1a1d2e";
+      return d3.interpolateRgb("#1a3a2a", "#f56565")(t);
+    });
+
+  // Cells
+  COUNTRIES.forEach((country, ci) => {
+    RISK_TYPES.forEach((rt, ri) => {
+      const cell = mat[country][rt];
+      const val  = getValue(cell);
+      const x = ri * cellW, y = ci * cellH;
+
+      const cellG = g.append("g")
+        .attr("transform", `translate(${x},${y})`)
+        .style("cursor", val > 0 ? "pointer" : "default");
+
+      cellG.append("rect")
+        .attr("width", cellW - 2)
+        .attr("height", cellH - 2)
+        .attr("rx", 3)
+        .attr("fill", val > 0 ? colorScale(val) : "#141720")
+        .attr("stroke", "#2d3748")
+        .attr("stroke-width", 0.5)
+        .on("mouseover", function(event) {
+          if (val === 0) return;
+          d3.select(this).attr("stroke", "#a78bfa").attr("stroke-width", 1.5);
+          showTooltip(event, country, rt, cell, val);
+        })
+        .on("mousemove", function(event) {
+          if (val === 0) return;
+          moveTooltip(event);
+        })
+        .on("mouseout", function() {
+          const isSelected = selectedCell && selectedCell.country === country && selectedCell.rt === rt;
+          d3.select(this).attr("stroke", isSelected ? "#a78bfa" : "#2d3748").attr("stroke-width", isSelected ? 2 : 0.5);
+          hideTooltip();
+        })
+        .on("click", function() {
+          if (val === 0) return;
+          selectedCell = { country, rt };
+          showSidePanel(country, rt, cell);
+          // Highlight
+          g.selectAll("rect").attr("stroke", "#2d3748").attr("stroke-width", 0.5);
+          d3.select(this).attr("stroke", "#a78bfa").attr("stroke-width", 2);
+        });
+
+      if (val > 0) {
+        const label = currentMode === "revenue"
+          ? "€" + (val >= 1000 ? (val/1000).toFixed(1)+"B" : val.toFixed(0)+"M")
+          : currentMode === "count" ? val.toString()
+          : val.toString();
+
+        cellG.append("text")
+          .attr("x", (cellW-2)/2)
+          .attr("y", (cellH-2)/2 + 1)
+          .attr("text-anchor", "middle")
+          .attr("dominant-baseline", "middle")
+          .attr("fill", val > maxVal * 0.5 ? "#fff" : "#94a3b8")
+          .attr("font-size", "11px")
+          .attr("font-family", "Segoe UI, sans-serif")
+          .attr("font-weight", val > maxVal * 0.6 ? "600" : "400")
+          .text(label);
+      }
+    });
+  });
+
+  // X axis (risk types)
+  const xAxis = g.append("g").attr("transform", `translate(0,${height+8})`);
+  RISK_TYPES.forEach((rt, ri) => {
+    xAxis.append("text")
+      .attr("x", ri * cellW + (cellW-2)/2)
+      .attr("y", 0)
+      .attr("text-anchor", "end")
+      .attr("transform", `rotate(-35, ${ri * cellW + (cellW-2)/2}, 0)`)
+      .attr("class", "axis-label-x")
+      .text(rt);
+  });
+
+  // Y axis (countries)
+  const yAxis = g.append("g").attr("transform", "translate(-8,0)");
+  COUNTRIES.forEach((c, ci) => {
+    // Count total suppliers in this country
+    const totalSups = SUPPLIERS.filter(s => s.country === c).length;
+    const totalRAR  = SUPPLIERS.filter(s => s.country === c).reduce((s,x) => s+x.rar, 0);
+
+    yAxis.append("text")
+      .attr("x", 0)
+      .attr("y", ci * cellH + (cellH-2)/2 + 1)
+      .attr("text-anchor", "end")
+      .attr("dominant-baseline", "middle")
+      .attr("class", "axis-label")
+      .text(`${c} (${totalSups})`);
+  });
+
+  // Title
+  g.append("text")
+    .attr("x", width/2)
+    .attr("y", -8)
+    .attr("text-anchor", "middle")
+    .attr("fill", "#4a5568")
+    .attr("font-size", "11px")
+    .attr("font-family", "Segoe UI, sans-serif")
+    .text(currentMode === "count" ? "Supplier count per cell"
+         : currentMode === "revenue" ? "Revenue at risk (€M) per cell"
+         : "Max risk score per cell");
+}
+
+/* ── tooltip ─────────────────────────────────────────────────────────────────*/
+function showTooltip(event, country, rt, cell, val) {
+  const tt = document.getElementById("tooltip");
+  tt.style.display = "block";
+  const valStr = currentMode === "revenue" ? `€${val.toFixed(0)}M` : val.toString();
+  tt.innerHTML = `<div class="ct-header">${country} · ${rt} — ${valStr}</div>
+    ${cell.suppliers.slice(0, 5).map(s =>
+      `<div class="ct-supplier">${s.name} (T${s.tier})</div>`
+    ).join("")}
+    ${cell.suppliers.length > 5 ? `<div class="ct-supplier" style="color:#4a5568">+${cell.suppliers.length-5} more</div>` : ""}`;
+  moveTooltip(event);
+}
+function moveTooltip(event) {
+  const tt = document.getElementById("tooltip");
+  const x = event.clientX + 12, y = event.clientY - 10;
+  tt.style.left = Math.min(x, window.innerWidth - 300) + "px";
+  tt.style.top  = Math.min(y, window.innerHeight - 200) + "px";
+}
+function hideTooltip() { document.getElementById("tooltip").style.display = "none"; }
+
+/* ── side panel ───────────────────────────────────────────────────────────── */
+function showSidePanel(country, rt, cell) {
+  const totalRAR = cell.suppliers.reduce((s,x) => s+x.rar, 0);
+  const html = `
+    <div class="selected-info">
+      <div class="si-country">${country}</div>
+      <div style="color:#718096;font-size:11px;margin-bottom:8px">${rt} risk</div>
+      <div class="si-row"><span class="si-label">Suppliers</span><span class="si-val">${cell.suppliers.length}</span></div>
+      <div class="si-row"><span class="si-label">Revenue at risk</span><span class="si-val">€${totalRAR.toFixed(0)}M</span></div>
+      <div class="si-row"><span class="si-label">Max risk score</span><span class="si-val">${cell.maxScore}</span></div>
+    </div>
+    <div class="side-title" style="margin-top:12px">Affected Suppliers</div>
+    <div class="supplier-list">
+      ${cell.suppliers.map(s => `
+        <div class="sup-item">
+          <div class="sup-name">${s.name} <span style="color:#718096;font-size:10px">T${s.tier} · €${s.rar.toFixed(0)}M</span></div>
+          <div class="sup-flags">
+            ${s.flags.map(f => `<span class="flag-tiny ${f.l}">${f.t}</span>`).join("")}
+            ${s.flags.length === 0 ? '<span class="flag-tiny">no flags</span>' : ""}
+          </div>
+        </div>`).join("")}
+    </div>`;
+  document.getElementById("side-content").innerHTML = html;
+}
+
+/* ── init ────────────────────────────────────────────────────────────────── */
+drawHeatmap();
+</script>
+</body>
+</html>

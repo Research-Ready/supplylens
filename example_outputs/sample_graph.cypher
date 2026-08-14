@@ -2303,3 +2303,406 @@ MERGE (s1)-[:SOURCED_FROM {component:'Transmission control input signals for int
 // New FinancialAlert: Luminar Technologies (DISTRESS)
 // Key risks added: Taiwan Strait single-source (TSMC), Neon gas Ukraine, EUV photoresist (JSR sole source)
 // ============================================================
+
+// ============================================================
+// CYPHER v11 — Deep T4 Battery Chemistry + Maritime Logistics
+// Appended 2026-08-14
+// ============================================================
+
+// ── T4: Battery Precursor Chemistry (CATL upstream) ─────────────────────────
+
+// Cobalt sulfate precursors — Congo DRC
+MERGE (cobalt_sulfate:RawMaterial {
+  name: "Cobalt Sulfate",
+  material_type: "Precursor Chemical",
+  origin: "DR Congo",
+  purity_grade: "battery-grade",
+  lksg_risk: true,
+  risk_flags: ["CHILD_LABOR_RISK", "LKSG_RISK", "GEOPOLITICAL_RISK"],
+  source_doc: "OECD Due Diligence Guidance for Minerals Supply Chains 2023",
+  source_url: "https://www.oecd.org/daf/inv/mne/minerals-guidance.htm",
+  cbam_applicable: false,
+  lat: -4.3, lon: 15.3
+})
+
+MERGE (glencore:Supplier {
+  name: "Glencore (DRC Cobalt)",
+  country: "DR Congo",
+  hq_country: "Switzerland",
+  tier: 4,
+  industry: "Cobalt Mining / Refining",
+  risk_flags: ["CHILD_LABOR_RISK", "LKSG_RISK", "ENVIRONMENTAL_RISK"],
+  lksg_risk: true,
+  altman_z_score: 2.8,
+  revenue_at_risk: 95000000,
+  source_doc: "Glencore Responsible Sourcing Report 2023",
+  lat: -5.5, lon: 25.4
+})
+
+MERGE (fqm:Supplier {
+  name: "First Quantum Minerals (Zambia)",
+  country: "Zambia",
+  tier: 4,
+  industry: "Copper / Cobalt Mining",
+  risk_flags: ["GEOPOLITICAL_RISK", "WATER_STRESS"],
+  altman_z_score: 1.9,
+  revenue_at_risk: 48000000,
+  source_doc: "First Quantum Annual Report 2023",
+  lat: -13.9, lon: 27.8
+})
+
+MERGE (glencore)-[:SOURCED_FROM {
+  material: "Cobalt Sulfate",
+  volume_tonnes_year: 12000,
+  confidence: 0.88,
+  source: "OECD DRC Minerals Report 2023"
+}]->(cobalt_sulfate)
+MERGE (fqm)-[:SOURCED_FROM {
+  material: "Cobalt",
+  volume_tonnes_year: 5000,
+  confidence: 0.82
+}]->(cobalt_sulfate)
+
+// Link to CATL
+MATCH (catl:Supplier {name: "CATL"})
+MERGE (catl)-[:SOURCED_FROM {
+  material: "Cobalt Sulfate",
+  volume_tonnes_year: 8000,
+  confidence: 0.85,
+  risk: "CHILD_LABOR_RISK",
+  source_doc: "CATL ESG Report 2023 p.44"
+}]->(glencore)
+
+// ── T4: Lithium Carbonate supply chain ──────────────────────────────────────
+
+MERGE (li_carbonate:RawMaterial {
+  name: "Lithium Carbonate",
+  material_type: "Battery Grade Chemical",
+  origin: "Chile/Australia",
+  li_grade_pct: 99.5,
+  risk_flags: ["WATER_STRESS", "REGULATORY_RISK"],
+  cbam_applicable: false,
+  lat: -23.5, lon: -68.0
+})
+
+MERGE (sqm_li:Supplier {
+  name: "SQM Lithium (Atacama)",
+  country: "Chile",
+  tier: 4,
+  industry: "Lithium Carbonate Extraction",
+  risk_flags: ["WATER_STRESS", "REGULATORY_RISK"],
+  altman_z_score: 2.9,
+  revenue_at_risk: 95600000,
+  water_stress_index: 4.8,
+  source_doc: "SQM Annual Report 2023",
+  source_url: "https://www.sqm.com/en/investors/annual-reports/",
+  lat: -23.6, lon: -68.4
+})
+
+MERGE (albemarle:Supplier {
+  name: "Albemarle Lithium (Chile/AUS)",
+  country: "Chile",
+  tier: 4,
+  industry: "Lithium Hydroxide / Carbonate",
+  risk_flags: ["WATER_STRESS"],
+  altman_z_score: 2.6,
+  revenue_at_risk: 45000000,
+  lat: -24.1, lon: -69.1
+})
+
+MERGE (sqm_li)-[:SOURCED_FROM {
+  material: "Lithium Carbonate",
+  volume_tonnes_year: 180000,
+  confidence: 0.95
+}]->(li_carbonate)
+
+MERGE (albemarle)-[:SOURCED_FROM {
+  material: "Lithium Carbonate / Hydroxide",
+  volume_tonnes_year: 65000,
+  confidence: 0.90
+}]->(li_carbonate)
+
+MATCH (catl:Supplier {name: "CATL"})
+MERGE (catl)-[:SOURCED_FROM {
+  material: "Lithium Carbonate",
+  volume_tonnes_year: 120000,
+  confidence: 0.92,
+  source_doc: "Wood Mackenzie Battery Supply Chain Report 2023"
+}]->(sqm_li)
+MERGE (catl)-[:SOURCED_FROM {
+  material: "Lithium Hydroxide",
+  volume_tonnes_year: 40000,
+  confidence: 0.78
+}]->(albemarle)
+
+// ── T4: Natural Graphite (anode material) ────────────────────────────────────
+
+MERGE (graphite:RawMaterial {
+  name: "Natural Graphite (Anode Grade)",
+  material_type: "Battery Anode Material",
+  origin: "China",
+  market_share_cn_pct: 68,
+  risk_flags: ["GEOPOLITICAL_RISK", "UFLPA_RISK", "SINGLE_SOURCE"],
+  cbam_applicable: false,
+  lat: 35.0, lon: 105.0
+})
+
+MERGE (battero:Supplier {
+  name: "Battero Tech (China Graphite)",
+  country: "China",
+  tier: 4,
+  industry: "Natural Graphite Mining / Purification",
+  risk_flags: ["GEOPOLITICAL_RISK", "UFLPA_RISK"],
+  altman_z_score: 3.2,
+  revenue_at_risk: 62000000,
+  uflpa_listed: false,
+  lat: 28.0, lon: 113.0
+})
+
+MERGE (syrah:Supplier {
+  name: "Syrah Resources (Mozambique)",
+  country: "Mozambique",
+  tier: 4,
+  industry: "Natural Graphite Mining",
+  risk_flags: ["GEOPOLITICAL_RISK"],
+  altman_z_score: 1.4,
+  revenue_at_risk: 22000000,
+  lat: -17.3, lon: 35.2
+})
+
+MERGE (battero)-[:SOURCED_FROM {
+  material: "Natural Graphite",
+  confidence: 0.88
+}]->(graphite)
+
+MERGE (syrah)-[:SOURCED_FROM {
+  material: "Natural Graphite",
+  confidence: 0.85,
+  note: "Only large-scale graphite mine outside China"
+}]->(graphite)
+
+MATCH (catl:Supplier {name: "CATL"})
+MERGE (catl)-[:SOURCED_FROM {
+  material: "Natural Graphite Anode",
+  confidence: 0.90,
+  risk: "GEOPOLITICAL_RISK",
+  source_doc: "CATL Battery Materials Sourcing Report 2023"
+}]->(battero)
+
+// ── T3: NMC Cathode Active Material ──────────────────────────────────────────
+
+MERGE (nmc_cam:RawMaterial {
+  name: "NMC Cathode Active Material (CAM)",
+  material_type: "Li-ion Cathode Precursor",
+  origin: "China / Belgium",
+  nmc_chemistry: "NMC811",
+  risk_flags: ["SINGLE_SOURCE", "GEOPOLITICAL_RISK"]
+})
+
+MERGE (umicore_cam:Supplier {
+  name: "Umicore Battery Materials (Belgium)",
+  country: "Belgium",
+  tier: 3,
+  industry: "Cathode Active Material",
+  risk_flags: [],
+  altman_z_score: 2.8,
+  revenue_at_risk: 38000000,
+  lat: 50.9, lon: 4.3
+})
+
+MERGE (shanshan:Supplier {
+  name: "Hunan Shanshan (China CAM)",
+  country: "China",
+  tier: 3,
+  industry: "NMC Cathode Active Material",
+  risk_flags: ["UFLPA_RISK", "GEOPOLITICAL_RISK"],
+  altman_z_score: 3.1,
+  revenue_at_risk: 45000000,
+  uflpa_listed: true,
+  lat: 28.2, lon: 113.0
+})
+
+MERGE (umicore_cam)-[:SOURCED_FROM {
+  material: "NMC811 CAM",
+  confidence: 0.87
+}]->(nmc_cam)
+MERGE (shanshan)-[:SOURCED_FROM {
+  material: "NMC CAM",
+  confidence: 0.91
+}]->(nmc_cam)
+
+MATCH (catl:Supplier {name: "CATL"})
+MERGE (catl)-[:SOURCED_FROM {
+  material: "NMC811 Cathode Active Material",
+  volume_tonnes_year: 95000,
+  confidence: 0.89
+}]->(umicore_cam)
+MERGE (catl)-[:SOURCED_FROM {
+  material: "NMC CAM (China-domestic)",
+  volume_tonnes_year: 180000,
+  confidence: 0.86,
+  risk: "UFLPA_RISK"
+}]->(shanshan)
+
+// ── Shipping / Logistics Nodes ────────────────────────────────────────────────
+
+MERGE (maersk:Supplier {
+  name: "Maersk Line",
+  country: "Denmark",
+  tier: 0,
+  industry: "Container Shipping",
+  risk_flags: ["LOGISTICS_RISK"],
+  altman_z_score: 3.8,
+  revenue_at_risk: 0,
+  lat: 55.7, lon: 12.6
+})
+
+MERGE (msc:Supplier {
+  name: "MSC Mediterranean Shipping",
+  country: "Switzerland",
+  tier: 0,
+  industry: "Container Shipping",
+  risk_flags: [],
+  altman_z_score: 4.1,
+  revenue_at_risk: 0,
+  lat: 46.2, lon: 6.1
+})
+
+MERGE (cosco:Supplier {
+  name: "COSCO Shipping",
+  country: "China",
+  tier: 0,
+  industry: "Container Shipping (State-owned)",
+  risk_flags: ["GEOPOLITICAL_RISK", "SANCTIONS_RISK"],
+  altman_z_score: 2.9,
+  revenue_at_risk: 0,
+  lat: 31.2, lon: 121.5
+})
+
+// Routes for battery supply
+MATCH (catl:Supplier {name: "CATL"})
+MERGE (catl)-[:SHIPPED_VIA {
+  route: "Suez Canal",
+  transit_days: 28,
+  disruption_cost_m: 4.2,
+  confidence: 0.90
+}]->(maersk)
+MERGE (catl)-[:SHIPPED_VIA {
+  route: "Cape of Good Hope (alt)",
+  transit_days: 42,
+  cost_premium_pct: 0.35,
+  confidence: 0.80
+}]->(msc)
+
+MATCH (tsmc:Supplier {name: "TSMC"})
+MERGE (tsmc)-[:SHIPPED_VIA {
+  route: "Taiwan Strait / Pacific",
+  transit_days: 30,
+  war_risk_premium: 0.12,
+  confidence: 0.92
+}]->(cosco)
+MERGE (tsmc)-[:SHIPPED_VIA {
+  route: "Air Freight FedEx/DHL (critical)",
+  transit_days: 3,
+  cost_premium_pct: 8.0,
+  confidence: 0.95
+}]->(maersk)
+
+// ── New Event: China Graphite Export Controls 2023 ───────────────────────────
+
+MERGE (evt_graphite:Event {
+  event_id: "EVT-CHINA-GRAPHITE-EXPORT-CTRL-2023",
+  name: "China Graphite Export Controls 2023",
+  event_type: "REGULATORY",
+  severity: "HIGH",
+  date: "2023-10-20",
+  description: "China imposed export licensing for natural and synthetic graphite effective Dec 2023. 68% of global anode supply affected.",
+  source_doc: "China Ministry of Commerce Notice 2023-55",
+  source_url: "https://www.mofcom.gov.cn/",
+  financial_impact_m: 185,
+  confidence: 0.98
+})
+
+MERGE (evt_cobalt:Event {
+  event_id: "EVT-DRC-COBALT-LkSG-2024",
+  name: "DRC Cobalt LkSG Audit Requirement 2024",
+  event_type: "REGULATORY",
+  severity: "HIGH",
+  date: "2024-01-01",
+  description: "Germany LkSG requires supply chain due diligence for cobalt from DRC. Audits mandatory from Jan 2024 for >1000-employee companies.",
+  source_doc: "German LkSG Supply Chain Act 2023",
+  source_url: "https://www.bafa.de/DE/Lieferketten/",
+  financial_impact_m: 12,
+  confidence: 0.96
+})
+
+MERGE (evt_maersk:Event {
+  event_id: "EVT-RED-SEA-MAERSK-REROUTE-2024",
+  name: "Maersk Red Sea Reroute 2024",
+  event_type: "LOGISTICS",
+  severity: "HIGH",
+  date: "2024-01-18",
+  description: "Maersk diverted all vessels from Red Sea / Suez Canal via Cape of Good Hope after Houthi attacks. 10-14 day delay, +30% freight cost.",
+  source_doc: "Maersk Customer Advisory 2024-01-18",
+  source_url: "https://www.maersk.com/news/",
+  financial_impact_m: 68,
+  confidence: 0.99
+})
+
+// Link events to affected suppliers
+MATCH (battero:Supplier {name: "Battero Tech (China Graphite)"})
+MATCH (evt_graphite:Event {event_id: "EVT-CHINA-GRAPHITE-EXPORT-CTRL-2023"})
+MERGE (battero)-[:AFFECTED_BY {
+  impact: "Export license required; delivery delays 6-8 weeks",
+  severity: "HIGH",
+  revenue_impact_m: 62
+}]->(evt_graphite)
+
+MATCH (graphite_rm:RawMaterial {name: "Natural Graphite (Anode Grade)"})
+MERGE (graphite_rm)-[:AFFECTED_BY {
+  impact: "Supply restricted; price +40% on spot market",
+  severity: "HIGH"
+}]->(evt_graphite)
+
+MATCH (glencore:Supplier {name: "Glencore (DRC Cobalt)"})
+MATCH (evt_cobalt:Event {event_id: "EVT-DRC-COBALT-LkSG-2024"})
+MERGE (glencore)-[:AFFECTED_BY {
+  impact: "Annual audit required; remediation plan submitted",
+  severity: "MEDIUM"
+}]->(evt_cobalt)
+
+MATCH (maersk:Supplier {name: "Maersk Line"})
+MATCH (evt_maersk:Event {event_id: "EVT-RED-SEA-MAERSK-REROUTE-2024"})
+MERGE (maersk)-[:AFFECTED_BY {
+  impact: "All 500+ vessels rerouted Cape of Good Hope; +14 days transit",
+  severity: "HIGH",
+  revenue_impact_m: 68
+}]->(evt_maersk)
+
+// ── FinancialAlert: Syrah Resources approaching distress ─────────────────────
+
+MERGE (syrah_alert:FinancialAlert {
+  alert_id: "ALERT-SYRAH-2024",
+  alert_type: "FINANCIAL_DISTRESS",
+  severity: "HIGH",
+  triggered_date: "2024-07-01",
+  altman_z: 1.4,
+  nd_ebitda: 6.8,
+  credit_rating: "CCC",
+  message: "Syrah Resources Altman Z 1.4 (grey/distress boundary). Cash burn accelerating. Mozambique graphite mine below capacity.",
+  recommended_action: "SWITCH_NOW",
+  source_doc: "Syrah Resources ASX Announcement Q2 2024"
+})
+
+MATCH (syrah:Supplier {name: "Syrah Resources (Mozambique)"})
+MERGE (syrah)-[:HAS_ALERT]->(syrah_alert)
+
+// ── v11 summary comment ──────────────────────────────────────────────────────
+// v11 adds:
+//   T4 battery chemistry: Glencore DRC cobalt, SQM/Albemarle lithium, Battero graphite, Syrah graphite
+//   T3 cathode materials: Umicore CAM (Belgium), Shanshan NMC (China UFLPA)
+//   NMC CAM and Natural Graphite RawMaterial nodes
+//   Shipping: Maersk, MSC, COSCO with SHIPPED_VIA relationships
+//   3 new events: China Graphite Export Controls 2023, DRC Cobalt LkSG 2024, Maersk Red Sea Reroute
+//   FinancialAlert: Syrah DISTRESS
+//   Total events in graph: 20
