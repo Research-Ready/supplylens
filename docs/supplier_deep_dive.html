@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Supplier Deep Dive — SupplyLens</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; font-size: 13px; }
+
+  .header { background: #1a1d2e; border-bottom: 1px solid #2d3748; padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .header h1 { font-size: 16px; color: #a78bfa; font-weight: 600; }
+  .sel-wrap { display: flex; align-items: center; gap: 10px; margin-left: auto; }
+  .sel-wrap label { color: #718096; font-size: 12px; }
+  select { background: #1a1d2e; color: #e2e8f0; border: 1px solid #4a5568; border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+  select:focus { outline: none; border-color: #a78bfa; }
+
+  .hero { background: linear-gradient(135deg, #1a1d2e, #141720); border-bottom: 1px solid #2d3748; padding: 18px 24px; display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .hero-left { flex: 1; min-width: 260px; }
+  .supplier-name { font-size: 22px; font-weight: 700; color: #f7fafc; }
+  .supplier-sub  { color: #718096; margin-top: 4px; font-size: 13px; }
+  .flags-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+  .risk-flag { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 4px; }
+  .flag-CRITICAL  { background: #742a2a; color: #feb2b2; }
+  .flag-HIGH      { background: #7b341e; color: #fed7aa; }
+  .flag-MEDIUM    { background: #1a365d; color: #bee3f8; }
+  .flag-LOW       { background: #1a4731; color: #9ae6b4; }
+  .hero-right { display: flex; gap: 12px; flex-wrap: wrap; }
+  .kpi-card { background: #0f1117; border: 1px solid #2d3748; border-radius: 8px; padding: 12px 18px; text-align: center; min-width: 110px; }
+  .kpi-num  { font-size: 20px; font-weight: 700; }
+  .kpi-label { font-size: 11px; color: #718096; margin-top: 2px; }
+  .risk-score-ring { position: relative; width: 56px; height: 56px; margin: 0 auto 4px; }
+  .risk-score-ring svg { transform: rotate(-90deg); }
+  .risk-score-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 14px; font-weight: 700; }
+
+  .body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .col { padding: 16px 20px; }
+  .col:first-child { border-right: 1px solid #2d3748; }
+
+  .section { margin-bottom: 22px; }
+  .section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #718096; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #2d3748; }
+
+  /* Financial bars */
+  .metric-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .metric-label { width: 110px; color: #94a3b8; font-size: 12px; flex-shrink: 0; }
+  .bar-track { flex: 1; height: 8px; background: #2d3748; border-radius: 4px; position: relative; overflow: visible; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+  .bar-val { width: 50px; text-align: right; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .threshold-line { position: absolute; top: -3px; bottom: -3px; width: 2px; z-index: 2; }
+  .metric-zone { font-size: 10px; padding: 1px 6px; border-radius: 3px; flex-shrink: 0; }
+
+  /* Rating */
+  .rating-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+  .rating-chip { padding: 4px 10px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+  .r-IG { background: #1a4731; color: #6ee7b7; }
+  .r-HY { background: #7b341e; color: #fed7aa; }
+  .r-NR { background: #2d3748; color: #94a3b8; }
+  .r-D  { background: #742a2a; color: #feb2b2; }
+
+  /* Events */
+  .event-row { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid #2d3748; }
+  .event-row:last-child { border-bottom: none; }
+  .event-sev { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .sev-CRITICAL { background: #f56565; }
+  .sev-HIGH { background: #ed8936; }
+  .sev-MEDIUM { background: #4299e1; }
+  .sev-LOW { background: #48bb78; }
+  .event-name { font-size: 12px; color: #e2e8f0; }
+  .event-impact { font-size: 11px; color: #718096; }
+  .event-date  { font-size: 11px; color: #4a5568; margin-left: auto; white-space: nowrap; }
+
+  /* Logistics */
+  .route-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; background: #1a1d2e; border-radius: 6px; margin: 3px; font-size: 12px; border-left: 3px solid; }
+  .route-chip.exposed { border-color: #ed8936; }
+  .route-chip.critical { border-color: #f56565; }
+  .route-chip.ok { border-color: #48bb78; }
+  .route-prob { font-size: 10px; color: #718096; }
+
+  /* Evidence */
+  .ev-claim { padding: 8px 10px; background: #1a1d2e; border-radius: 6px; margin-bottom: 6px; border-left: 3px solid; }
+  .ev-claim.reviewed { border-color: #48bb78; }
+  .ev-claim.pending  { border-color: #4299e1; }
+  .ev-claim.inferred { border-color: #9f7aea; }
+  .ev-doc   { font-size: 11px; color: #718096; margin-top: 3px; }
+  .ev-conf  { font-size: 10px; float: right; color: #94a3b8; }
+  .ev-text  { font-size: 12px; color: #cbd5e0; }
+
+  /* Alt suppliers */
+  .alt-row { display: flex; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid #2d3748; }
+  .alt-row:last-child { border-bottom: none; }
+  .alt-name { flex: 1; font-size: 12px; }
+  .action-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 3px; }
+  .SWITCH_NOW { background: #742a2a; color: #feb2b2; }
+  .DUAL_SOURCE { background: #7b341e; color: #fed7aa; }
+  .EVALUATE { background: #1a365d; color: #bee3f8; }
+  .score-bar { width: 60px; height: 6px; background: #2d3748; border-radius: 3px; overflow: hidden; }
+  .score-fill { height: 100%; background: #48bb78; border-radius: 3px; }
+
+  /* Compliance */
+  .comp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .comp-cell { padding: 6px 8px; background: #1a1d2e; border-radius: 5px; font-size: 11px; text-align: center; }
+  .comp-cell.pass { border-top: 2px solid #48bb78; color: #68d391; }
+  .comp-cell.fail { border-top: 2px solid #f56565; color: #fc8181; }
+  .comp-cell.na   { border-top: 2px solid #4a5568; color: #718096; }
+  .comp-name { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+
+  @media (max-width: 768px) {
+    .body { grid-template-columns: 1fr; }
+    .col:first-child { border-right: none; border-bottom: 1px solid #2d3748; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Supplier Deep Dive</h1>
+  <div class="sel-wrap">
+    <label>Supplier:</label>
+    <select id="supplier-sel" onchange="selectSupplier(this.value)"></select>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-left">
+    <div class="supplier-name" id="h-name">—</div>
+    <div class="supplier-sub" id="h-sub">—</div>
+    <div class="flags-row" id="h-flags"></div>
+  </div>
+  <div class="hero-right">
+    <div class="kpi-card">
+      <div class="risk-score-ring">
+        <svg width="56" height="56" viewBox="0 0 56 56">
+          <circle cx="28" cy="28" r="22" fill="none" stroke="#2d3748" stroke-width="5"/>
+          <circle cx="28" cy="28" r="22" fill="none" id="ring-fill"
+                  stroke="#f56565" stroke-width="5"
+                  stroke-dasharray="138.2" stroke-dashoffset="138.2"
+                  stroke-linecap="round"/>
+        </svg>
+        <div class="risk-score-text" id="h-risk-score">0</div>
+      </div>
+      <div class="kpi-label">Risk Score</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num" id="h-tier" style="color:#a78bfa">—</div>
+      <div class="kpi-label">Tier</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num" id="h-contract" style="color:#63b3ed">—</div>
+      <div class="kpi-label">Contract (€M)</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num" id="h-altman" style="color:#68d391">—</div>
+      <div class="kpi-label">Altman Z</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-num" id="h-evidence">—</div>
+      <div class="kpi-label">Evidence Claims</div>
+    </div>
+  </div>
+</div>
+
+<div class="body">
+  <div class="col">
+    <!-- Financial Health -->
+    <div class="section">
+      <div class="section-title">Financial Health</div>
+      <div class="metric-row">
+        <span class="metric-label">Altman Z-Score</span>
+        <div class="bar-track">
+          <div class="bar-fill" id="bar-z" style="background:#f56565;width:0%"></div>
+          <div class="threshold-line" style="left:36.2%;background:#f56565;opacity:0.6" title="1.81 distress"></div>
+          <div class="threshold-line" style="left:59.8%;background:#ed8936;opacity:0.6" title="2.99 grey"></div>
+        </div>
+        <span class="bar-val" id="val-z">—</span>
+        <span class="metric-zone" id="zone-z">—</span>
+      </div>
+      <div class="metric-row">
+        <span class="metric-label">ND/EBITDA</span>
+        <div class="bar-track">
+          <div class="bar-fill" id="bar-nd" style="background:#4299e1;width:0%"></div>
+          <div class="threshold-line" style="left:57.1%;background:#ed8936;opacity:0.6" title="4.0× watch"></div>
+          <div class="threshold-line" style="left:78.6%;background:#f56565;opacity:0.6" title="5.5× alert"></div>
+        </div>
+        <span class="bar-val" id="val-nd">—</span>
+        <span class="metric-zone" id="zone-nd">—</span>
+      </div>
+      <div style="margin-top:12px">
+        <div class="section-title" style="font-size:10px;margin-bottom:6px">Credit Rating</div>
+        <div class="rating-grid" id="rating-row"></div>
+      </div>
+    </div>
+
+    <!-- Events -->
+    <div class="section">
+      <div class="section-title">Supply Chain Events</div>
+      <div id="events-list"></div>
+    </div>
+
+    <!-- Compliance -->
+    <div class="section">
+      <div class="section-title">Regulatory Compliance</div>
+      <div class="comp-grid" id="comp-grid"></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <!-- Logistics -->
+    <div class="section">
+      <div class="section-title">Logistics Route Exposure</div>
+      <div id="logistics-list"></div>
+    </div>
+
+    <!-- Evidence -->
+    <div class="section">
+      <div class="section-title">Evidence Claims (EDRM)</div>
+      <div id="evidence-list"></div>
+    </div>
+
+    <!-- Alt suppliers -->
+    <div class="section">
+      <div class="section-title">Alternative Suppliers</div>
+      <div id="alts-list"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── embedded supplier data ───────────────────────────────────────────────── */
+const SUPPLIERS = {
+  "ZF Friedrichshafen": {
+    tier: 1, country: "Germany", industry: "Gearboxes / Driveline",
+    contract_value_m: 124.5, revenue_at_risk_m: 124.5,
+    risk_score: 72,
+    risk_flags: ["SINGLE_SOURCE", "FINANCIAL_STRESS"],
+    flag_levels: { SINGLE_SOURCE: "HIGH", FINANCIAL_STRESS: "HIGH" },
+    altman_z: 1.95, nd_ebitda: 4.8, credit_rating: "BB+",
+    certifications: { "ISO 9001": true, "ISO 14001": true, REACH: true, UFLPA: false, CBAM: false, LkSG: true },
+    evidence_count: 5,
+    events: [
+      { name: "Suez Canal Blockage 2024", severity: "HIGH", impact: "Gearbox delivery delayed 18 days", date: "Mar 2024" },
+      { name: "Ukraine Wiring Harness Crisis 2022", severity: "MEDIUM", impact: "Indirect: Leoni sub-supplier disruption", date: "Feb 2022" },
+    ],
+    logistics: [
+      { route: "Suez Canal", prob: 0.65, status: "critical" },
+      { route: "Trans-Siberian Rail", prob: 0.95, status: "critical" },
+      { route: "Rhine Waterway", prob: 0.12, status: "ok" },
+    ],
+    evidence: [
+      { text: "ZF confirmed SINGLE_SOURCE status for R-series gearbox assembly.", doc: "ZF Annual Report 2023, p.34", confidence: 0.92, status: "reviewed" },
+      { text: "Financial stress indicators: ND/EBITDA rose to 4.8× in H1 2024.", doc: "S&P Credit Report 2024", confidence: 0.88, status: "reviewed" },
+      { text: "LLM inferred: ZF sources gear steel from Saarstahl AG (Germany).", doc: "LLM inference (agent)", confidence: 0.70, status: "inferred" },
+    ],
+    alts: [
+      { name: "Allison Transmission (US)", score: 62, action: "EVALUATE" },
+      { name: "Voith Turbo (DE)", score: 71, action: "DUAL_SOURCE" },
+    ],
+  },
+
+  "CATL": {
+    tier: 1, country: "China", industry: "Battery Cells / BEV Powertrain",
+    contract_value_m: 820.0, revenue_at_risk_m: 820.0,
+    risk_score: 88,
+    risk_flags: ["UFLPA_RISK", "GEOPOLITICAL_RISK"],
+    flag_levels: { UFLPA_RISK: "HIGH", GEOPOLITICAL_RISK: "HIGH" },
+    altman_z: 3.1, nd_ebitda: 1.2, credit_rating: "A-",
+    certifications: { "ISO 9001": true, "ISO 14001": true, REACH: false, UFLPA: false, CBAM: true, LkSG: false },
+    evidence_count: 8,
+    events: [
+      { name: "CATL UFLPA Entity List 2023", severity: "CRITICAL", impact: "US import ban risk; Scania non-US market unaffected short-term", date: "Dec 2023" },
+      { name: "Taiwan Strait Exercise 2024", severity: "HIGH", impact: "Shipping disruption risk via Taiwan Strait for cell shipments", date: "Apr 2024" },
+    ],
+    logistics: [
+      { route: "Taiwan Strait / Pacific", prob: 0.42, status: "exposed" },
+      { route: "Malacca Strait", prob: 0.38, status: "exposed" },
+      { route: "Suez Canal", prob: 0.65, status: "critical" },
+    ],
+    evidence: [
+      { text: "CATL placed on US UFLPA entity list investigation Dec 2023.", doc: "DHS UFLPA Entity List 2023", confidence: 0.99, status: "reviewed" },
+      { text: "CATL largest Scania EV battery supplier; €820M annual contract.", doc: "Scania Annual Report 2023, p.67", confidence: 0.95, status: "reviewed" },
+      { text: "CATL sources cobalt from Glencore DRC operations.", doc: "LLM inference (agent)", confidence: 0.72, status: "inferred" },
+    ],
+    alts: [
+      { name: "Samsung SDI (KR)", score: 74, action: "DUAL_SOURCE" },
+      { name: "Northvolt (SE)", score: 58, action: "EVALUATE" },
+      { name: "SVOLT Energy (CN/EU)", score: 49, action: "EVALUATE" },
+    ],
+  },
+
+  "TSMC": {
+    tier: 2, country: "Taiwan", industry: "Semiconductor Foundry",
+    contract_value_m: 340.0, revenue_at_risk_m: 340.0,
+    risk_score: 91,
+    risk_flags: ["GEOPOLITICAL_RISK", "SINGLE_SOURCE", "EXPORT_CTRL"],
+    flag_levels: { GEOPOLITICAL_RISK: "HIGH", SINGLE_SOURCE: "HIGH", EXPORT_CTRL: "CRITICAL" },
+    altman_z: 4.2, nd_ebitda: 0.4, credit_rating: "AA-",
+    certifications: { "ISO 9001": true, "ISO 14001": true, REACH: true, UFLPA: true, CBAM: false, LkSG: true },
+    evidence_count: 11,
+    events: [
+      { name: "NVIDIA Export Controls 2023", severity: "CRITICAL", impact: "A100/H100 chips blocked to China; foundry capacity redirected", date: "Oct 2023" },
+      { name: "ASML China Restriction 2023", severity: "CRITICAL", impact: "TSMC locked out of advanced EUV for China nodes", date: "Jan 2023" },
+      { name: "Taiwan Strait Exercise 2024", severity: "CRITICAL", impact: "Insurance war risk; shipping delay 2-4 weeks estimated", date: "Apr 2024" },
+      { name: "Neon Gas Ukraine Shortage 2022", severity: "HIGH", impact: "EUV neon supply cut 35%; forced spot market purchases", date: "Feb 2022" },
+    ],
+    logistics: [
+      { route: "Taiwan Strait / Pacific", prob: 0.42, status: "critical" },
+      { route: "Malacca Strait", prob: 0.38, status: "exposed" },
+    ],
+    evidence: [
+      { text: "TSMC sole-source for 4nm chips used in NVIDIA DRIVE Orin (Scania AXL).", doc: "TSMC Technology Roadmap 2023", confidence: 0.97, status: "reviewed" },
+      { text: "US BIS October 2023: TSMC halted A100/H100 shipments to China customers.", doc: "BIS Export Control Bulletin 2023", confidence: 0.99, status: "reviewed" },
+      { text: "ASML EUV restriction: TSMC cannot ship DUV to China sub-28nm.", doc: "ASML 2023 Annual Report, p.112", confidence: 0.95, status: "reviewed" },
+    ],
+    alts: [
+      { name: "Samsung Foundry (KR)", score: 55, action: "EVALUATE" },
+      { name: "Intel Foundry Services (US)", score: 41, action: "EVALUATE" },
+    ],
+  },
+
+  "Norilsk Nickel": {
+    tier: 3, country: "Russia", industry: "Nickel / Palladium / Cobalt Mining",
+    contract_value_m: 178.4, revenue_at_risk_m: 178.4,
+    risk_score: 96,
+    risk_flags: ["SANCTIONS_OFAC", "GEOPOLITICAL_RISK"],
+    flag_levels: { SANCTIONS_OFAC: "CRITICAL", GEOPOLITICAL_RISK: "HIGH" },
+    altman_z: 1.3, nd_ebitda: 3.2, credit_rating: "NR",
+    certifications: { "ISO 9001": true, "ISO 14001": false, REACH: false, UFLPA: false, CBAM: true, LkSG: false },
+    evidence_count: 6,
+    events: [
+      { name: "Norilsk Nickel OFAC Sanctions 2024", severity: "CRITICAL", impact: "US-person prohibited; EU wind-down period 12 months", date: "Jun 2024" },
+    ],
+    logistics: [
+      { route: "Northern Sea Route", prob: 0.55, status: "exposed" },
+      { route: "Trans-Siberian Rail", prob: 0.95, status: "critical" },
+    ],
+    evidence: [
+      { text: "Norilsk Nickel added to OFAC SDN list June 2024; US persons prohibited.", doc: "OFAC SDN List Update 2024-06", confidence: 0.99, status: "reviewed" },
+      { text: "CATL sources Class I nickel from Norilsk via spot market intermediary.", doc: "LLM inference (agent)", confidence: 0.68, status: "inferred" },
+    ],
+    alts: [
+      { name: "Vale (BR) — Nickel", score: 77, action: "SWITCH_NOW" },
+      { name: "Wyloo Metals (AU) — Nickel", score: 64, action: "DUAL_SOURCE" },
+    ],
+  },
+
+  "Luminar Technologies": {
+    tier: 1, country: "USA", industry: "LiDAR Sensors",
+    contract_value_m: 12.3, revenue_at_risk_m: 12.3,
+    risk_score: 83,
+    risk_flags: ["STARTUP_RISK", "DISTRESS"],
+    flag_levels: { STARTUP_RISK: "MEDIUM", DISTRESS: "CRITICAL" },
+    altman_z: 0.6, nd_ebitda: 12.4, credit_rating: "CCC",
+    certifications: { "ISO 9001": false, "ISO 14001": false, REACH: false, UFLPA: true, CBAM: false, LkSG: false },
+    evidence_count: 3,
+    events: [
+      { name: "Luminar Financial Alert DISTRESS", severity: "CRITICAL", impact: "Altman Z 0.6 — bankruptcy probability elevated; Scania AXL LiDAR supply at risk", date: "Aug 2024" },
+    ],
+    logistics: [
+      { route: "Air Freight (FLA→SWE)", prob: 0.05, status: "ok" },
+    ],
+    evidence: [
+      { text: "Luminar Technologies Altman Z-Score: 0.6 (deep distress). Cash burn rate: $40M/quarter.", doc: "Luminar Q2 2024 10-Q", confidence: 0.98, status: "reviewed" },
+      { text: "Sole supplier of Iris+ LiDAR for SCANIA-AXL Level 4 program.", doc: "Scania AXL Program Brief", confidence: 0.91, status: "reviewed" },
+    ],
+    alts: [
+      { name: "Ouster / Cepton (US)", score: 69, action: "SWITCH_NOW" },
+      { name: "Hesai Technology (CN)", score: 52, action: "EVALUATE" },
+    ],
+  },
+
+  "Leoni AG": {
+    tier: 2, country: "Germany", industry: "Wiring Harnesses / Cable Systems",
+    contract_value_m: 34.7, revenue_at_risk_m: 34.7,
+    risk_score: 79,
+    risk_flags: ["GEOPOLITICAL_RISK", "DISTRESS"],
+    flag_levels: { GEOPOLITICAL_RISK: "HIGH", DISTRESS: "CRITICAL" },
+    altman_z: 1.1, nd_ebitda: 5.9, credit_rating: "B-",
+    certifications: { "ISO 9001": true, "ISO 14001": true, REACH: true, UFLPA: true, CBAM: false, LkSG: true },
+    evidence_count: 4,
+    events: [
+      { name: "Ukraine Wiring Harness Crisis 2022", severity: "CRITICAL", impact: "Kharkov plant halted; €200M revenue loss; restructuring filed", date: "Feb 2022" },
+    ],
+    logistics: [
+      { route: "Eastern Europe Road", prob: 0.30, status: "exposed" },
+      { route: "Rail (DE→SE)", prob: 0.08, status: "ok" },
+    ],
+    evidence: [
+      { text: "Leoni AG wiring harness plant in Kharkov, Ukraine shut down Feb 2022.", doc: "Leoni Press Release 2022-02-24", confidence: 0.99, status: "reviewed" },
+      { text: "Altman Z-Score fell to 1.1; Leoni entered insolvency proceedings Apr 2023.", doc: "Leoni Insolvency Filing 2023", confidence: 0.97, status: "reviewed" },
+    ],
+    alts: [
+      { name: "Aptiv (IE)", score: 81, action: "SWITCH_NOW" },
+      { name: "Yazaki (JP)", score: 74, action: "DUAL_SOURCE" },
+    ],
+  },
+
+  "SSAB": {
+    tier: 1, country: "Sweden", industry: "High-Strength Steel",
+    contract_value_m: 67.3, revenue_at_risk_m: 67.3,
+    risk_score: 44,
+    risk_flags: ["CARBON_RISK", "CBAM_EXPOSURE"],
+    flag_levels: { CARBON_RISK: "MEDIUM", CBAM_EXPOSURE: "HIGH" },
+    altman_z: 2.1, nd_ebitda: 2.8, credit_rating: "BBB",
+    certifications: { "ISO 9001": true, "ISO 14001": true, REACH: true, UFLPA: true, CBAM: false, LkSG: true },
+    evidence_count: 5,
+    events: [
+      { name: "EU CBAM Phase-In 2024", severity: "MEDIUM", impact: "CBAM carbon cost ~€8/tonne; SSAB cost pass-through likely", date: "Oct 2024" },
+    ],
+    logistics: [
+      { route: "Baltic Sea / North Sea", prob: 0.10, status: "ok" },
+      { route: "Rail (SE→DE)", prob: 0.06, status: "ok" },
+    ],
+    evidence: [
+      { text: "SSAB HYBRIT green steel project on track; fossil-free steel by 2026.", doc: "SSAB Sustainability Report 2023", confidence: 0.94, status: "reviewed" },
+      { text: "CBAM applies to SSAB steel exports at ~€45 CO2/tonne from 2026.", doc: "EU CBAM Regulation 2023/956", confidence: 0.90, status: "reviewed" },
+    ],
+    alts: [
+      { name: "H2 Green Steel (SE)", score: 58, action: "EVALUATE" },
+      { name: "ArcelorMittal (LU)", score: 70, action: "DUAL_SOURCE" },
+    ],
+  },
+
+  "JSR Corporation": {
+    tier: 3, country: "Japan", industry: "EUV Photoresist / Semiconductor Materials",
+    contract_value_m: 220.0, revenue_at_risk_m: 220.0,
+    risk_score: 85,
+    risk_flags: ["SINGLE_SOURCE", "STRATEGIC_MATERIAL"],
+    flag_levels: { SINGLE_SOURCE: "HIGH", STRATEGIC_MATERIAL: "HIGH" },
+    altman_z: 3.1, nd_ebitda: 1.5, credit_rating: "A",
+    certifications: { "ISO 9001": true, "ISO 14001": true, REACH: true, UFLPA: true, CBAM: false, LkSG: true },
+    evidence_count: 4,
+    events: [
+      { name: "ASML China Restriction 2023", severity: "HIGH", impact: "EUV photoresist demand concentrated on Japan/Korea fabs", date: "Jan 2023" },
+    ],
+    logistics: [
+      { route: "Pacific (JP→TW)", prob: 0.15, status: "ok" },
+      { route: "Taiwan Strait", prob: 0.42, status: "exposed" },
+    ],
+    evidence: [
+      { text: "JSR sole-source EUV photoresist for TSMC 3nm/4nm nodes.", doc: "TSMC Supply Chain Review 2023", confidence: 0.96, status: "reviewed" },
+      { text: "JSR nationalized by METI Japan (Dec 2023) for strategic materials security.", doc: "METI Press Release 2023-12", confidence: 0.99, status: "reviewed" },
+    ],
+    alts: [
+      { name: "Shin-Etsu Chemical (JP)", score: 63, action: "EVALUATE" },
+      { name: "DuPont EKC (US)", score: 55, action: "EVALUATE" },
+    ],
+  },
+
+  "Bosch": {
+    tier: 1, country: "Germany", industry: "Fuel Injection / Electronics",
+    contract_value_m: 89.2, revenue_at_risk_m: 89.2,
+    risk_score: 28,
+    risk_flags: [],
+    flag_levels: {},
+    altman_z: 3.7, nd_ebitda: 1.1, credit_rating: "AA-",
+    certifications: { "ISO 9001": true, "ISO 14001": true, REACH: true, UFLPA: true, CBAM: false, LkSG: true },
+    evidence_count: 6,
+    events: [
+      { name: "Auto Chip Shortage 2021", severity: "MEDIUM", impact: "Bosch ECU production cut 20%; Scania expedited air freight", date: "Jan 2021" },
+    ],
+    logistics: [
+      { route: "Rhine Waterway", prob: 0.12, status: "ok" },
+      { route: "Road (DE→SE)", prob: 0.04, status: "ok" },
+    ],
+    evidence: [
+      { text: "Bosch primary fuel injection supplier for Scania Euro-7 engines.", doc: "Scania Supplier Guide 2023", confidence: 0.95, status: "reviewed" },
+    ],
+    alts: [
+      { name: "Delphi Technologies (UK)", score: 72, action: "EVALUATE" },
+    ],
+  },
+};
+
+/* ── helpers ─────────────────────────────────────────────────────────────────*/
+const FLAG_LEVELS = { SANCTIONS_OFAC: "CRITICAL", DISTRESS: "CRITICAL", EXPORT_CTRL: "CRITICAL",
+                      FORCE_MAJEURE: "CRITICAL", SINGLE_SOURCE: "HIGH", GEOPOLITICAL_RISK: "HIGH",
+                      UFLPA_RISK: "HIGH", FINANCIAL_STRESS: "HIGH", CBAM_EXPOSURE: "HIGH",
+                      STARTUP_RISK: "MEDIUM", CARBON_RISK: "MEDIUM", STRATEGIC_MATERIAL: "HIGH", WATER_STRESS: "MEDIUM" };
+
+function flagClass(f, levels) {
+  const lv = (levels && levels[f]) || FLAG_LEVELS[f] || "LOW";
+  return `flag-${lv}`;
+}
+
+function zColor(z) {
+  return z < 1.81 ? "#f56565" : z < 2.99 ? "#ed8936" : "#48bb78";
+}
+
+function zZone(z) {
+  return z < 1.81 ? "Distress" : z < 2.99 ? "Grey" : "Safe";
+}
+
+function zZoneStyle(z) {
+  const c = z < 1.81 ? "#742a2a:#feb2b2" : z < 2.99 ? "#7b341e:#fed7aa" : "#1a4731:#9ae6b4";
+  const [bg, fg] = c.split(":");
+  return `background:${bg};color:${fg}`;
+}
+
+function ndColor(nd) {
+  return nd > 5.5 ? "#f56565" : nd > 4.0 ? "#ed8936" : "#4299e1";
+}
+
+function ndZone(nd) {
+  return nd > 5.5 ? "Alert" : nd > 4.0 ? "Watch" : "OK";
+}
+
+function ratingClass(r) {
+  if (!r || r === "NR") return "r-NR";
+  if (r.startsWith("D") || r === "CCC") return "r-D";
+  if (r.startsWith("A") || r.startsWith("B") && r.includes("B")) return "r-IG";
+  return "r-HY";
+}
+
+/* ── populate selector ────────────────────────────────────────────────────── */
+function buildSelect() {
+  const sel = document.getElementById("supplier-sel");
+  Object.keys(SUPPLIERS).forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name; opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  selectSupplier(Object.keys(SUPPLIERS)[0]);
+}
+
+/* ── render supplier ─────────────────────────────────────────────────────────*/
+function selectSupplier(name) {
+  const s = SUPPLIERS[name];
+  if (!s) return;
+
+  // Header
+  document.getElementById("h-name").textContent = name;
+  document.getElementById("h-sub").textContent = `T${s.tier} · ${s.country} · ${s.industry}`;
+  document.getElementById("h-tier").textContent = `T${s.tier}`;
+  document.getElementById("h-contract").textContent = s.contract_value_m.toFixed(0);
+  document.getElementById("h-altman").textContent = s.altman_z.toFixed(1);
+  document.getElementById("h-altman").style.color = zColor(s.altman_z);
+  document.getElementById("h-evidence").textContent = s.evidence_count;
+  document.getElementById("h-risk-score").textContent = s.risk_score;
+
+  // Risk score ring
+  const circ = 138.2;
+  const offset = circ - (circ * s.risk_score / 100);
+  const ring = document.getElementById("ring-fill");
+  ring.style.strokeDashoffset = offset;
+  ring.style.stroke = s.risk_score > 70 ? "#f56565" : s.risk_score > 40 ? "#ed8936" : "#48bb78";
+
+  // Risk flags
+  document.getElementById("h-flags").innerHTML =
+    (s.risk_flags.length ? s.risk_flags : ["No current risk flags"]).map(f =>
+      s.risk_flags.length
+        ? `<span class="risk-flag ${flagClass(f, s.flag_levels)}">${f}</span>`
+        : `<span style="color:#4a5568;font-size:12px">${f}</span>`
+    ).join("");
+
+  // Financial
+  const maxZ = 5.0, maxND = 7.0;
+  const barZ = document.getElementById("bar-z");
+  barZ.style.width = Math.min(100, s.altman_z / maxZ * 100) + "%";
+  barZ.style.background = zColor(s.altman_z);
+  document.getElementById("val-z").textContent = s.altman_z.toFixed(2);
+  document.getElementById("val-z").style.color = zColor(s.altman_z);
+  document.getElementById("zone-z").textContent = zZone(s.altman_z);
+  document.getElementById("zone-z").style = zZoneStyle(s.altman_z) + ";padding:2px 6px;border-radius:3px;font-size:10px";
+
+  const barND = document.getElementById("bar-nd");
+  barND.style.width = Math.min(100, s.nd_ebitda / maxND * 100) + "%";
+  barND.style.background = ndColor(s.nd_ebitda);
+  document.getElementById("val-nd").textContent = s.nd_ebitda.toFixed(1) + "×";
+  document.getElementById("val-nd").style.color = ndColor(s.nd_ebitda);
+  document.getElementById("zone-nd").textContent = ndZone(s.nd_ebitda);
+  document.getElementById("zone-nd").style = `background:${ndColor(s.nd_ebitda)}22;color:${ndColor(s.nd_ebitda)};padding:2px 6px;border-radius:3px;font-size:10px`;
+
+  document.getElementById("rating-row").innerHTML = `
+    <div class="rating-chip ${ratingClass(s.credit_rating)}">${s.credit_rating}</div>
+    <div style="color:#718096;font-size:11px;align-self:center">
+      ${s.credit_rating === "NR" ? "Not Rated" : ratingClass(s.credit_rating) === "r-IG" ? "Investment Grade" : "Sub-Investment Grade"}
+    </div>`;
+
+  // Events
+  document.getElementById("events-list").innerHTML = s.events.length
+    ? s.events.map(e => `
+        <div class="event-row">
+          <div class="event-sev sev-${e.severity}"></div>
+          <div>
+            <div class="event-name">${e.name}</div>
+            <div class="event-impact">${e.impact}</div>
+          </div>
+          <div class="event-date">${e.date}</div>
+        </div>`).join("")
+    : '<div style="color:#4a5568;font-size:12px">No events recorded</div>';
+
+  // Compliance
+  const comp = s.certifications;
+  const comps = [
+    { key: "ISO 9001", label: "ISO 9001" },
+    { key: "ISO 14001", label: "ISO 14001" },
+    { key: "REACH", label: "REACH" },
+    { key: "UFLPA", label: "UFLPA OK" },
+    { key: "CBAM", label: "CBAM Calc" },
+    { key: "LkSG", label: "LkSG" },
+  ];
+  document.getElementById("comp-grid").innerHTML = comps.map(c => {
+    const v = comp[c.key];
+    const cls = v === true ? "pass" : v === false ? "fail" : "na";
+    const icon = v === true ? "✓" : v === false ? "✗" : "—";
+    return `<div class="comp-cell ${cls}"><div>${icon}</div><div class="comp-name">${c.label}</div></div>`;
+  }).join("");
+
+  // Logistics
+  document.getElementById("logistics-list").innerHTML = s.logistics.map(r =>
+    `<div class="route-chip ${r.status}">
+      <span>${r.route}</span>
+      <span class="route-prob">${Math.round(r.prob*100)}% disruption prob</span>
+    </div>`
+  ).join("") || '<div style="color:#4a5568;font-size:12px">No logistics data</div>';
+
+  // Evidence
+  document.getElementById("evidence-list").innerHTML = s.evidence.map(e =>
+    `<div class="ev-claim ${e.status}">
+      <div class="ev-text"><span class="ev-conf">${Math.round(e.confidence*100)}% confidence</span>${e.text}</div>
+      <div class="ev-doc">📄 ${e.doc}</div>
+    </div>`
+  ).join("") || '<div style="color:#4a5568;font-size:12px">No evidence claims</div>';
+
+  // Alts
+  document.getElementById("alts-list").innerHTML = s.alts.length
+    ? s.alts.map(a =>
+        `<div class="alt-row">
+          <span class="alt-name">${a.name}</span>
+          <div class="score-bar"><div class="score-fill" style="width:${a.score}%"></div></div>
+          <span style="color:#718096;font-size:11px;width:32px;text-align:right">${a.score}</span>
+          <span class="action-badge ${a.action}">${a.action.replace("_"," ")}</span>
+        </div>`
+      ).join("")
+    : '<div style="color:#4a5568;font-size:12px">No alternatives mapped</div>';
+}
+
+buildSelect();
+</script>
+</body>
+</html>
