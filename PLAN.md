@@ -23,7 +23,7 @@ in a graph with citations, and visualize as 3D graph + 2D evidence map.
 
 ### Dashboard (open docs/dashboard.html in browser)
 
-17 tabs:
+22 tabs:
 
 | Tab | File | What you see |
 |---|---|---|
@@ -44,6 +44,11 @@ in a graph with citations, and visualize as 3D graph + 2D evidence map.
 | Network | network_analytics.html | Centrality, HHI, bottlenecks |
 | Monte Carlo | simulation_dashboard.html | 10k-trial disruption sim |
 | Fin Health | financial_health.html | Altman Z-scores, leverage |
+| Logistics Risk | logistics_risk.html | 7 chokepoint routes, €456M rev-at-risk, supplier exposure matrix |
+| Fin Monitor | financial_monitor.html | Altman Z + ND/EBITDA bars, CRITICAL/HIGH/MEDIUM alerts |
+| Kotaemon | kotaemon_search.html | RAG chat over supplier docs, citation display, live CT120 health |
+| EvidenceMap | evidence_map.html | D3 geo map, 45 supplier pins, great-circle arcs, evidence sidebar |
+| EDRM | edrm_tracker.html | Per-supplier pipeline grid: Scraped/Extracted/RAG-Indexed/Reviewed |
 
 ### Standalone
 
@@ -69,7 +74,7 @@ in a graph with citations, and visualize as 3D graph + 2D evidence map.
 | src/sanctions_screener.py | Fuzzy OFAC/EU/UN name screening |
 | src/procurement_report.py | HTML procurement report per SKU |
 | src/postgres_sync.py | Neo4j → PostgreSQL knopenkonings.suppliers |
-| example_outputs/sample_graph.cypher | v8: 80+ nodes, T0→T4, mines, logistics, fin health |
+| example_outputs/sample_graph.cypher | v10: 2305 lines; 17 events; SCANIA-AXL autonomous truck AI chain (NVIDIA/TSMC/ASML/JSR) |
 | scripts/ingest_kotaemon.py | Bulk ingest supplier docs into Kotaemon |
 | scripts/seed_scania.sh | Load cypher into Neo4j CT114 |
 | config/n8n_workflow.json | 14-node n8n weekly refresh workflow |
@@ -114,12 +119,12 @@ in a graph with citations, and visualize as 3D graph + 2D evidence map.
 **B2 — Citation extraction** (update `src/kotaemon_client.py`)
 - What: parse `[Source: doc_name, p.N]` from Kotaemon answers
 - Write citations back to Neo4j node as evidence via evidence_store
-- Status: NOT BUILT
+- Status: BUILT (commit c0e9f23)
 
 **B3 — Wire citations into pipeline** (update `src/agent.py`)
 - What: call `store_evidence()` in merge node after each inferred fact
 - Result: every LLM-inferred supply chain link has a document citation
-- Status: NOT BUILT
+- Status: BUILT (commit c0e9f23)
 
 ---
 
@@ -142,15 +147,76 @@ in a graph with citations, and visualize as 3D graph + 2D evidence map.
 
 ---
 
+### D. Phase 6 — Dashboards + cypher v10 (commit 94c2fc7)
+
+**D1 — Logistics Risk Dashboard** `docs/logistics_risk.html`
+- 7 chokepoint routes (Suez/Malacca/Trans-Sib/Cape/Panama/Bosphorus/Hormuz)
+- D3 probability bars, scatter (Rev@Risk vs Delay, bubble=prob), supplier×route matrix
+- Status: BUILT
+
+**D2 — Financial Monitor Dashboard** `docs/financial_monitor.html`
+- Altman Z-Score + ND/EBITDA D3 bars with zone thresholds (red 1.81 / yellow 2.99)
+- D3 scatter: Z vs ND/EBITDA, quadrant shading; CRITICAL/HIGH/MEDIUM alert cards
+- Status: BUILT
+
+**D3 — Kotaemon RAG Search UI** `docs/kotaemon_search.html`
+- Chat UI over 20 indexed supplier docs; citation display; 5 demo answers offline
+- Live health-check of CT120 (10.0.1.120:8501) every 30s; real API call if online
+- Status: BUILT
+
+**D4 — Cypher v10 — Autonomous Truck AI chain** (appended to sample_graph.cypher)
+- SCANIA-AXL Level 4 autonomous truck product
+- T1: NVIDIA Corporation, Mobileye Global, Luminar Technologies (DISTRESS), Knorr-Bremse, HERE, Parker Hannifin
+- T2: TSMC (Taiwan risk), ARM Holdings (SINGLE_SOURCE), ASML (export controls), Synopsys, Cadence
+- T3: Shin-Etsu Chemical, JSR Corporation (EUV photoresist), Cryoin Engineering (Ukraine neon), Orano
+- RawMaterials: Silicon Wafers, EUV Photoresist, Neon Gas, Hafnium, Germanium (China export controls)
+- 17 events total (added NVIDIA export controls 2023, ASML China restriction, neon shortage 2022)
+- Status: BUILT
+
+---
+
+### E. Phase 7 — Next build targets
+
+**E1 — Chain Diff** `src/chain_diff.py` + `docs/chain_diff.html`
+- Snapshot diff: new risk flags, Altman Z threshold crossings, tier changes, new suppliers
+- Visual diff dashboard: CRITICAL/HIGH/MEDIUM severity filter, new nodes/relationships/events
+- Status: BUILT (commit b2c0978)
+
+**E2 — Supplier Deep Dive** `docs/supplier_deep_dive.html`
+- Per-supplier comprehensive view: risk ring, financial bars, credit rating, events, logistics, evidence, compliance, alt suppliers
+- 9 suppliers embedded: ZF/CATL/TSMC/Norilsk/Luminar/Leoni/SSAB/JSR/Bosch
+- Status: BUILT (commit b2c0978)
+
+**E3 — A3 live evidence in 3D graph** (update `docs/supplylens_3d.html`)
+- Pull evidence from Neo4j via fetch instead of hardcoded JS
+- Status: PARTIALLY BUILT (hardcoded evidence only)
+
+**E4 — Supplier scorecard PDF export** `scripts/export_scorecard.py`
+- Per-supplier PDF: evidence + risk flags + financial health + compliance
+- Status: NOT BUILT
+
+**E5 — B1 deploy CT120** (needs VPN + cluster access)
+- `bash scripts/provision_ct120.sh` → `python3 scripts/ingest_kotaemon.py`
+- Status: PENDING (needs VPN)
+
+---
+
 ## Execution order
 
-1. A1 — evidence_store.py  ← START HERE
-2. A2 — evidence_map.html
-3. A4 — edrm_tracker.html
-4. B2 — kotaemon citation extraction
-5. B3 — wire citations into pipeline
-6. A3 — 3D graph live evidence pull
-7. C1 — cypher v9 event evidence
-8. C2 — logistics route risk
-9. C3 — financial monitor
-10. B1 — deploy CT120 (needs VPN + cluster access)
+1. A1 — evidence_store.py ✓
+2. A2 — evidence_map.html ✓
+3. A4 — edrm_tracker.html ✓
+4. B2 — kotaemon citation extraction ✓
+5. B3 — wire citations into pipeline ✓
+6. C1 — cypher v9 event evidence ✓
+7. C2 — logistics route risk ✓
+8. C3 — financial monitor ✓
+9. D1 — logistics risk dashboard ✓
+10. D2 — financial monitor dashboard ✓
+11. D3 — Kotaemon search UI ✓
+12. D4 — cypher v10 AI chain ✓
+13. E1 — chain diff ✓
+14. E2 — supplier deep dive ✓
+15. E3 — 3D graph live evidence  ← NEXT
+16. E4 — scorecard PDF export
+17. E5 — deploy CT120 (needs VPN)
