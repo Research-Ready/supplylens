@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SupplyLens — Supplier Scorecards</title>
+<style>
+/* ── Screen layout ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: #0a0d14;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+.screen-header {
+  background: #111827;
+  border-bottom: 1px solid #1e293b;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.screen-header h1 { font-size: 1.05rem; font-weight: 600; color: #f1f5f9; }
+.screen-header .sub { font-size: 0.8rem; color: #64748b; margin-left: auto; }
+
+.controls {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 16px 24px;
+  background: #111827;
+  border-bottom: 1px solid #1e293b;
+}
+
+.controls select, .controls button {
+  background: #1e293b;
+  color: #cbd5e1;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.controls button.primary {
+  background: #1d4ed8;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+.controls button:hover { border-color: #60a5fa; }
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 20px;
+  padding: 24px;
+}
+
+/* ── Scorecard card ── */
+.scorecard {
+  background: #111827;
+  border: 1px solid #1e293b;
+  border-radius: 12px;
+  padding: 0;
+  overflow: hidden;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.scorecard-header {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid #1e293b;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.scorecard-header .name {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}
+
+.scorecard-header .meta {
+  font-size: 0.72rem;
+  color: #64748b;
+  margin-top: 3px;
+}
+
+.risk-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.risk-critical { background: #7f1d1d; color: #fca5a5; }
+.risk-high { background: #7c2d12; color: #fdba74; }
+.risk-medium { background: #713f12; color: #fde68a; }
+.risk-low { background: #14532d; color: #86efac; }
+
+/* ── Score ring ── */
+.score-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.ring-wrap {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+
+.ring-wrap svg { width: 64px; height: 64px; }
+
+.ring-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  line-height: 1;
+}
+
+.ring-label .ring-sub { font-size: 0.55rem; color: #94a3b8; margin-top: 2px; }
+
+.score-details { flex: 1; }
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+.score-row .val { color: #e2e8f0; font-weight: 600; }
+
+/* ── Metrics bars ── */
+.metrics-section { padding: 12px 18px; border-bottom: 1px solid #1e293b; }
+.metrics-section .section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #475569;
+  margin-bottom: 8px;
+}
+
+.metric-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.71rem;
+}
+.metric-bar-row .label { width: 80px; color: #94a3b8; flex-shrink: 0; }
+.bar-track {
+  flex: 1;
+  height: 5px;
+  background: #1e293b;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+.metric-bar-row .bar-val { width: 38px; text-align: right; color: #e2e8f0; font-weight: 600; font-size: 0.7rem; }
+
+/* ── Flags ── */
+.flags-section { padding: 10px 18px; border-bottom: 1px solid #1e293b; }
+.flags-section .section-label { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #475569; margin-bottom: 6px; }
+.flag-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.flag-chip {
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+.flag-SANCTIONS_OFAC { background: #450a0a; color: #f87171; border: 1px solid #7f1d1d; }
+.flag-FINANCIAL_DISTRESS { background: #3b0764; color: #d8b4fe; border: 1px solid #6b21a8; }
+.flag-FORCE_MAJEURE { background: #172554; color: #93c5fd; border: 1px solid #1e3a8a; }
+.flag-EXPORT_CTRL { background: #422006; color: #fb923c; border: 1px solid #7c2d12; }
+.flag-SINGLE_SOURCE { background: #4a1d96; color: #c4b5fd; border: 1px solid #6d28d9; }
+.flag-GEOPOLITICAL_RISK { background: #1e1b4b; color: #a5b4fc; border: 1px solid #3730a3; }
+.flag-FINANCIAL_STRESS { background: #292524; color: #d6d3d1; border: 1px solid #57534e; }
+.flag-CBAM_EXPOSURE { background: #083344; color: #67e8f9; border: 1px solid #164e63; }
+.flag-UFLPA_RISK { background: #3b0764; color: #e879f9; border: 1px solid #7e22ce; }
+.flag-CHILD_LABOR_RISK { background: #450a0a; color: #fca5a5; border: 1px solid #991b1b; }
+.flag-LKSG_RISK { background: #422006; color: #fdba74; border: 1px solid #92400e; }
+.flag-default { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+
+/* ── Compliance grid ── */
+.compliance-section { padding: 10px 18px; border-bottom: 1px solid #1e293b; }
+.compliance-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.comp-cell {
+  background: #0f172a;
+  border-radius: 4px;
+  padding: 5px 7px;
+  text-align: center;
+}
+.comp-cell .comp-name { font-size: 0.6rem; color: #64748b; }
+.comp-cell .comp-status { font-size: 0.68rem; font-weight: 700; margin-top: 2px; }
+.comp-pass { color: #4ade80; }
+.comp-fail { color: #f87171; }
+.comp-partial { color: #fbbf24; }
+.comp-na { color: #475569; }
+
+/* ── Alternatives ── */
+.alts-section { padding: 10px 18px; }
+.alt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 0.72rem;
+}
+.alt-row .alt-name { flex: 1; color: #cbd5e1; }
+.alt-row .alt-score {
+  width: 32px;
+  text-align: right;
+  color: #e2e8f0;
+  font-weight: 700;
+}
+.alt-bar-track { width: 60px; height: 4px; background: #1e293b; border-radius: 2px; overflow: hidden; }
+.alt-bar-fill { height: 100%; background: #22c55e; border-radius: 2px; }
+.alt-action {
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+.alt-SWITCH_NOW { background: #166534; color: #86efac; }
+.alt-DUAL_SOURCE { background: #1e3a8a; color: #93c5fd; }
+.alt-EVALUATE { background: #1e293b; color: #94a3b8; }
+
+/* ── Print styles ── */
+@media print {
+  body { background: #fff; color: #1a1a1a; }
+  .screen-header, .controls { display: none !important; }
+  .card-grid {
+    display: block;
+    padding: 0;
+  }
+  .scorecard {
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #1a1a1a;
+    margin-bottom: 0;
+    page-break-after: always;
+    break-after: page;
+    border-radius: 0;
+    padding: 20px;
+  }
+  .scorecard-header, .metrics-section, .flags-section,
+  .compliance-section, .alts-section, .score-section {
+    border-bottom: 1px solid #ddd;
+  }
+  .scorecard-header .name { color: #1a1a1a; }
+  .scorecard-header .meta { color: #666; }
+  .score-details .score-row { color: #666; }
+  .score-details .score-row .val { color: #1a1a1a; }
+  .metrics-section .section-label, .flags-section .section-label,
+  .compliance-section .section-label { color: #888; }
+  .metric-bar-row .label { color: #666; }
+  .bar-track { background: #e5e7eb; }
+  .alt-row .alt-name { color: #333; }
+  .comp-cell { background: #f9fafb; }
+  .comp-cell .comp-name { color: #666; }
+  .ring-label { color: #1a1a1a; }
+  .ring-label .ring-sub { color: #666; }
+}
+</style>
+</head>
+<body>
+
+<div class="screen-header">
+  <div>
+    <div style="font-size:0.7rem;color:#475569;letter-spacing:0.08em;text-transform:uppercase">SupplyLens</div>
+    <h1>Supplier Scorecards</h1>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;margin-left:auto">
+    <span class="sub" id="count-label"></span>
+    <button class="primary" onclick="window.print()">Print / Export PDF</button>
+  </div>
+</div>
+
+<div class="controls">
+  <select id="filter-risk" onchange="renderCards()">
+    <option value="">All Risk Levels</option>
+    <option value="CRITICAL">Critical</option>
+    <option value="HIGH">High</option>
+    <option value="MEDIUM">Medium</option>
+    <option value="LOW">Low</option>
+  </select>
+  <select id="filter-tier" onchange="renderCards()">
+    <option value="">All Tiers</option>
+    <option value="1">Tier 1</option>
+    <option value="2">Tier 2</option>
+    <option value="3">Tier 3</option>
+  </select>
+  <select id="sort-by" onchange="renderCards()">
+    <option value="risk_score">Sort: Risk Score</option>
+    <option value="name">Sort: Name A–Z</option>
+    <option value="tier">Sort: Tier</option>
+    <option value="z_score">Sort: Altman Z</option>
+    <option value="revenue_at_risk">Sort: Revenue at Risk</option>
+  </select>
+</div>
+
+<div class="card-grid" id="card-grid"></div>
+
+<script>
+const SUPPLIERS = [
+  {
+    name: "ZF Friedrichshafen",
+    country: "Germany", tier: 1, industry: "Drivetrain Systems",
+    risk_level: "HIGH",
+    risk_score: 67,
+    flags: ["FINANCIAL_STRESS", "SINGLE_SOURCE"],
+    altman_z: 2.21,
+    nd_ebitda: 4.8,
+    credit_rating: "BB+",
+    revenue_at_risk_m: 380,
+    spend_m_year: 94,
+    active_contracts: 3,
+    compliance: {
+      "ISO 9001": "PASS", "ISO 14001": "PASS", "REACH": "PASS",
+      "UFLPA": "N/A", "CBAM": "PARTIAL", "LkSG": "PASS"
+    },
+    alternatives: [
+      {name: "Tremec (USA)", score: 72, action: "EVALUATE"},
+      {name: "Getrag (Germany)", score: 68, action: "DUAL_SOURCE"},
+    ],
+    rag_docs: 7,
+    last_audit: "2024-03-15",
+  },
+  {
+    name: "CATL",
+    country: "China", tier: 1, industry: "Battery Systems",
+    risk_level: "HIGH",
+    risk_score: 71,
+    flags: ["UFLPA_RISK", "GEOPOLITICAL_RISK", "CHILD_LABOR_RISK"],
+    altman_z: 3.42,
+    nd_ebitda: 1.9,
+    credit_rating: "A-",
+    revenue_at_risk_m: 520,
+    spend_m_year: 130,
+    active_contracts: 5,
+    compliance: {
+      "ISO 9001": "PASS", "ISO 14001": "PASS", "REACH": "PARTIAL",
+      "UFLPA": "FAIL", "CBAM": "N/A", "LkSG": "FAIL"
+    },
+    alternatives: [
+      {name: "Samsung SDI (Korea)", score: 79, action: "DUAL_SOURCE"},
+      {name: "LG Energy Solution (Korea)", score: 76, action: "DUAL_SOURCE"},
+    ],
+    rag_docs: 12,
+    last_audit: "2024-01-20",
+  },
+  {
+    name: "TSMC",
+    country: "Taiwan", tier: 1, industry: "Semiconductors",
+    risk_level: "CRITICAL",
+    risk_score: 84,
+    flags: ["GEOPOLITICAL_RISK", "EXPORT_CTRL", "SINGLE_SOURCE"],
+    altman_z: 5.12,
+    nd_ebitda: 0.4,
+    credit_rating: "AA-",
+    revenue_at_risk_m: 680,
+    spend_m_year: 170,
+    active_contracts: 8,
+    compliance: {
+      "ISO 9001": "PASS", "ISO 14001": "PASS", "REACH": "PASS",
+      "UFLPA": "N/A", "CBAM": "N/A", "LkSG": "PASS"
+    },
+    alternatives: [
+      {name: "Samsung Foundry (Korea)", score: 71, action: "EVALUATE"},
+      {name: "Intel Foundry (USA)", score: 64, action: "EVALUATE"},
+    ],
+    rag_docs: 9,
+    last_audit: "2024-02-10",
+  },
+  {
+    name: "Norilsk Nickel",
+    country: "Russia", tier: 2, industry: "Mining",
+    risk_level: "CRITICAL",
+    risk_score: 96,
+    flags: ["SANCTIONS_OFAC", "GEOPOLITICAL_RISK", "LKSG_RISK"],
+    altman_z: 2.84,
+    nd_ebitda: 3.1,
+    credit_rating: "SD",
+    revenue_at_risk_m: 140,
+    spend_m_year: 35,
+    active_contracts: 1,
+    compliance: {
+      "ISO 9001": "PARTIAL", "ISO 14001": "FAIL", "REACH": "FAIL",
+      "UFLPA": "N/A", "CBAM": "N/A", "LkSG": "FAIL"
+    },
+    alternatives: [
+      {name: "Vale Nickel (Brazil)", score: 82, action: "SWITCH_NOW"},
+      {name: "Glencore Nickel (Switz.)", score: 78, action: "SWITCH_NOW"},
+    ],
+    rag_docs: 4,
+    last_audit: "2023-09-01",
+  },
+  {
+    name: "Luminar Technologies",
+    country: "USA", tier: 1, industry: "LiDAR Sensors",
+    risk_level: "CRITICAL",
+    risk_score: 89,
+    flags: ["FINANCIAL_DISTRESS", "SINGLE_SOURCE"],
+    altman_z: 0.91,
+    nd_ebitda: null,
+    credit_rating: "CCC",
+    revenue_at_risk_m: 95,
+    spend_m_year: 24,
+    active_contracts: 2,
+    compliance: {
+      "ISO 9001": "PASS", "ISO 14001": "N/A", "REACH": "PASS",
+      "UFLPA": "N/A", "CBAM": "N/A", "LkSG": "PASS"
+    },
+    alternatives: [
+      {name: "Waymo LiDAR (USA)", score: 75, action: "SWITCH_NOW"},
+      {name: "Innoviz Tech (Israel)", score: 70, action: "SWITCH_NOW"},
+    ],
+    rag_docs: 5,
+    last_audit: "2024-04-01",
+  },
+  {
+    name: "Leoni AG",
+    country: "Germany", tier: 1, industry: "Wiring Systems",
+    risk_level: "CRITICAL",
+    risk_score: 85,
+    flags: ["FINANCIAL_DISTRESS", "FORCE_MAJEURE"],
+    altman_z: 1.12,
+    nd_ebitda: 7.9,
+    credit_rating: "CCC+",
+    revenue_at_risk_m: 210,
+    spend_m_year: 52,
+    active_contracts: 4,
+    compliance: {
+      "ISO 9001": "PASS", "ISO 14001": "PARTIAL", "REACH": "PASS",
+      "UFLPA": "N/A", "CBAM": "PARTIAL", "LkSG": "PARTIAL"
+    },
+    alternatives: [
+      {name: "Aptiv (Ireland)", score: 83, action: "SWITCH_NOW"},
+      {name: "Yazaki (Japan)", score: 79, action: "DUAL_SOURCE"},
+    ],
+    rag_docs: 8,
+    last_audit: "2024-03-01",
+  },
+  {
+    name: "SSAB",
+    country: "Sweden", tier: 1, industry: "High-Strength Steel",
+    risk_level: "MEDIUM",
+    risk_score: 41,
+    flags: ["CBAM_EXPOSURE"],
+    altman_z: 3.68,
+    nd_ebitda: 0.8,
+    credit_rating: "BBB",
+    revenue_at_risk_m: 88,
+    spend_m_year: 22,
+    active_contracts: 2,
+    compliance: {
+      "ISO 9001": "PASS", "ISO 14001": "PASS", "REACH": "PASS",
+      "UFLPA": "N/A", "CBAM": "PARTIAL", "LkSG": "PASS"
+    },
+    alternatives: [
+      {name: "ArcelorMittal (Luxembourg)", score: 72, action: "DUAL_SOURCE"},
+      {name: "Salzgitter AG (Germany)", score: 68, action: "EVALUATE"},
+    ],
+    rag_docs: 6,
+    last_audit: "2024-02-20",
+  },
+  {
+    name: "JSR Corporation",
+    country: "Japan", tier: 2, industry: "Specialty Chemicals",
+    risk_level: "HIGH",
+    risk_score: 73,
+    flags: ["SINGLE_SOURCE", "EXPORT_CTRL"],
+    altman_z: 4.21,
+    nd_ebitda: 0.6,
+    credit_rating: "A",
+    revenue_at_risk_m: 320,
+    spend_m_year: 80,
+    active_contracts: 1,
+    compliance: {
+      "ISO 9001": "PASS", "ISO 14001": "PASS", "REACH": "PASS",
+      "UFLPA": "N/A", "CBAM": "N/A", "LkSG": "PASS"
+    },
+    alternatives: [
+      {name: "Shin-Etsu Chemical (Japan)", score: 69, action: "EVALUATE"},
+      {name: "DuPont (USA)", score: 65, action: "EVALUATE"},
+    ],
+    rag_docs: 3,
+    last_audit: "2023-11-15",
+  },
+  {
+    name: "Bosch",
+    country: "Germany", tier: 1, industry: "Electronics / Fuel Systems",
+    risk_level: "LOW",
+    risk_score: 28,
+    flags: [],
+    altman_z: 4.55,
+    nd_ebitda: 0.3,
+    credit_rating: "AA",
+    revenue_at_risk_m: 45,
+    spend_m_year: 11,
+    active_contracts: 6,
+    compliance: {
+      "ISO 9001": "PASS", "ISO 14001": "PASS", "REACH": "PASS",
+      "UFLPA": "PASS", "CBAM": "PASS", "LkSG": "PASS"
+    },
+    alternatives: [
+      {name: "Continental (Germany)", score: 84, action: "DUAL_SOURCE"},
+    ],
+    rag_docs: 14,
+    last_audit: "2024-04-10",
+  },
+  {
+    name: "Glencore DRC",
+    country: "DRC", tier: 3, industry: "Cobalt Mining",
+    risk_level: "CRITICAL",
+    risk_score: 91,
+    flags: ["CHILD_LABOR_RISK", "LKSG_RISK", "GEOPOLITICAL_RISK"],
+    altman_z: 2.55,
+    nd_ebitda: 3.4,
+    credit_rating: "BB",
+    revenue_at_risk_m: 75,
+    spend_m_year: 19,
+    active_contracts: 1,
+    compliance: {
+      "ISO 9001": "FAIL", "ISO 14001": "FAIL", "REACH": "FAIL",
+      "UFLPA": "N/A", "CBAM": "N/A", "LkSG": "FAIL"
+    },
+    alternatives: [
+      {name: "Vale Cobalt (Brazil)", score: 76, action: "SWITCH_NOW"},
+      {name: "Umicore (Belgium)", score: 72, action: "DUAL_SOURCE"},
+    ],
+    rag_docs: 2,
+    last_audit: "2023-06-01",
+  },
+  {
+    name: "SQM Lithium",
+    country: "Chile", tier: 3, industry: "Lithium Mining",
+    risk_level: "MEDIUM",
+    risk_score: 48,
+    flags: ["LKSG_RISK"],
+    altman_z: 3.92,
+    nd_ebitda: 0.9,
+    credit_rating: "BBB+",
+    revenue_at_risk_m: 62,
+    spend_m_year: 16,
+    active_contracts: 1,
+    compliance: {
+      "ISO 9001": "PASS", "ISO 14001": "PARTIAL", "REACH": "PASS",
+      "UFLPA": "N/A", "CBAM": "N/A", "LkSG": "PARTIAL"
+    },
+    alternatives: [
+      {name: "Albemarle (USA)", score: 74, action: "DUAL_SOURCE"},
+      {name: "Pilbara Minerals (Australia)", score: 69, action: "EVALUATE"},
+    ],
+    rag_docs: 3,
+    last_audit: "2024-01-10",
+  },
+  {
+    name: "Infineon Technologies",
+    country: "Germany", tier: 2, industry: "Semiconductors",
+    risk_level: "MEDIUM",
+    risk_score: 44,
+    flags: ["GEOPOLITICAL_RISK"],
+    altman_z: 4.08,
+    nd_ebitda: 1.2,
+    credit_rating: "BBB+",
+    revenue_at_risk_m: 190,
+    spend_m_year: 48,
+    active_contracts: 4,
+    compliance: {
+      "ISO 9001": "PASS", "ISO 14001": "PASS", "REACH": "PASS",
+      "UFLPA": "N/A", "CBAM": "N/A", "LkSG": "PASS"
+    },
+    alternatives: [
+      {name: "STMicroelectronics (Switz.)", score: 75, action: "DUAL_SOURCE"},
+      {name: "NXP Semiconductors (NL)", score: 73, action: "DUAL_SOURCE"},
+    ],
+    rag_docs: 9,
+    last_audit: "2024-03-20",
+  },
+];
+
+// ── Rendering ────────────────────────────────────────────────────────────────
+
+function riskColor(score) {
+  if (score >= 80) return "#f87171";
+  if (score >= 60) return "#fb923c";
+  if (score >= 40) return "#fbbf24";
+  return "#4ade80";
+}
+
+function zColor(z) {
+  if (z === null) return "#a78bfa";
+  if (z < 1.81) return "#f87171";
+  if (z < 2.99) return "#fbbf24";
+  return "#4ade80";
+}
+
+function barColor(score) {
+  return score >= 70 ? "#4ade80" : score >= 50 ? "#fbbf24" : "#f87171";
+}
+
+function compClass(status) {
+  return { PASS: "comp-pass", FAIL: "comp-fail", PARTIAL: "comp-partial", "N/A": "comp-na" }[status] || "comp-na";
+}
+
+function compIcon(status) {
+  return { PASS: "✓", FAIL: "✗", PARTIAL: "~", "N/A": "—" }[status] || "—";
+}
+
+function buildScorecard(s) {
+  const CIRC = 2 * Math.PI * 24;  // r=24
+  const dash = CIRC * (1 - s.risk_score / 100);
+  const rc = riskColor(s.risk_score);
+  const zc = zColor(s.altman_z);
+  const ndStr = s.nd_ebitda !== null ? s.nd_ebitda.toFixed(1) + "x" : "N/A";
+
+  const flagsHtml = s.flags.map(f => {
+    const cls = document.querySelector(`.flag-${f}`) ? `flag-${f}` : "flag-default";
+    return `<span class="flag-chip ${cls}">${f.replace(/_/g," ")}</span>`;
+  }).join("") || '<span style="font-size:0.68rem;color:#475569">None</span>';
+
+  const compHtml = Object.entries(s.compliance).map(([k, v]) =>
+    `<div class="comp-cell">
+      <div class="comp-name">${k}</div>
+      <div class="comp-status ${compClass(v)}">${compIcon(v)}</div>
+    </div>`
+  ).join("");
+
+  const altsHtml = s.alternatives.map(a =>
+    `<div class="alt-row">
+      <span class="alt-name">${a.name}</span>
+      <div class="alt-bar-track"><div class="alt-bar-fill" style="width:${a.score}%"></div></div>
+      <span class="alt-score">${a.score}</span>
+      <span class="alt-action alt-${a.action}">${a.action.replace(/_/g," ")}</span>
+    </div>`
+  ).join("");
+
+  return `<div class="scorecard" data-tier="${s.tier}" data-risk="${s.risk_level}" data-score="${s.risk_score}" data-z="${s.altman_z ?? 0}" data-rar="${s.revenue_at_risk_m}">
+  <div class="scorecard-header">
+    <div>
+      <div class="name">${s.name}</div>
+      <div class="meta">${s.country} · Tier ${s.tier} · ${s.industry} · ${s.rag_docs} docs · Audited ${s.last_audit}</div>
+    </div>
+    <span class="risk-badge risk-${s.risk_level.toLowerCase()}">${s.risk_level}</span>
+  </div>
+
+  <div class="score-section">
+    <div class="ring-wrap">
+      <svg viewBox="0 0 64 64">
+        <circle cx="32" cy="32" r="24" fill="none" stroke="#1e293b" stroke-width="6"/>
+        <circle cx="32" cy="32" r="24" fill="none" stroke="${rc}" stroke-width="6"
+          stroke-dasharray="${CIRC.toFixed(1)}"
+          stroke-dashoffset="${dash.toFixed(1)}"
+          stroke-linecap="round"
+          transform="rotate(-90 32 32)"/>
+      </svg>
+      <div class="ring-label">${s.risk_score}<div class="ring-sub">RISK</div></div>
+    </div>
+    <div class="score-details">
+      <div class="score-row"><span>Altman Z</span><span class="val" style="color:${zc}">${s.altman_z ?? "N/A"}</span></div>
+      <div class="score-row"><span>ND/EBITDA</span><span class="val">${ndStr}</span></div>
+      <div class="score-row"><span>Credit Rating</span><span class="val">${s.credit_rating}</span></div>
+      <div class="score-row"><span>Rev. at Risk</span><span class="val">€${s.revenue_at_risk_m}M</span></div>
+      <div class="score-row"><span>Annual Spend</span><span class="val">€${s.spend_m_year}M</span></div>
+    </div>
+  </div>
+
+  <div class="metrics-section">
+    <div class="section-label">Dimension Scores</div>
+    ${[
+      ["Financial", Math.max(0, 100 - (s.risk_score * 0.35 + (s.altman_z < 1.81 ? 30 : s.altman_z < 2.99 ? 15 : 0)))],
+      ["Geopolitical", s.flags.includes("GEOPOLITICAL_RISK") || s.flags.includes("SANCTIONS_OFAC") ? 20 : 75],
+      ["Regulatory", s.flags.filter(f=>["UFLPA_RISK","CBAM_EXPOSURE","LKSG_RISK","CHILD_LABOR_RISK"].includes(f)).length > 1 ? 18 : 72],
+      ["Logistics", s.flags.includes("FORCE_MAJEURE") ? 25 : 80],
+      ["Concentration", s.flags.includes("SINGLE_SOURCE") ? 12 : 70],
+    ].map(([label, val]) => {
+      const v = Math.round(val);
+      const bc = v >= 60 ? "#22c55e" : v >= 35 ? "#eab308" : "#ef4444";
+      return `<div class="metric-bar-row">
+        <span class="label">${label}</span>
+        <div class="bar-track"><div class="bar-fill" style="width:${v}%;background:${bc}"></div></div>
+        <span class="bar-val">${v}</span>
+      </div>`;
+    }).join("")}
+  </div>
+
+  <div class="flags-section">
+    <div class="section-label">Risk Flags</div>
+    <div class="flag-chips">${flagsHtml}</div>
+  </div>
+
+  <div class="compliance-section">
+    <div class="section-label">Compliance Status</div>
+    <div class="compliance-grid">${compHtml}</div>
+  </div>
+
+  <div class="alts-section">
+    <div class="section-label" style="font-size:0.65rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#475569;margin-bottom:6px">Alternative Suppliers</div>
+    ${altsHtml || '<span style="font-size:0.7rem;color:#475569">No alternatives identified</span>'}
+  </div>
+</div>`;
+}
+
+function renderCards() {
+  const filterRisk = document.getElementById("filter-risk").value;
+  const filterTier = document.getElementById("filter-tier").value;
+  const sortBy = document.getElementById("sort-by").value;
+
+  let suppliers = [...SUPPLIERS];
+
+  if (filterRisk) suppliers = suppliers.filter(s => s.risk_level === filterRisk);
+  if (filterTier) suppliers = suppliers.filter(s => s.tier === parseInt(filterTier));
+
+  suppliers.sort((a, b) => {
+    if (sortBy === "name") return a.name.localeCompare(b.name);
+    if (sortBy === "tier") return a.tier - b.tier || b.risk_score - a.risk_score;
+    if (sortBy === "z_score") return (a.altman_z ?? 99) - (b.altman_z ?? 99);
+    if (sortBy === "revenue_at_risk") return b.revenue_at_risk_m - a.revenue_at_risk_m;
+    return b.risk_score - a.risk_score;
+  });
+
+  document.getElementById("card-grid").innerHTML = suppliers.map(buildScorecard).join("");
+  document.getElementById("count-label").textContent = `${suppliers.length} of ${SUPPLIERS.length} suppliers`;
+}
+
+renderCards();
+</script>
+</body>
+</html>

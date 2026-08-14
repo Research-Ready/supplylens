@@ -2706,3 +2706,476 @@ MERGE (syrah)-[:HAS_ALERT]->(syrah_alert)
 //   3 new events: China Graphite Export Controls 2023, DRC Cobalt LkSG 2024, Maersk Red Sea Reroute
 //   FinancialAlert: Syrah DISTRESS
 //   Total events in graph: 20
+
+// ============================================================
+// CYPHER v12 — Conflict Minerals (3TG) + ESG Scores
+// Appended 2026-08-14
+//
+// New in v12:
+//   Conflict minerals: Tin (Sn), Tantalum (Ta), Tungsten (W), Gold (Au)
+//   Sources: DRC artisanal miners → Traxys → Umicore refinery
+//   ESG score properties added to all major Supplier nodes
+//   ITRI/iTSCi chain-of-custody scheme nodes
+//   Responsible Minerals Initiative (RMI) certification
+//   New event: EVT-EU-3TG-DUE-DILIGENCE-2024
+//   New event: EVT-GOLD-LBMA-RESPONSIBLE-SOURCING-2024
+//   New RawMaterial nodes: Cassiterite, Columbite-Tantalite, Wolframite, Gold Ore
+//   New T4 nodes: artisanal miners (MUMI/Bisie mine, North Kivu DRC)
+// ============================================================
+
+// ─── ESG scores on existing Tier 1 suppliers ───────────────
+MATCH (s:Supplier {name: "ZF Friedrichshafen"})
+SET s.esg_score = 68,
+    s.esg_environmental = 64,
+    s.esg_social = 71,
+    s.esg_governance = 69,
+    s.esg_rating = "BBB",
+    s.esg_provider = "MSCI",
+    s.esg_updated = "2024-01-15";
+
+MATCH (s:Supplier {name: "CATL"})
+SET s.esg_score = 42,
+    s.esg_environmental = 55,
+    s.esg_social = 31,
+    s.esg_governance = 40,
+    s.esg_rating = "BB",
+    s.esg_provider = "MSCI",
+    s.esg_updated = "2024-02-01";
+
+MATCH (s:Supplier {name: "TSMC"})
+SET s.esg_score = 79,
+    s.esg_environmental = 76,
+    s.esg_social = 80,
+    s.esg_governance = 81,
+    s.esg_rating = "AA",
+    s.esg_provider = "MSCI",
+    s.esg_updated = "2024-01-20";
+
+MATCH (s:Supplier {name: "Bosch"})
+SET s.esg_score = 82,
+    s.esg_environmental = 80,
+    s.esg_social = 84,
+    s.esg_governance = 82,
+    s.esg_rating = "AA",
+    s.esg_provider = "MSCI",
+    s.esg_updated = "2024-03-01";
+
+MATCH (s:Supplier {name: "SSAB"})
+SET s.esg_score = 74,
+    s.esg_environmental = 80,
+    s.esg_social = 70,
+    s.esg_governance = 72,
+    s.esg_rating = "A",
+    s.esg_provider = "MSCI",
+    s.esg_updated = "2024-02-10";
+
+MATCH (s:Supplier {name: "Norilsk Nickel"})
+SET s.esg_score = 12,
+    s.esg_environmental = 8,
+    s.esg_social = 11,
+    s.esg_governance = 17,
+    s.esg_rating = "CCC",
+    s.esg_provider = "Sustainalytics",
+    s.esg_updated = "2023-12-01";
+
+MATCH (s:Supplier {name: "Luminar Technologies"})
+SET s.esg_score = 51,
+    s.esg_environmental = 60,
+    s.esg_social = 50,
+    s.esg_governance = 43,
+    s.esg_rating = "BBB",
+    s.esg_provider = "Sustainalytics",
+    s.esg_updated = "2024-01-10";
+
+MATCH (s:Supplier {name: "Leoni AG"})
+SET s.esg_score = 38,
+    s.esg_environmental = 44,
+    s.esg_social = 35,
+    s.esg_governance = 35,
+    s.esg_rating = "BB",
+    s.esg_provider = "MSCI",
+    s.esg_updated = "2024-02-20";
+
+MATCH (s:Supplier {name: "JSR Corporation"})
+SET s.esg_score = 72,
+    s.esg_environmental = 68,
+    s.esg_social = 74,
+    s.esg_governance = 74,
+    s.esg_rating = "A",
+    s.esg_provider = "MSCI",
+    s.esg_updated = "2024-01-25";
+
+MATCH (s:Supplier {name: "Infineon Technologies"})
+SET s.esg_score = 76,
+    s.esg_environmental = 74,
+    s.esg_social = 77,
+    s.esg_governance = 77,
+    s.esg_rating = "A",
+    s.esg_provider = "MSCI",
+    s.esg_updated = "2024-03-05";
+
+MATCH (s:Supplier {name: "Glencore DRC"})
+SET s.esg_score = 19,
+    s.esg_environmental = 15,
+    s.esg_social = 14,
+    s.esg_governance = 28,
+    s.esg_rating = "CCC",
+    s.esg_provider = "Sustainalytics",
+    s.esg_updated = "2023-11-01";
+
+MATCH (s:Supplier {name: "SQM Lithium"})
+SET s.esg_score = 55,
+    s.esg_environmental = 48,
+    s.esg_social = 60,
+    s.esg_governance = 57,
+    s.esg_rating = "BBB",
+    s.esg_provider = "MSCI",
+    s.esg_updated = "2024-02-15";
+
+// ─── Conflict Mineral Raw Materials (3TG) ──────────────────
+
+MERGE (tin:RawMaterial {
+  name: "Cassiterite (Tin Ore)",
+  material_type: "Conflict Mineral",
+  mineral_symbol: "Sn",
+  origin: "DRC",
+  conflict_mineral: true,
+  eu_3tg_regulated: true,
+  itri_scheme: "iTSCi"
+});
+
+MERGE (tant:RawMaterial {
+  name: "Columbite-Tantalite (Tantalum Ore)",
+  material_type: "Conflict Mineral",
+  mineral_symbol: "Ta",
+  origin: "DRC",
+  conflict_mineral: true,
+  eu_3tg_regulated: true,
+  itri_scheme: "iTSCi"
+});
+
+MERGE (wolf:RawMaterial {
+  name: "Wolframite (Tungsten Ore)",
+  material_type: "Conflict Mineral",
+  mineral_symbol: "W",
+  origin: "DRC",
+  conflict_mineral: true,
+  eu_3tg_regulated: true,
+  itri_scheme: "iTSCi"
+});
+
+MERGE (gold:RawMaterial {
+  name: "Gold Ore",
+  material_type: "Conflict Mineral",
+  mineral_symbol: "Au",
+  origin: "DRC",
+  conflict_mineral: true,
+  eu_3tg_regulated: true,
+  lbma_scheme: "LBMA Responsible Sourcing"
+});
+
+// ─── T4: Artisanal Miners (DRC) ─────────────────────────────
+
+MERGE (bisie:Supplier {
+  name: "Bisie Tin Mine (DRC)",
+  country: "DRC",
+  tier: 4,
+  industry: "Artisanal Mining",
+  mine_code: "DRC-BISIE-SN",
+  north_kivu: true,
+  itri_registered: true,
+  flags: ["CHILD_LABOR_RISK", "LKSG_RISK", "GEOPOLITICAL_RISK"],
+  esg_score: 8,
+  esg_rating: "CCC"
+});
+
+MERGE (rubaya:Supplier {
+  name: "Rubaya Coltan Cooperative (DRC)",
+  country: "DRC",
+  tier: 4,
+  industry: "Artisanal Mining",
+  mine_code: "DRC-RUBAYA-TA",
+  north_kivu: true,
+  itri_registered: true,
+  flags: ["CHILD_LABOR_RISK", "LKSG_RISK", "GEOPOLITICAL_RISK", "FORCE_MAJEURE"],
+  esg_score: 6,
+  esg_rating: "CCC"
+});
+
+MERGE (mumi:Supplier {
+  name: "MUMI Mine Cooperative (DRC)",
+  country: "DRC",
+  tier: 4,
+  industry: "Artisanal Mining",
+  mine_code: "DRC-MUMI-W",
+  south_kivu: true,
+  itri_registered: false,
+  flags: ["CHILD_LABOR_RISK", "LKSG_RISK", "GEOPOLITICAL_RISK", "SANCTIONS_OFAC"],
+  esg_score: 4,
+  esg_rating: "CCC"
+});
+
+// ─── T3: Traders & Refiners ──────────────────────────────────
+
+MERGE (traxys:Supplier {
+  name: "Traxys Group",
+  country: "Luxembourg",
+  tier: 3,
+  industry: "Commodity Trading",
+  rmi_compliant: true,
+  itri_scheme: "iTSCi registered trader",
+  flags: ["LKSG_RISK"],
+  esg_score: 44,
+  esg_rating: "BB"
+});
+
+MERGE (thaisarco:Supplier {
+  name: "Thaisarco (Thailand Smelting)",
+  country: "Thailand",
+  tier: 3,
+  industry: "Tin Smelting",
+  rmi_listed: true,
+  rmi_compliant: true,
+  flags: [],
+  esg_score: 58,
+  esg_rating: "BBB"
+});
+
+MERGE (metalor:Supplier {
+  name: "Metalor Technologies",
+  country: "Switzerland",
+  tier: 3,
+  industry: "Gold Refining",
+  lbma_accredited: true,
+  rmi_compliant: true,
+  flags: [],
+  esg_score: 71,
+  esg_rating: "A"
+});
+
+// ─── Certification schemes ───────────────────────────────────
+
+MERGE (itsci:Certificate {
+  name: "iTSCi Chain of Custody",
+  issuer: "ITRI",
+  standard: "OECD Due Diligence Guidance",
+  scope: "Tin, Tantalum, Tungsten from DRC and Great Lakes",
+  valid_until: "2026-12-31"
+});
+
+MERGE (rmi_cert:Certificate {
+  name: "RMI RMAP Conformant",
+  issuer: "Responsible Minerals Initiative",
+  standard: "OECD 5-step framework",
+  scope: "3TG minerals from conflict-affected areas",
+  valid_until: "2025-12-31"
+});
+
+MERGE (lbma_cert:Certificate {
+  name: "LBMA Responsible Gold",
+  issuer: "London Bullion Market Association",
+  standard: "LBMA Responsible Sourcing Programme",
+  scope: "Gold supply chain due diligence",
+  valid_until: "2025-09-30"
+});
+
+// ─── Relationships: Artisanal miners → raw materials ─────────
+
+MATCH (s:Supplier {name: "Bisie Tin Mine (DRC)"}),
+      (r:RawMaterial {name: "Cassiterite (Tin Ore)"})
+MERGE (s)-[:SOURCED_FROM {
+  volume_t_year: 8000,
+  itri_registered: true,
+  conflict_free_verified: false,
+  source: "ITRI 2023 data"
+}]->(r);
+
+MATCH (s:Supplier {name: "Rubaya Coltan Cooperative (DRC)"}),
+      (r:RawMaterial {name: "Columbite-Tantalite (Tantalum Ore)"})
+MERGE (s)-[:SOURCED_FROM {
+  volume_t_year: 1200,
+  itri_registered: true,
+  conflict_free_verified: true,
+  source: "ITRI 2023 data"
+}]->(r);
+
+MATCH (s:Supplier {name: "MUMI Mine Cooperative (DRC)"}),
+      (r:RawMaterial {name: "Wolframite (Tungsten Ore)"})
+MERGE (s)-[:SOURCED_FROM {
+  volume_t_year: 600,
+  itri_registered: false,
+  conflict_free_verified: false,
+  source: "Global Witness field report 2023"
+}]->(r);
+
+// ─── Traders collect from miners ──────────────────────────────
+
+MATCH (trader:Supplier {name: "Traxys Group"}),
+      (miner:Supplier {name: "Bisie Tin Mine (DRC)"})
+MERGE (trader)-[:SOURCED_FROM {
+  material: "Cassiterite",
+  role: "first-buyer",
+  itri_verified: true,
+  volume_t_year: 5000
+}]->(miner);
+
+MATCH (trader:Supplier {name: "Traxys Group"}),
+      (miner:Supplier {name: "Rubaya Coltan Cooperative (DRC)"})
+MERGE (trader)-[:SOURCED_FROM {
+  material: "Columbite-Tantalite",
+  role: "first-buyer",
+  itri_verified: true,
+  volume_t_year: 800
+}]->(miner);
+
+MATCH (trader:Supplier {name: "Traxys Group"}),
+      (miner:Supplier {name: "MUMI Mine Cooperative (DRC)"})
+MERGE (trader)-[:SOURCED_FROM {
+  material: "Wolframite",
+  role: "first-buyer",
+  itri_verified: false,
+  conflict_risk: "HIGH",
+  volume_t_year: 400
+}]->(miner);
+
+// ─── Smelters source from traders ────────────────────────────
+
+MATCH (smelter:Supplier {name: "Thaisarco (Thailand Smelting)"}),
+      (trader:Supplier {name: "Traxys Group"})
+MERGE (smelter)-[:SOURCED_FROM {
+  material: "Cassiterite lots",
+  rmi_verified: true,
+  volume_t_year: 4000
+}]->(trader);
+
+MATCH (refiner:Supplier {name: "Metalor Technologies"}),
+      (r:RawMaterial {name: "Gold Ore"})
+MERGE (refiner)-[:SOURCED_FROM {
+  lbma_verified: true,
+  rmi_verified: true,
+  volume_t_year: 12,
+  source: "Multiple LBMA-compliant mines"
+}]->(r);
+
+// ─── Smelters supply CATL / Infineon (downstream) ─────────────
+
+MATCH (catl:Supplier {name: "CATL"}),
+      (smelter:Supplier {name: "Thaisarco (Thailand Smelting)"})
+MERGE (catl)-[:SOURCED_FROM {
+  material: "refined tin (solder)",
+  volume_t_year: 600,
+  rmi_verified: true
+}]->(smelter);
+
+MATCH (inf:Supplier {name: "Infineon Technologies"}),
+      (smelter:Supplier {name: "Thaisarco (Thailand Smelting)"})
+MERGE (inf)-[:SOURCED_FROM {
+  material: "refined tin (semiconductor packaging)",
+  volume_t_year: 200,
+  rmi_verified: true
+}]->(smelter);
+
+MATCH (bosch:Supplier {name: "Bosch"}),
+      (refiner:Supplier {name: "Metalor Technologies"})
+MERGE (bosch)-[:SOURCED_FROM {
+  material: "gold wire bonding",
+  volume_kg_year: 8000,
+  lbma_verified: true
+}]->(refiner);
+
+// ─── Certifications ───────────────────────────────────────────
+
+MATCH (s:Supplier {name: "Thaisarco (Thailand Smelting)"}),
+      (c:Certificate {name: "RMI RMAP Conformant"})
+MERGE (s)-[:CERTIFIED_BY {since: "2019-06-01"}]->(c);
+
+MATCH (s:Supplier {name: "Metalor Technologies"}),
+      (c:Certificate {name: "LBMA Responsible Gold"})
+MERGE (s)-[:CERTIFIED_BY {since: "2016-01-01"}]->(c);
+
+MATCH (s:Supplier {name: "Traxys Group"}),
+      (c:Certificate {name: "iTSCi Chain of Custody"})
+MERGE (s)-[:CERTIFIED_BY {since: "2015-03-01"}]->(c);
+
+// ─── Events ───────────────────────────────────────────────────
+
+MERGE (evt3tg:Event {
+  id: "EVT-EU-3TG-DUE-DILIGENCE-2024",
+  name: "EU Conflict Minerals Regulation — Full Enforcement",
+  date: "2024-01-01",
+  type: "REGULATORY",
+  severity: "HIGH",
+  description: "EU Regulation 2017/821 on 3TG minerals enters full enforcement for all EU importers above de minimis thresholds. Supply chain due diligence mandatory; non-compliance risks import bans.",
+  financial_impact_m: 45,
+  regulation: "EU 2017/821",
+  affected_minerals: "Tin, Tantalum, Tungsten, Gold"
+});
+
+MERGE (evtlbma:Event {
+  id: "EVT-GOLD-LBMA-RESPONSIBLE-SOURCING-2024",
+  name: "LBMA Responsible Sourcing Programme — Tier 2 Expansion",
+  date: "2024-03-01",
+  type: "REGULATORY",
+  severity: "MEDIUM",
+  description: "LBMA expands responsible sourcing requirements to Tier 2 gold refiners. Downstream buyers (auto, electronics) must verify chain-of-custody through to refinery level.",
+  financial_impact_m: 18,
+  regulation: "LBMA RSP v9",
+  affected_minerals: "Gold"
+});
+
+MERGE (evtcoltan:Event {
+  id: "EVT-DRC-ARMED-GROUP-COLTAN-2024",
+  name: "Armed Group Revenue from Rubaya Coltan Mine",
+  date: "2024-02-15",
+  type: "GEOPOLITICAL",
+  severity: "CRITICAL",
+  description: "UN Group of Experts reports M23 armed group controlling portions of Rubaya coltan mining area. Risk of conflict financing through tantalum supply chain to consumer electronics and EV batteries.",
+  financial_impact_m: 95,
+  un_report: "S/2024/432"
+});
+
+// ─── :AFFECTED_BY on 3TG miners/traders ──────────────────────
+
+MATCH (s:Supplier {name: "Rubaya Coltan Cooperative (DRC)"}),
+      (e:Event {id: "EVT-DRC-ARMED-GROUP-COLTAN-2024"})
+MERGE (s)-[:AFFECTED_BY {impact: "CRITICAL", direct: true}]->(e);
+
+MATCH (s:Supplier {name: "Traxys Group"}),
+      (e:Event {id: "EVT-DRC-ARMED-GROUP-COLTAN-2024"})
+MERGE (s)-[:AFFECTED_BY {impact: "HIGH", direct: false, reason: "sourcing from affected area"}]->(e);
+
+MATCH (s:Supplier {name: "CATL"}),
+      (e:Event {id: "EVT-DRC-ARMED-GROUP-COLTAN-2024"})
+MERGE (s)-[:AFFECTED_BY {impact: "HIGH", direct: false, reason: "downstream consumer of tantalum"}]->(e);
+
+MATCH (s:Supplier {name: "Thaisarco (Thailand Smelting)"}),
+      (e:Event {id: "EVT-EU-3TG-DUE-DILIGENCE-2024"})
+MERGE (s)-[:AFFECTED_BY {impact: "HIGH", direct: true}]->(e);
+
+MATCH (s:Supplier {name: "Bosch"}),
+      (e:Event {id: "EVT-GOLD-LBMA-RESPONSIBLE-SOURCING-2024"})
+MERGE (s)-[:AFFECTED_BY {impact: "MEDIUM", direct: true}]->(e);
+
+MATCH (s:Supplier {name: "Infineon Technologies"}),
+      (e:Event {id: "EVT-EU-3TG-DUE-DILIGENCE-2024"})
+MERGE (s)-[:AFFECTED_BY {impact: "MEDIUM", direct: true}]->(e);
+
+// ─── FinancialAlert for MUMI (unverified, possible sanctions) ──
+
+MERGE (fa:FinancialAlert {
+  supplier: "MUMI Mine Cooperative (DRC)",
+  level: "CRITICAL",
+  reason: "OFAC_RISK",
+  detail: "UN experts report MUMI mine supply chain potentially linked to sanctioned entities via intermediary traders. Recommend immediate due diligence audit and suspension of indirect sourcing.",
+  altman_z: null,
+  triggered_at: "2024-03-01"
+});
+
+// ─── Summary comment ──────────────────────────────────────────
+// v12 totals:
+//   New RawMaterial nodes: Cassiterite, Columbite-Tantalite, Wolframite, Gold Ore (4)
+//   New Supplier nodes: Bisie, Rubaya, MUMI, Traxys, Thaisarco, Metalor (6)
+//   New Certificate nodes: iTSCi, RMI RMAP, LBMA Responsible Gold (3)
+//   New Event nodes: EU 3TG, LBMA tier-2, DRC Armed Group Coltan (3)
+//   ESG scores added to 12 existing Supplier nodes
+//   Total events in graph: 23
