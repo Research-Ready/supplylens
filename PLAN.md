@@ -23,7 +23,7 @@ in a graph with citations, and visualize as 3D graph + 2D evidence map.
 
 ### Dashboard (open docs/dashboard.html in browser)
 
-22 tabs:
+30 tabs:
 
 | Tab | File | What you see |
 |---|---|---|
@@ -49,6 +49,14 @@ in a graph with citations, and visualize as 3D graph + 2D evidence map.
 | Kotaemon | kotaemon_search.html | RAG chat over supplier docs, citation display, live CT120 health |
 | EvidenceMap | evidence_map.html | D3 geo map, 45 supplier pins, great-circle arcs, evidence sidebar |
 | EDRM | edrm_tracker.html | Per-supplier pipeline grid: Scraped/Extracted/RAG-Indexed/Reviewed |
+| ChainDiff | chain_diff.html | Snapshot diff: CRITICAL/HIGH/MEDIUM severity, new nodes/rels/events |
+| DeepDive | supplier_deep_dive.html | Per-supplier deep dive: 9 suppliers, risk ring, financials, events |
+| Procurement | procurement_actions.html | 13 action cards, €1.7B exposure, CSV export |
+| Heatmap | risk_heatmap.html | D3 country×risk-type matrix, 14 countries × 7 types, 3 modes |
+| Timeline | supplier_timeline.html | D3 swimlane, 18 suppliers × 18 events, Z trend lines, zoom slider |
+| Scorecards | scorecard.html | Printable scorecards, 12 suppliers, risk ring + compliance grid |
+| Carbon | carbon_footprint.html | Scope 1/2/3, CBAM liability, SBTi/CDP alignment, 5 chart modes |
+| DualSrc | dual_sourcing.html | Dual sourcing optimizer, budget slider, priority scatter, 9 suppliers |
 
 ### Standalone
 
@@ -201,6 +209,23 @@ in a graph with citations, and visualize as 3D graph + 2D evidence map.
 
 ---
 
+### F. Phase 10 — Carbon + Dual Sourcing
+
+**F1 — Carbon & CBAM tracker** `src/carbon_tracker.py` + `docs/carbon_footprint.html`
+- Scope 1/2/3 emissions for 12 Scania suppliers; CBAM certificate cost; SBTi on-track check; CDP scores
+- D3 bar chart: 5 modes (Scope1+2, Scope3, CO2 intensity, CBAM cost, YoY trend)
+- Sidebar: per-supplier scope bars + SBTi/CDP badges + CBAM detail
+- Status: BUILT (Phase 10)
+
+**F2 — Dual sourcing optimizer** `src/dual_sourcing.py` + `docs/dual_sourcing.html`
+- 9 suppliers × all alternatives; risk-weighted priority score; budget slider (greedy knapsack)
+- Action tiers: IMMEDIATE/SHORT_TERM/MEDIUM_TERM/MONITOR
+- D3 scatter: Priority vs Qualification Cost (bubble = rev@risk)
+- Filter by action tier or single-source flag; per-supplier detail panel
+- Status: BUILT (Phase 10)
+
+---
+
 ## Execution order
 
 1. A1 — evidence_store.py ✓
@@ -217,6 +242,8 @@ in a graph with citations, and visualize as 3D graph + 2D evidence map.
 12. D4 — cypher v10 AI chain ✓
 13. E1 — chain diff ✓
 14. E2 — supplier deep dive ✓
-15. E3 — 3D graph live evidence  ← NEXT
-16. E4 — scorecard PDF export
-17. E5 — deploy CT120 (needs VPN)
+15. F1 — carbon tracker + dashboard ✓
+16. F2 — dual sourcing optimizer + dashboard ✓
+17. E3 — 3D graph live evidence  ← NEXT
+18. E4 — scorecard PDF export
+19. E5 — deploy CT120 (needs VPN)

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SupplyLens — Dual Sourcing Optimizer</title>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0d14; color: #e2e8f0; }
+
+.hdr { background: #111827; border-bottom: 1px solid #1e293b; padding: 14px 24px; display: flex; align-items: center; gap: 20px; }
+.hdr h1 { font-size: 1.05rem; font-weight: 600; }
+.hdr .sub { font-size: 0.78rem; color: #64748b; }
+
+.stat-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; padding: 16px 24px; background: #111827; border-bottom: 1px solid #1e293b; }
+.stat-card { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px 14px; }
+.stat-card .sv { font-size: 1.25rem; font-weight: 700; }
+.stat-card .sl { font-size: 0.68rem; color: #64748b; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.06em; }
+.sv.red { color: #f87171; }
+.sv.orange { color: #fb923c; }
+.sv.yellow { color: #fbbf24; }
+.sv.green { color: #4ade80; }
+.sv.blue { color: #60a5fa; }
+
+.controls { display: flex; gap: 10px; padding: 12px 24px; background: #0f172a; border-bottom: 1px solid #1e293b; flex-wrap: wrap; align-items: center; }
+.ctrl-btn { background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 6px; padding: 5px 12px; font-size: 0.78rem; cursor: pointer; }
+.ctrl-btn.active { background: #1d4ed8; color: #fff; border-color: #2563eb; }
+.budget-wrap { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.budget-wrap label { font-size: 0.75rem; color: #64748b; }
+.budget-wrap input[type=range] { width: 140px; accent-color: #3b82f6; }
+.budget-wrap .bv { font-size: 0.78rem; font-weight: 600; color: #60a5fa; min-width: 60px; }
+
+.layout { display: grid; grid-template-columns: 1fr 340px; height: calc(100vh - 175px); }
+
+/* Left: recommendations list */
+.rec-list { overflow-y: auto; padding: 16px 20px; }
+
+.rec-card { background: #111827; border: 1px solid #1e293b; border-radius: 8px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.15s; }
+.rec-card:hover { border-color: #3b82f6; }
+.rec-card.selected { border-color: #3b82f6; background: #0f1c38; }
+.rec-card.dim { opacity: 0.35; }
+
+.rec-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.rec-num { font-size: 0.65rem; font-weight: 700; color: #475569; background: #1e293b; border-radius: 4px; padding: 2px 6px; }
+.rec-supplier { font-size: 0.92rem; font-weight: 700; color: #f1f5f9; }
+.rec-country { font-size: 0.7rem; color: #64748b; }
+
+.action-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.04em; margin-left: auto; }
+.action-IMMEDIATE { background: #450a0a; color: #fca5a5; border: 1px solid #7f1d1d; }
+.action-SHORT_TERM { background: #431407; color: #fdba74; border: 1px solid #7c2d12; }
+.action-MEDIUM_TERM { background: #422006; color: #fde68a; border: 1px solid #78350f; }
+.action-MONITOR { background: #052e16; color: #86efac; border: 1px solid #14532d; }
+
+.rec-body { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rec-alt { background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 8px 10px; }
+.rec-alt .alt-name { font-size: 0.78rem; font-weight: 600; color: #e2e8f0; }
+.rec-alt .alt-meta { font-size: 0.66rem; color: #64748b; margin-top: 2px; }
+
+.qual-badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 0.6rem; font-weight: 700; margin-left: 4px; }
+.qual-FULL { background: #14532d; color: #86efac; }
+.qual-PARTIAL { background: #713f12; color: #fde68a; }
+.qual-LIMITED { background: #450a0a; color: #fca5a5; }
+
+.priority-bar { height: 4px; background: #1e293b; border-radius: 2px; margin-top: 8px; }
+.priority-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #3b82f6, #8b5cf6); }
+
+.flags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.flag { font-size: 0.58rem; font-weight: 700; padding: 1px 5px; border-radius: 3px; }
+.flag-SINGLE_SOURCE { background: #1e1b4b; color: #a5b4fc; }
+.flag-GEOPOLITICAL_RISK { background: #3b0764; color: #e879f9; }
+.flag-SANCTIONS_OFAC { background: #450a0a; color: #fca5a5; }
+.flag-FINANCIAL_DISTRESS { background: #431407; color: #fb923c; }
+.flag-FORCE_MAJEURE { background: #422006; color: #fde68a; }
+.flag-EXPORT_CTRL { background: #082f49; color: #7dd3fc; }
+.flag-CHILD_LABOR_RISK { background: #450a0a; color: #fb7185; }
+.flag-LKSG_RISK { background: #3b0764; color: #d8b4fe; }
+.flag-FINANCIAL_STRESS { background: #431407; color: #fdba74; }
+
+.rar-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 0.7rem; }
+.rar-label { color: #64748b; }
+.rar-val { color: #f87171; font-weight: 700; }
+.rar-sep { color: #334155; }
+.roi-val { color: #4ade80; font-weight: 600; }
+.cost-val { color: #fbbf24; font-weight: 600; }
+.rr-val { color: #60a5fa; font-weight: 600; }
+
+/* Right sidebar: scatter + detail */
+.sidebar { background: #111827; border-left: 1px solid #1e293b; padding: 18px 16px; overflow-y: auto; }
+.sidebar h3 { font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+.detail-box { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+.detail-box .db-name { font-size: 0.85rem; font-weight: 700; color: #f1f5f9; margin-bottom: 8px; }
+.db-row { display: flex; justify-content: space-between; font-size: 0.7rem; color: #94a3b8; margin-bottom: 5px; }
+.db-row .dv { color: #e2e8f0; font-weight: 600; }
+.db-divider { border-top: 1px solid #1e293b; margin: 8px 0; }
+
+svg text { font-family: 'Segoe UI', system-ui, sans-serif; }
+#scatter { display: block; }
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div style="font-size:0.65rem;color:#475569;text-transform:uppercase;letter-spacing:0.08em">SupplyLens</div>
+    <h1>Dual Sourcing Optimizer</h1>
+  </div>
+  <div class="sub">Risk-weighted qualification priority · Budget allocation · Alternative supplier ranking</div>
+</div>
+
+<div class="stat-row" id="stat-row"></div>
+
+<div class="controls">
+  <button class="ctrl-btn active" id="btn-all" onclick="setFilter('all',this)">All</button>
+  <button class="ctrl-btn" id="btn-imm" onclick="setFilter('IMMEDIATE',this)">Immediate</button>
+  <button class="ctrl-btn" id="btn-st" onclick="setFilter('SHORT_TERM',this)">Short Term</button>
+  <button class="ctrl-btn" id="btn-mt" onclick="setFilter('MEDIUM_TERM',this)">Medium Term</button>
+  <button class="ctrl-btn" id="btn-mon" onclick="setFilter('MONITOR',this)">Monitor</button>
+  <button class="ctrl-btn" id="btn-ss" onclick="setFilter('SINGLE_SOURCE',this)">Single Source Only</button>
+  <div class="budget-wrap">
+    <label>Budget</label>
+    <input type="range" id="budget-slider" min="0" max="15000" step="500" value="15000" oninput="setBudget(this.value)">
+    <span class="bv" id="budget-label">No limit</span>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="rec-list" id="rec-list"></div>
+  <div class="sidebar">
+    <h3>Priority vs Cost Scatter</h3>
+    <svg id="scatter" width="308" height="220"></svg>
+    <h3 style="margin-top:16px">Selected Supplier</h3>
+    <div id="detail-box"><div style="font-size:0.75rem;color:#475569">Click a card to see details</div></div>
+  </div>
+</div>
+
+<script>
+const SUPPLIERS = [
+  { name:"TSMC", country:"Taiwan", tier:1, risk:84,
+    flags:["GEOPOLITICAL_RISK","EXPORT_CTRL","SINGLE_SOURCE"],
+    rar:680, spend:170, single:true, category:"Semiconductors", coverage:100,
+    alts:[
+      { name:"Samsung Foundry", country:"South Korea", cost:1800, months:36, cap:60, risk:62, qual:"PARTIAL", notes:"Needs N+1 node process adaptation; 2nm gap" },
+      { name:"Intel Foundry Services", country:"USA", cost:2400, months:42, cap:40, risk:58, qual:"LIMITED", notes:"Process migration significant; positive geopolitical profile" },
+      { name:"GlobalFoundries", country:"USA/Germany", cost:900, months:18, cap:30, risk:55, qual:"LIMITED", notes:"Trailing node only; suitable for non-leading edge MCUs" },
+    ]
+  },
+  { name:"Luminar Technologies", country:"USA", tier:1, risk:89,
+    flags:["FINANCIAL_DISTRESS","SINGLE_SOURCE"],
+    rar:95, spend:24, single:true, category:"LiDAR", coverage:100,
+    alts:[
+      { name:"Waymo LiDAR", country:"USA", cost:320, months:12, cap:90, risk:48, qual:"FULL", notes:"Similar spec; already qualified for AXL variant" },
+      { name:"Innoviz Technologies", country:"Israel", cost:180, months:8, cap:80, risk:55, qual:"FULL", notes:"InnovizTwo 905nm; faster qualification path" },
+      { name:"Luminar Backup (Velodyne ODM)", country:"USA", cost:120, months:6, cap:70, risk:60, qual:"PARTIAL", notes:"Emergency bridge; lower resolution" },
+    ]
+  },
+  { name:"Norilsk Nickel", country:"Russia", tier:2, risk:96,
+    flags:["SANCTIONS_OFAC","GEOPOLITICAL_RISK"],
+    rar:140, spend:35, single:false, category:"Nickel/Palladium", coverage:65,
+    alts:[
+      { name:"Vale Nickel", country:"Brazil/Canada", cost:450, months:9, cap:80, risk:38, qual:"FULL", notes:"PTVI Indonesia site also available; RMI-compliant" },
+      { name:"Glencore Nickel", country:"Switzerland", cost:280, months:6, cap:70, risk:45, qual:"FULL", notes:"Murrin Murrin Australia; existing Glencore relationship" },
+      { name:"BHP Nickel", country:"Australia", cost:380, months:8, cap:60, risk:35, qual:"PARTIAL", notes:"Nickel West Kwinana; Class 1 nickel" },
+    ]
+  },
+  { name:"JSR Corporation", country:"Japan", tier:2, risk:73,
+    flags:["SINGLE_SOURCE","EXPORT_CTRL"],
+    rar:320, spend:80, single:true, category:"EUV Photoresist", coverage:100,
+    alts:[
+      { name:"Shin-Etsu Chemical", country:"Japan", cost:1200, months:30, cap:50, risk:44, qual:"PARTIAL", notes:"KrF resists available; EUV still qualifying" },
+      { name:"DuPont EUV Materials", country:"USA", cost:1600, months:36, cap:40, risk:48, qual:"LIMITED", notes:"ArF immersion crossover; positive ITAR profile" },
+    ]
+  },
+  { name:"ZF Friedrichshafen", country:"Germany", tier:1, risk:67,
+    flags:["FINANCIAL_STRESS","SINGLE_SOURCE"],
+    rar:380, spend:94, single:true, category:"Gearbox/Drivetrain", coverage:100,
+    alts:[
+      { name:"Tremec (Sensata)", country:"USA/Mexico", cost:680, months:24, cap:75, risk:52, qual:"FULL", notes:"TR-4050 compatible; US ITAR-free" },
+      { name:"Getrag (Magna)", country:"Germany/Hungary", cost:520, months:18, cap:85, risk:48, qual:"FULL", notes:"Same OEM platform; closest drop-in" },
+    ]
+  },
+  { name:"Leoni AG", country:"Germany", tier:1, risk:85,
+    flags:["FINANCIAL_DISTRESS","FORCE_MAJEURE"],
+    rar:210, spend:52, single:false, category:"Wiring Harness", coverage:70,
+    alts:[
+      { name:"Aptiv", country:"Ireland", cost:340, months:12, cap:90, risk:34, qual:"FULL", notes:"GEN 6 smart harness; already Tier 1 at BMW" },
+      { name:"Yazaki", country:"Japan", cost:220, months:10, cap:80, risk:40, qual:"FULL", notes:"Strong cost position; SE Asia manufacturing" },
+      { name:"Sumitomo Electric", country:"Japan", cost:280, months:14, cap:85, risk:38, qual:"FULL", notes:"Existing SEAT/VW relationship; fast ramp" },
+    ]
+  },
+  { name:"Cryoin Engineering", country:"Ukraine", tier:3, risk:88,
+    flags:["FORCE_MAJEURE","GEOPOLITICAL_RISK"],
+    rar:190, spend:47, single:true, category:"Neon Gas (EUV)", coverage:100,
+    alts:[
+      { name:"Linde plc", country:"UK/Ireland", cost:150, months:4, cap:100, risk:28, qual:"FULL", notes:"Global inventory; Western Europe stock increase post-2022" },
+      { name:"Air Products", country:"USA", cost:120, months:3, cap:100, risk:30, qual:"FULL", notes:"Expanded production; Scania already has MSA" },
+      { name:"Resonac (Showa Denko)", country:"Japan", cost:180, months:6, cap:80, risk:35, qual:"FULL", notes:"Japan backup; longer lead time" },
+    ]
+  },
+  { name:"Glencore DRC", country:"DRC", tier:3, risk:91,
+    flags:["CHILD_LABOR_RISK","LKSG_RISK","GEOPOLITICAL_RISK"],
+    rar:75, spend:19, single:false, category:"Cobalt", coverage:55,
+    alts:[
+      { name:"Vale Cobalt (Brazil)", country:"Brazil", cost:240, months:9, cap:80, risk:32, qual:"FULL", notes:"Voisey Bay; RMI-verified; no LkSG exposure" },
+      { name:"Umicore Battery Recycling", country:"Belgium", cost:180, months:6, cap:60, risk:28, qual:"PARTIAL", notes:"Secondary cobalt from end-of-life batteries; ESG premium" },
+    ]
+  },
+  { name:"China Rare Earth Group", country:"China", tier:4, risk:92,
+    flags:["GEOPOLITICAL_RISK","EXPORT_CTRL","SINGLE_SOURCE"],
+    rar:420, spend:105, single:true, category:"Rare Earth (NdFeB)", coverage:100,
+    alts:[
+      { name:"MP Materials", country:"USA", cost:2800, months:48, cap:30, risk:42, qual:"LIMITED", notes:"Mountain Pass; ramping HRE separation 2025+" },
+      { name:"Lynas REE", country:"Australia", cost:2200, months:36, cap:40, risk:38, qual:"PARTIAL", notes:"LAMP Malaysia; dysprosium supply limited" },
+      { name:"Urban Mining (EU Recycling)", country:"Germany/France", cost:1400, months:24, cap:20, risk:35, qual:"LIMITED", notes:"Cyclic Materials / Less Common Metals; small volumes" },
+    ]
+  },
+];
+
+// ── Priority scoring (mirror Python logic) ─────────────────────────────────
+function priorityScore(s, alt) {
+  const base = (s.risk / 100) * s.rar / Math.max(alt.cost / 1000, 0.1);
+  let mult = 1;
+  if (s.flags.includes("SINGLE_SOURCE") || s.single) mult *= 1.5;
+  if (s.flags.includes("SANCTIONS_OFAC")) mult *= 2.0;
+  if (s.flags.includes("FINANCIAL_DISTRESS")) mult *= 1.8;
+  if (s.flags.includes("FORCE_MAJEURE")) mult *= 1.6;
+  if (alt.cap >= 80) mult *= 1.2;
+  if (alt.qual === "FULL") mult *= 1.1;
+  return base * mult;
+}
+
+function bestAlt(s) {
+  return s.alts.reduce((a, b) => (b.cap > a.cap || (b.cap === a.cap && b.risk < a.risk)) ? b : a);
+}
+
+function riskReduction(s, alt) {
+  const gain = (alt.cap / 100) * (s.coverage / 100);
+  return Math.min(gain * 60, 75);
+}
+
+function roiMonths(s, alt) {
+  const arc = s.rar * (s.risk / 100) * 0.15;
+  const mrc = arc / 12;
+  if (mrc <= 0) return 999;
+  return Math.max(1, Math.round(alt.cost / 1000 / mrc));
+}
+
+function actionTier(ps, s) {
+  const crit = s.flags.some(f => ["SANCTIONS_OFAC","FINANCIAL_DISTRESS","FORCE_MAJEURE"].includes(f));
+  if (crit && ps > 50) return "IMMEDIATE";
+  if (ps > 80) return "IMMEDIATE";
+  if (ps > 30) return "SHORT_TERM";
+  if (ps > 10) return "MEDIUM_TERM";
+  return "MONITOR";
+}
+
+// Build recommendations
+const RECS = SUPPLIERS.map(s => {
+  const alt = bestAlt(s);
+  const ps = priorityScore(s, alt);
+  return { s, alt, ps, rr: riskReduction(s, alt), roi: roiMonths(s, alt), action: actionTier(ps, s) };
+}).sort((a, b) => b.ps - a.ps);
+
+const maxPS = RECS[0].ps;
+
+// ── State ──────────────────────────────────────────────────────────────────
+let filterMode = "all";
+let budgetKeur = null;
+let selectedIdx = null;
+
+// ── Stats ──────────────────────────────────────────────────────────────────
+function buildStats() {
+  const imm = RECS.filter(r => r.action === "IMMEDIATE").length;
+  const totalRAR = RECS.reduce((a, r) => a + r.s.rar, 0);
+  const totalCost = RECS.reduce((a, r) => a + r.alt.cost, 0);
+  const totalRR = RECS.reduce((a, r) => a + r.rr, 0) / RECS.length;
+  const singleSrc = RECS.filter(r => r.s.single || r.s.flags.includes("SINGLE_SOURCE")).length;
+
+  document.getElementById("stat-row").innerHTML = `
+    <div class="stat-card"><div class="sv red">${imm}</div><div class="sl">Immediate Actions</div></div>
+    <div class="stat-card"><div class="sv red">€${totalRAR.toLocaleString()}M</div><div class="sl">Revenue at Risk</div></div>
+    <div class="stat-card"><div class="sv yellow">€${(totalCost/1000).toFixed(1)}M</div><div class="sl">Qual. Cost (all)</div></div>
+    <div class="stat-card"><div class="sv blue">${totalRR.toFixed(0)}%</div><div class="sl">Avg Risk Reduction</div></div>
+    <div class="stat-card"><div class="sv orange">${singleSrc}</div><div class="sl">Single-Source Suppliers</div></div>
+    <div class="stat-card"><div class="sv green">${RECS.length}</div><div class="sl">Suppliers Analysed</div></div>
+  `;
+}
+
+// ── Filter + budget ────────────────────────────────────────────────────────
+function setFilter(mode, el) {
+  filterMode = mode;
+  document.querySelectorAll(".ctrl-btn").forEach(b => b.classList.remove("active"));
+  el.classList.add("active");
+  renderList();
+}
+
+function setBudget(val) {
+  const v = parseInt(val);
+  budgetKeur = v >= 15000 ? null : v;
+  document.getElementById("budget-label").textContent = budgetKeur === null ? "No limit" : `€${(budgetKeur/1000).toFixed(1)}M`;
+  renderList();
+}
+
+// ── Render list ────────────────────────────────────────────────────────────
+function renderList() {
+  let visible = RECS;
+  if (filterMode === "IMMEDIATE") visible = RECS.filter(r => r.action === "IMMEDIATE");
+  else if (filterMode === "SHORT_TERM") visible = RECS.filter(r => r.action === "SHORT_TERM");
+  else if (filterMode === "MEDIUM_TERM") visible = RECS.filter(r => r.action === "MEDIUM_TERM");
+  else if (filterMode === "MONITOR") visible = RECS.filter(r => r.action === "MONITOR");
+  else if (filterMode === "SINGLE_SOURCE") visible = RECS.filter(r => r.s.single || r.s.flags.includes("SINGLE_SOURCE"));
+
+  // Budget: greedily pick highest priority within budget
+  let budgetSet = null;
+  if (budgetKeur !== null) {
+    let spent = 0;
+    budgetSet = new Set();
+    for (const r of RECS) {
+      if (spent + r.alt.cost <= budgetKeur) {
+        budgetSet.add(r.s.name);
+        spent += r.alt.cost;
+      }
+    }
+  }
+
+  const container = document.getElementById("rec-list");
+  container.innerHTML = visible.map((r, i) => {
+    const globalIdx = RECS.indexOf(r);
+    const inBudget = budgetSet === null || budgetSet.has(r.s.name);
+    const flagsHtml = r.s.flags.map(f => `<span class="flag flag-${f}">${f.replace(/_/g," ")}</span>`).join("");
+    const altsHtml = r.s.alts.map(a => `
+      <div class="rec-alt">
+        <div class="alt-name">${a.name} <span class="qual-badge qual-${a.qual}">${a.qual}</span></div>
+        <div class="alt-meta">${a.country} · €${a.cost}k · ${a.months}mo · ${a.cap}% cap</div>
+        <div class="alt-meta" style="margin-top:3px;color:#475569">${a.notes}</div>
+      </div>
+    `).join("");
+
+    return `
+    <div class="rec-card ${selectedIdx === globalIdx ? "selected" : ""} ${!inBudget ? "dim" : ""}"
+         onclick="selectCard(${globalIdx})">
+      <div class="rec-header">
+        <span class="rec-num">#${globalIdx+1}</span>
+        <span class="rec-supplier">${r.s.name}</span>
+        <span class="rec-country">${r.s.country} · T${r.s.tier} · ${r.s.category}</span>
+        <span class="action-badge action-${r.action}">${r.action.replace(/_/g," ")}</span>
+      </div>
+      <div class="flags">${flagsHtml}</div>
+      <div class="rar-row">
+        <span class="rar-label">Rev@Risk</span><span class="rar-val">€${r.s.rar}M</span>
+        <span class="rar-sep">·</span>
+        <span class="rar-label">Qual cost</span><span class="cost-val">€${r.alt.cost}k</span>
+        <span class="rar-sep">·</span>
+        <span class="rar-label">Risk reduction</span><span class="rr-val">${r.rr.toFixed(0)}%</span>
+        <span class="rar-sep">·</span>
+        <span class="rar-label">ROI</span><span class="roi-val">${r.roi}mo</span>
+      </div>
+      <div class="priority-bar" title="Priority score: ${r.ps.toFixed(1)}">
+        <div class="priority-fill" style="width:${(r.ps/maxPS*100).toFixed(0)}%"></div>
+      </div>
+      <div class="rec-body" style="margin-top:10px">${altsHtml}</div>
+    </div>`;
+  }).join("");
+}
+
+// ── Card selection + detail ────────────────────────────────────────────────
+function selectCard(idx) {
+  selectedIdx = idx;
+  renderList();
+  renderDetail(RECS[idx]);
+  highlightScatter(idx);
+}
+
+function renderDetail(r) {
+  const allAlts = r.s.alts.map(a => {
+    const ps = priorityScore(r.s, a);
+    return `
+    <div style="margin-bottom:10px">
+      <div style="font-size:0.78rem;font-weight:600;color:#e2e8f0">${a.name} <span class="qual-badge qual-${a.qual}">${a.qual}</span></div>
+      <div class="db-row"><span>${a.country}</span><span class="dv">${a.cap}% capacity match</span></div>
+      <div class="db-row"><span>Qualification</span><span class="dv" style="color:#fbbf24">€${a.cost}k / ${a.months}mo</span></div>
+      <div class="db-row"><span>Their risk score</span><span class="dv" style="color:${a.risk>60?"#f87171":a.risk>40?"#fb923c":"#4ade80"}">${a.risk}/100</span></div>
+      <div style="font-size:0.62rem;color:#475569;margin-top:3px">${a.notes}</div>
+    </div>`;
+  }).join('<div class="db-divider"></div>');
+
+  document.getElementById("detail-box").innerHTML = `
+    <div class="detail-box">
+      <div class="db-name">${r.s.name} <span class="action-badge action-${r.action}">${r.action.replace(/_/g," ")}</span></div>
+      <div class="db-row"><span>Category</span><span class="dv">${r.s.category}</span></div>
+      <div class="db-row"><span>Country / Tier</span><span class="dv">${r.s.country} · Tier ${r.s.tier}</span></div>
+      <div class="db-row"><span>Risk score</span><span class="dv" style="color:#f87171">${r.s.risk}/100</span></div>
+      <div class="db-row"><span>Revenue at risk</span><span class="dv" style="color:#f87171">€${r.s.rar}M/yr</span></div>
+      <div class="db-row"><span>Annual spend</span><span class="dv">€${r.s.spend}M/yr</span></div>
+      <div class="db-row"><span>Priority score</span><span class="dv" style="color:#a78bfa">${r.ps.toFixed(1)}</span></div>
+      <div class="db-divider"></div>
+      <div style="font-size:0.7rem;color:#64748b;margin-bottom:8px">All Alternatives</div>
+      ${allAlts}
+    </div>`;
+}
+
+// ── Scatter plot ───────────────────────────────────────────────────────────
+function buildScatter() {
+  const W = 308, H = 220;
+  const mg = { t:10, r:10, b:30, l:40 };
+  const w = W - mg.l - mg.r, h = H - mg.t - mg.b;
+
+  const svg = d3.select("#scatter");
+  svg.selectAll("*").remove();
+  const g = svg.append("g").attr("transform", `translate(${mg.l},${mg.t})`);
+
+  const x = d3.scaleLinear().domain([0, d3.max(RECS, r => r.alt.cost)]).range([0, w]);
+  const y = d3.scaleLinear().domain([0, maxPS * 1.05]).range([h, 0]);
+
+  // Grid
+  g.append("g").attr("transform", `translate(0,${h})`)
+    .call(d3.axisBottom(x).ticks(5).tickFormat(d => `€${d}k`))
+    .call(a => a.selectAll("text").attr("fill","#475569").attr("font-size","8"));
+  g.append("g")
+    .call(d3.axisLeft(y).ticks(5))
+    .call(a => a.selectAll("text").attr("fill","#475569").attr("font-size","8"));
+
+  g.selectAll(".domain,.tick line").attr("stroke","#1e293b");
+
+  const colorMap = { "IMMEDIATE":"#f87171","SHORT_TERM":"#fb923c","MEDIUM_TERM":"#fbbf24","MONITOR":"#4ade80" };
+
+  const dots = g.selectAll("circle").data(RECS).enter().append("circle")
+    .attr("cx", r => x(r.alt.cost))
+    .attr("cy", r => y(r.ps))
+    .attr("r", r => 4 + r.s.rar / 130)
+    .attr("fill", r => colorMap[r.action])
+    .attr("fill-opacity", 0.75)
+    .attr("stroke", "#0a0d14")
+    .attr("stroke-width", 1)
+    .attr("class", (_, i) => `dot dot-${i}`)
+    .style("cursor","pointer")
+    .on("click", (_, r) => selectCard(RECS.indexOf(r)));
+
+  // Labels for top 4
+  RECS.slice(0,4).forEach(r => {
+    g.append("text")
+      .attr("x", x(r.alt.cost) + 5)
+      .attr("y", y(r.ps) + 3)
+      .attr("font-size","7")
+      .attr("fill","#94a3b8")
+      .text(r.s.name.split(" ")[0]);
+  });
+
+  // Axes labels
+  g.append("text").attr("x", w/2).attr("y", h+26).attr("text-anchor","middle")
+    .attr("font-size","8").attr("fill","#475569").text("Qualification Cost (k€)");
+  g.append("text").attr("transform","rotate(-90)").attr("x",-h/2).attr("y",-30)
+    .attr("text-anchor","middle").attr("font-size","8").attr("fill","#475569").text("Priority Score");
+}
+
+function highlightScatter(idx) {
+  d3.selectAll(".dot").attr("stroke","#0a0d14").attr("stroke-width",1).attr("fill-opacity",0.75);
+  d3.select(`.dot-${idx}`).attr("stroke","#fff").attr("stroke-width",2).attr("fill-opacity",1);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────
+buildStats();
+buildScatter();
+renderList();
+window.addEventListener("resize", buildScatter);
+</script>
+</body>
+</html>
