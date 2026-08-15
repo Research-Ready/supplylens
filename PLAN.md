@@ -1,8 +1,13 @@
 # SupplyLens — Build Plan
 
-**Concept:** Given a company name, automatically discover its full supply chain
-by fact-finding public documents (annual reports, filings, news), store evidence
-in a graph with citations, and visualize as 3D graph + 2D evidence map.
+> **See VISION.md for the full research concept, methodology, and academic context.**
+
+**Concept:** Given a company name, product, or barcode — automatically map its
+complete supply chain using OSINT, infer hidden nodes with AI confidence scoring,
+flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
+
+**Industry partner:** Scania AB (ground truth validation)
+**Goal:** Multi-signal OSINT inference + EDRM evidence chain + EU regulatory output
 
 ---
 
