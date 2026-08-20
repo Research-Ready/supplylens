@@ -30,177 +30,191 @@ schedule and communicates through well-defined interfaces. The mouth ingests
 continuously. The gut processes whenever raw data arrives. The presentation layer
 reads Neo4j on demand — independently of when either of the others last ran.
 
+**Color key:** green = confirmed working · orange = service up, integration incomplete · red = not yet built/deployed
+
 ```mermaid
-flowchart LR
-    EXT["External world\nwebsites · APIs · PDFs\nmanual uploads"]
+flowchart TD
+    classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff
+    classDef orange fill:#7a4500,stroke:#5a3000,color:#fff
+    classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff
+    classDef store  fill:#1a3a5c,stroke:#0d2640,color:#fff
+
+    EXT(["External world\nwebsites · APIs · PDFs · uploads"])
 
     subgraph MOUTH ["MOUTH — Ingestion"]
-        direction TB
-        M1["Scrapers\nBrowserless CT400/306"]
-        M2["Scheduled API pulls\nn8n CT104"]
-        M3["Manual uploads\nresearcher drops PDFs"]
+        M1["Browserless CT400  prod scraper"]:::green
+        M2["Browserless CT306  acc fallback"]:::green
+        M3["n8n CT104  OSINT scheduler"]:::orange
+        M4["Kotaemon CT120  manual PDF upload"]:::orange
     end
 
-    RAW[("Raw store\nMongoDB CT121\nHTML · PDFs · JSON")]
+    MONGO[("MongoDB CT121\nraw store\nHTML · JSON · PDFs")]:::red
 
     subgraph GUT ["GUT — Processing & Inference"]
-        direction TB
-        G1["Extract\nUnstructured CT117\nTika CT115"]
-        G2["Embed + index\nQdrant CT102\nnomic-embed-text 768-dim"]
-        G3["Infer\nLangGraph CT119\nLiteLLM CT205 → Groq"]
-        G4["Score + stamp\nconfidence fusion\nEDRM evidence record"]
+        G1["Unstructured CT117  text extraction"]:::green
+        G2["Tika CT115  binary docs"]:::green
+        G3["LangGraph CT119  orchestration"]:::green
+        G4["LiteLLM CT205  Groq inference"]:::green
+        G5["Qdrant CT102  vector search"]:::green
+        G6["Langfuse CT112  LLM audit trail"]:::orange
+        G7["Confidence scorer  multi-signal fusion"]:::red
+        G8["EDRM evidence stamp"]:::red
     end
 
-    KG[("Knowledge graph\nNeo4j CT114\nnodes · edges\nconfidence · evidence")]
+    NEO4J[("Neo4j CT114\nKnowledge Graph\nconfidence · evidence")]:::green
 
     subgraph PRESENTATION ["PRESENTATION — Output"]
-        direction TB
-        P1["Map\nKepler.gl geographic arcs"]
-        P2["Graph\nNeo4j Bloom · NeoDash CT130"]
-        P3["Report\nEDRM PDF → EU authority"]
+        P1["NeoDash CT130  analytics dashboard"]:::green
+        P2["Superset CT206  SQL dashboards"]:::green
+        P3["Metabase CT202  alternative dashboards"]:::green
+        P4["Kepler.gl  geographic arc map"]:::red
+        P5["Neo4j Bloom  graph exploration"]:::red
+        P6["EDRM Report → EU authority"]:::red
     end
 
     EXT --> MOUTH
-    MOUTH --> RAW
-    RAW --> GUT
-    GUT --> KG
-    KG --> PRESENTATION
+    MOUTH --> MONGO
+    MONGO --> GUT
+    GUT --> NEO4J
+    NEO4J --> PRESENTATION
 ```
 
 ---
 
 ### Organ 1 — The Mouth (Ingestion)
 
-Runs on its own schedule. Output: raw documents in MongoDB CT121.
-The gut is not involved. The mouth does not parse or infer — it only collects.
+Runs on its own schedule. Does not parse, infer, or score — only collects and stores raw.
+
+| | Item | Format |
+|--|------|--------|
+| **In** | Company name / SKU / barcode | Plain text |
+| **In** | Cron schedule | Time trigger (n8n) |
+| **In** | Researcher-provided URLs | Plain text |
+| **Out** | Scraped HTML pages | UTF-8 string + `{source_url, timestamp, sha256}` |
+| **Out** | Downloaded PDFs / XLS / DOC | Binary + `{filename, sha256, mime_type}` |
+| **Out** | Trade flow records | JSON — `{hs_code, reporter, partner, value, year}` |
+| **Out** | Bill-of-lading records | JSON — `{shipper, consignee, goods_description, port}` |
+| **Out** | Facility records | JSON — `{name, lat, lon, country, certifications[]}` |
+| **Out** | News/violation events | JSON — `{actor, location, event_type, date, url}` |
+| **Out** | Company ownership records | JSON — `{lei, name, parent_lei, subsidiaries[]}` |
+| **Store** | All outputs | MongoDB CT121 — collection `raw_scrapes` |
 
 ```mermaid
 flowchart TD
-    subgraph TRIGGER ["Trigger sources"]
-        T1["n8n cron\nMonday 06:00"]
-        T2["Researcher request\ncompany name / barcode"]
-        T3["Scheduled API poll\ndaily GDELT · weekly Comtrade"]
-    end
+    classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff
+    classDef orange fill:#7a4500,stroke:#5a3000,color:#fff
+    classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff
 
-    subgraph SCRAPE ["Web scraping (Browserless CT400 / CT306)"]
-        T1 & T2 --> RESOLVE["Resolve company identity\nGS1 barcode → brand owner\nOpenCorporates → LEI → subsidiaries\nGLEIF → parent company graph"]
-        RESOLVE --> URLS["Build URL list\nsupplier disclosure pages\nannual report PDFs\nsustainability report links"]
-        URLS --> JS["Scrape JS-rendered pages\nPOST /scrape  port 3500\nwait_for: 1000ms"]
-        JS --> FALLBACK{"CT400\nreachable?"}
-        FALLBACK -->|Yes| STORE_HTML["Store raw HTML\n+ timestamp + URL"]
-        FALLBACK -->|No| CT306["Fallback: CT306\n10.0.3.106:3500"]
-        CT306 --> STORE_HTML
-    end
+    T1["n8n cron  CT104\nMonday 06:00"]:::orange
+    T2["Researcher request\ncompany name / barcode / URL"]:::green
+    T3["Scheduled API poll\ndaily GDELT · weekly Comtrade"]:::red
 
-    subgraph APIS ["Structured data pulls (n8n CT104)"]
-        T3 --> COMTRADE["UN Comtrade API\ntrade flows by HS code + country"]
-        T3 --> IMPORTYETI["ImportYeti\nUS bill-of-lading: exact shipments"]
-        T3 --> OSH["OpenSupplyHub API\n900k verified facilities + GPS"]
-        T3 --> GDELT["GDELT API\nnews events · violation incidents"]
-        T3 --> ILO["ILO NORMLEX\nlabor violations by country/sector"]
-        COMTRADE & IMPORTYETI & OSH & GDELT & ILO --> STORE_JSON["Store raw JSON\n+ source tag + timestamp"]
-    end
+    T1 & T2 --> RESOLVE["Resolve company identity\nGS1 → brand owner\nOpenCorporates → LEI\nGLEIF → parent graph"]:::red
 
-    subgraph UPLOAD ["Manual upload (researcher)"]
-        T2 --> UPLOAD_PDF["Researcher drops\nPDF · XLS · DOCX\ninto Kotaemon CT120"]
-        UPLOAD_PDF --> STORE_DOC["Store binary + metadata\noriginal filename + SHA256"]
-    end
+    RESOLVE --> URLS["Build URL list\nsupplier pages · annual reports\nsustainability filings"]:::green
 
-    STORE_HTML & STORE_JSON & STORE_DOC --> MONGO[("MongoDB CT121\n10.0.1.121:27017\nraw_scrapes collection")]
-    MONGO --> SIGNAL["Signal gut:\nnew documents ready"]
+    URLS --> SCRAPE["Scrape JS-rendered pages\nBrowserless CT400  POST /scrape\nwait_for: 1000ms"]:::green
+
+    SCRAPE --> FALLBACK{CT400 up?}
+    FALLBACK -->|Yes| HTML["Raw HTML\n+ timestamp + URL"]:::green
+    FALLBACK -->|No| FB["Fallback: Browserless CT306\n10.0.3.106:3500"]:::green
+    FB --> HTML
+
+    T3 --> APIS["Pull structured data\nUN Comtrade · ImportYeti\nOpenSupplyHub · GDELT · ILO"]:::red
+
+    T2 --> MANUAL["Researcher uploads\nPDF · XLS · DOCX\nvia Kotaemon CT120"]:::orange
+
+    HTML & APIS & MANUAL --> MONGO[("MongoDB CT121\n10.0.1.121:27017\nraw_scrapes")]:::red
 ```
 
 ---
 
 ### Organ 2 — The Gut (Processing & Inference)
 
-Triggered by new documents in MongoDB. Extracts, infers, scores, evidence-stamps.
-Output: structured nodes + edges in Neo4j CT114.
-Loops until depth limit or no new nodes found.
+Triggered by new documents in MongoDB. Loops until depth limit or no new nodes found.
+
+| | Item | Format |
+|--|------|--------|
+| **In** | Raw HTML | UTF-8 string — multipart POST to Unstructured CT117 |
+| **In** | Binary documents (PDF/XLS/DOC) | Binary — PUT to Tika CT115 |
+| **In** | Structured JSON (trade/facility/news) | JSON — parsed directly by LangGraph |
+| **Out** | Text elements | JSON array — `[{text, type, metadata}]` from Unstructured |
+| **Out** | 768-dim embeddings | `float[]` — nomic-embed-text via LiteLLM, upserted to Qdrant |
+| **Out** | Inferred relationships | JSON array — `[{name, country, tier, supplies, confidence}]` |
+| **Out** | Supplier / RawMaterial nodes | Neo4j MERGE — `{name, country, tier, confidence, inferred, signals[]}` |
+| **Out** | SUPPLIED\_BY / SOURCED\_FROM edges | Neo4j MERGE — `{confidence, inferred: true, source}` |
+| **Out** | EvidenceClaim nodes | Neo4j MERGE — `{source_url, sha256, timestamp, method_version}` |
+| **Store** | Nodes + edges + evidence | Neo4j CT114 + Qdrant CT102 (embeddings) |
 
 ```mermaid
 flowchart TD
-    IN[("MongoDB CT121\nnew raw documents")] --> LANGGRAPH
+    classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff
+    classDef orange fill:#7a4500,stroke:#5a3000,color:#fff
+    classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff
 
-    subgraph LANGGRAPH ["LangGraph CT119 — orchestrates the loop"]
+    IN[("MongoDB CT121\nnew raw documents")]:::red
 
-        subgraph EXTRACT ["Step 1 — Extract"]
-            E1["HTML/PDF → Unstructured CT117\nmultipart/form-data  POST /general/v0/general\nreturns structured text elements"]
-            E2["Binary docs → Tika CT115\nXLS · DOC · PPTX  PUT /tika\nreturns plain text"]
-        end
+    ORCH["LangGraph CT119\norchestrates the loop"]:::green
 
-        subgraph EMBED ["Step 2 — Embed & Index"]
-            EM1["Chunk text\n512-token windows"]
-            EM2["Generate embeddings\nLiteLLM CT205 → nomic-embed-text\n768 dimensions"]
-            EM3["Upsert into Qdrant CT102\ncollection: supplier_docs\nfor semantic search"]
-        end
+    EXTRACT["Step 1 — Extract text\nHTML/PDF → Unstructured CT117\nbinary → Tika CT115"]:::green
 
-        subgraph INFER ["Step 3 — Infer Relationships"]
-            I1["LiteLLM CT205 → Groq llama-3.3-70b\nprompt: extract supplier relationships\nfrom text as JSON array"]
-            I2["Semantic search Qdrant\n'who supplies X?' → retrieve similar docs\ncross-validate inferred entities"]
-        end
+    EMBED["Step 2 — Embed + index\nLiteLLM CT205 → nomic-embed-text\n768-dim → Qdrant CT102"]:::green
 
-        subgraph SCORE ["Step 4 — Confidence Score Fusion"]
-            S1["Trade signal  ×0.30\nComtrade + bill-of-lading match"]
-            S2["Facility signal  ×0.25\nOpenSupplyHub GPS hit"]
-            S3["Corporate signal  ×0.20\nOpenCorporates / GLEIF match"]
-            S4["Document signal  ×0.15\nfound in annual report / filing"]
-            S5["News signal  ×0.10\nGDELT event corroborates"]
-            S1 & S2 & S3 & S4 & S5 --> FUSE["Weighted sum\n+ uncertainty band"]
-        end
+    INFER["Step 3 — Infer relationships\nLiteLLM CT205 → Groq llama-3.3-70b\nreturns JSON array of supplier links"]:::green
 
-        subgraph EDRM ["Step 5 — EDRM Evidence Stamp"]
-            EV1["Create EvidenceClaim node\nURL · SHA256 · timestamp\ninference method version"]
-            EV2["Link: EvidenceClaim\n-[:EVIDENCE_FOR]->\nSupplier / RawMaterial node"]
-            EV3["Log to Langfuse CT112\nfull LLM trace for audit"]
-        end
+    SCORE["Step 4 — Score confidence\nTrade ×0.30  Facility ×0.25\nCorporate ×0.20  Docs ×0.15  News ×0.10\nweighted sum + uncertainty band"]:::red
 
-        subgraph WRITE ["Step 6 — Write to Graph"]
-            W1["MERGE Supplier / RawMaterial nodes\nMERGE SUPPLIED_BY / SOURCED_FROM edges\nset confidence · inferred: true"]
-            W2["Apply risk flags\nSINGLE_SOURCE\nGEOPOLITICAL_RISK\nCBAM · LkSG · EUDR"]
-            W3{New nodes\nfound and\ndepth < limit?}
-            W3 -->|Yes — go deeper| EXTRACT
-            W3 -->|Done| OUT
-        end
+    STAMP["Step 5 — EDRM evidence stamp\nURL · SHA256 · timestamp\ninference method version\nlog to Langfuse CT112"]:::red
 
-    end
+    WRITE["Step 6 — MERGE into Neo4j CT114\nSupplier / RawMaterial nodes\nSUPPLIED_BY / SOURCED_FROM edges\nconfidence · inferred: true"]:::green
 
-    EXTRACT --> EMBED --> INFER --> SCORE --> EDRM --> WRITE
-    OUT[("Neo4j CT114\nnodes + edges\nconfidence + evidence")]
+    FLAGS["Step 7 — Apply risk flags\nSINGLE_SOURCE · GEOPOLITICAL_RISK\nCBAM · LkSG · EUDR"]:::green
+
+    LOOP{New nodes found\nand depth < limit?}
+    OUT[("Neo4j CT114\nnodes + edges\nconfidence + evidence")]:::green
+
+    IN --> ORCH --> EXTRACT --> EMBED --> INFER --> SCORE --> STAMP --> WRITE --> FLAGS --> LOOP
+    LOOP -->|"Yes — go deeper"| EXTRACT
+    LOOP -->|Done| OUT
 ```
 
 ---
 
 ### Organ 3 — The Presentation Layer
 
-Reads Neo4j on demand. Three independent interfaces for three use cases.
-Regulatory report path is the end-to-end research output.
+Reads Neo4j on demand. Three independent interfaces, one per research use case.
+
+| | Item | Format |
+|--|------|--------|
+| **In** | Supply chain graph | Cypher query results from Neo4j CT114 |
+| **In** | Semantic search results | Qdrant similarity query — top-k chunks |
+| **Out** | Geographic arc map | Browser UI — Kepler.gl: nodes + arcs + evidence panel |
+| **Out** | Graph topology view | Browser UI — NeoDash CT130 / Neo4j Bloom |
+| **Out** | SQL analytics dashboard | Browser UI — Superset CT206 / Metabase CT202 |
+| **Out** | EDRM regulatory report | PDF — every claim hashed and traceable |
+| **Out** | BPMN process export | XML — bpmn.io format for regulatory submission |
 
 ```mermaid
 flowchart TD
-    KG[("Neo4j CT114\nknowledge graph")]
+    classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff
+    classDef orange fill:#7a4500,stroke:#5a3000,color:#fff
+    classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff
 
-    subgraph MAP ["Interface 1 — Geographic Map (Kepler.gl)"]
-        KG --> K1["Export supplier nodes\nwith lat/lon + risk flags"]
-        K1 --> K2["Kepler.gl arc layer\nnode = facility  arc = material flow\ncolor = risk  opacity = confidence"]
-        K2 --> K3["Click node → evidence panel\nall sources for this supplier"]
-    end
+    KG[("Neo4j CT114\nknowledge graph")]:::green
 
-    subgraph GRAPH ["Interface 2 — Knowledge Graph (Neo4j Bloom / NeoDash CT130)"]
-        KG --> B1["Graph topology view\nshortest path · shared suppliers\nbottleneck detection · community clusters"]
-        KG --> B2["NeoDash analytics\nsupplier count by country\ntier distribution · risk heatmap\nlocal: http://localhost:15005"]
-    end
+    KG --> MAP_EXP["Export nodes with lat/lon\n+ risk flags + confidence"]:::red
+    MAP_EXP --> KEPLER["Kepler.gl  geographic map\nnode = facility · arc = flow\ncolor = risk · opacity = confidence\nclick → evidence panel"]:::red
 
-    subgraph REPORT ["Interface 3 — Research Report & Regulatory Filing"]
-        KG --> R1["Researcher reviews inferred nodes\nconfirm / reject / flag"]
-        R1 --> R2["Retrieve EDRM package\nURL · SHA256 · signal weights\nfor each flagged node"]
-        R2 --> R3{Violation +\nalternative\nevident?}
-        R3 -->|Yes| R4["Draft report\nLiteLLM CT205\nEU CSDD / LkSG / UK Modern Slavery"]
-        R3 -->|Monitor| R5["Archive case\nn8n weekly re-check"]
-        R4 --> R6["Researcher review\nadd context + annotations"]
-        R6 --> R7(["Submit to European Commission\nor national authority"])
-        R7 --> R8["Fine issued\ncompany implements improvement\nworld slightly better"]
-    end
+    KG --> GRAPH_EXP["Graph topology queries\nCypher: shortest path\nshared suppliers · bottlenecks"]:::green
+    GRAPH_EXP --> NEODASH["NeoDash CT130\nlocalhost:15005\nsupplier count · tier pie · heatmap"]:::green
+    GRAPH_EXP --> BLOOM["Neo4j Bloom\ngraph exploration\ncommunity detection"]:::red
+
+    KG --> REVIEW["Researcher reviews\ninferred nodes\nconfirm / reject / flag"]:::green
+    REVIEW --> EDRM_PKG["Retrieve EDRM package\nURL · SHA256 · signal weights\nper flagged node"]:::red
+    EDRM_PKG --> JUDGE{Violation +\nalternative\nevident?}
+    JUDGE -->|Yes| REPORT["Draft EDRM report\nLiteLLM CT205\nEU CSDD · LkSG · UK Modern Slavery"]:::red
+    JUDGE -->|Monitor| ARCHIVE["Archive case\nn8n weekly re-check"]:::orange
+    REPORT --> SUBMIT(["Submit to\nEuropean Commission\nor national authority"]):::red
 ```
 
 ---
@@ -209,68 +223,81 @@ flowchart TD
 
 Services grouped by organ. All on internal Proxmox subnets — VPN required from workstation.
 
+**Color key:** green = confirmed working · orange = service up, integration incomplete · red = not yet built/deployed
+
 ```mermaid
 graph TB
+    classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff
+    classDef orange fill:#7a4500,stroke:#5a3000,color:#fff
+    classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff
+    classDef store  fill:#1a3a5c,stroke:#0d2640,color:#fff
+
     subgraph WS ["Researcher Workstation"]
-        BROWSER[Browser]
-        TUNNELS["SSH Tunnels\n-L 15005 NeoDash\n-L 17474 Neo4j HTTP\n-L 17687 Neo4j Bolt"]
+        BROWSER[Browser]:::green
+        TUNNELS["SSH Tunnels\n-L 15005 NeoDash\n-L 17474 Neo4j HTTP\n-L 17687 Neo4j Bolt"]:::green
         BROWSER --- TUNNELS
     end
 
     subgraph MOUTH_INFRA ["MOUTH — Ingestion services"]
-        CT104["n8n  CT104\n10.0.1.104:5678\ncron scheduler\nOSINT API pulls"]
-        CT400["Browserless  CT400\n10.0.5.100:3500\nJS scraper  prod\nPOST /scrape"]
-        CT306["Browserless  CT306\n10.0.3.106:3500\nJS scraper  acc fallback"]
-        CT121["MongoDB  CT121\n10.0.1.121:27017\nraw_scrapes store"]
-        CT120["Kotaemon  CT120\n10.0.1.120:8501\nmanual PDF upload + RAG"]
+        CT400["Browserless  CT400\n10.0.5.100:3500\nJS scraper  prod\nPOST /scrape"]:::green
+        CT306["Browserless  CT306\n10.0.3.106:3500\nJS scraper  acc fallback"]:::green
+        CT104["n8n  CT104\n10.0.1.104:5678\ncron scheduler\nOSINT API pulls"]:::orange
+        CT120["Kotaemon  CT120\n10.0.1.120:8501\nmanual PDF upload + RAG"]:::orange
+        CT121["MongoDB  CT121\n10.0.1.121:27017\nraw_scrapes store"]:::red
     end
 
     subgraph GUT_INFRA ["GUT — Processing services"]
-        CT119["LangGraph  CT119\n10.0.1.119:8000\norchestrates the loop"]
-        CT117["Unstructured  CT117\n10.0.1.117:8000\nHTML/PDF text extraction\nmultipart/form-data"]
-        CT115["Tika  CT115\n10.0.1.115:9998\nbinary doc parser\nXLS · DOC · PPTX"]
-        CT205["LiteLLM  CT205\n10.0.2.205:4000\nLLM proxy + embeddings\nGroq llama-3.3-70b"]
-        CT102["Qdrant  CT102\n10.0.1.102:6333\nvector store\n768-dim embeddings"]
-        CT112["Langfuse  CT112\n10.0.1.112:3000\nLLM trace + EDRM audit"]
+        CT119["LangGraph  CT119\n10.0.1.119:8000\norchestrates the loop"]:::green
+        CT117["Unstructured  CT117\n10.0.1.117:8000\nHTML/PDF text extraction"]:::green
+        CT115["Tika  CT115\n10.0.1.115:9998\nbinary doc parser"]:::green
+        CT205["LiteLLM  CT205\n10.0.2.205:4000\nGroq llama-3.3-70b"]:::green
+        CT102["Qdrant  CT102\n10.0.1.102:6333\nvector store  768-dim"]:::green
+        CT112["Langfuse  CT112\n10.0.1.112:3000\nLLM trace + audit"]:::orange
+        SCORER["Confidence scorer\nmulti-signal fusion"]:::red
+        EDRM_SVC["EDRM evidence stamp\nreport generator"]:::red
     end
 
     subgraph STORE ["Knowledge Store"]
-        CT114["Neo4j  CT114\n10.0.1.114:7474 / :7687\nKnowledge Graph\nSUPPLIED_BY · SOURCED_FROM\nEvidenceClaim nodes"]
-        CT100["PostgreSQL  CT100\n10.0.1.100:5432\nknopenkonings DB\nstructured entity table"]
+        CT114["Neo4j  CT114\n10.0.1.114:7474 / :7687\nKnowledge Graph"]:::store
+        CT100["PostgreSQL  CT100\n10.0.1.100:5432\nknopenkonings DB"]:::orange
     end
 
     subgraph PRES_INFRA ["PRESENTATION — Output services"]
-        CT130["NeoDash  CT130\n10.0.1.130:5005\nanalytics dashboard\ntunnel → localhost:15005"]
-        CT206["Superset  CT206\n10.0.2.206:8088\nSQL dashboards"]
-        CT202["Metabase  CT202\n10.0.2.202:3000\nalternative dashboards"]
+        CT130["NeoDash  CT130\n10.0.1.130:5005\nanalytics dashboard"]:::green
+        CT206["Superset  CT206\n10.0.2.206:8088\nSQL dashboards"]:::green
+        CT202["Metabase  CT202\n10.0.2.202:3000\nalternative dashboards"]:::green
+        KEPLER["Kepler.gl\ngeographic arc map"]:::red
+        BLOOM["Neo4j Bloom\ngraph exploration"]:::red
     end
 
-    subgraph EXT ["External"]
-        GROQ["Groq API\nllama-3.3-70b"]
-        COMTRADE["UN Comtrade"]
-        IMPORTYETI["ImportYeti"]
-        OSH["OpenSupplyHub"]
-        GDELT["GDELT API"]
-        GLEIF["GLEIF / OpenCorporates"]
+    subgraph EXT ["External services"]
+        GROQ["Groq API\nllama-3.3-70b"]:::green
+        COMTRADE["UN Comtrade API"]:::red
+        IMPORTYETI["ImportYeti\nbill-of-lading"]:::red
+        OSH["OpenSupplyHub API"]:::red
+        GDELT["GDELT API"]:::red
+        GLEIF["GLEIF / OpenCorporates"]:::red
     end
 
     TUNNELS --> CT130
     TUNNELS --> CT114
 
+    CT400 --> CT121
+    CT306 --> CT121
     CT104 --> CT400
     CT104 --> COMTRADE & IMPORTYETI & OSH & GDELT & GLEIF
     CT104 --> CT119
-    CT400 --> CT121
-    CT306 --> CT121
 
-    CT119 --> CT117 & CT115 & CT102 & CT205 & CT112
-    CT119 --> CT114
     CT121 --> CT119
+    CT119 --> CT117 & CT115 & CT102 & CT205 & CT112
+    CT119 --> SCORER --> EDRM_SVC
+    CT119 --> CT114
 
     CT205 --> GROQ
     CT120 --> CT205 & CT114
 
     CT114 --> CT130 & CT206 & CT202 & CT100
+    CT114 --> KEPLER & BLOOM
 ```
 
 ---
