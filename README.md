@@ -221,83 +221,70 @@ flowchart TD
 
 ## Infrastructure Map
 
-Services grouped by organ. All on internal Proxmox subnets — VPN required from workstation.
+Data flows top to bottom through three organ layers. IPs in the Services table below.
 
 **Color key:** green = confirmed working · orange = service up, integration incomplete · red = not yet built/deployed
 
 ```mermaid
-graph TB
+flowchart TB
     classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff
     classDef orange fill:#7a4500,stroke:#5a3000,color:#fff
     classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff
     classDef store  fill:#1a3a5c,stroke:#0d2640,color:#fff
 
-    subgraph WS ["Researcher Workstation"]
-        BROWSER[Browser]:::green
-        TUNNELS["SSH Tunnels\n-L 15005 NeoDash\n-L 17474 Neo4j HTTP\n-L 17687 Neo4j Bolt"]:::green
-        BROWSER --- TUNNELS
+    WS["Researcher  VPN + SSH tunnels"]:::green
+
+    subgraph EXT ["External APIs"]
+        direction LR
+        GROQ["Groq API"]:::green
+        OSINT_APIS["UN Comtrade · ImportYeti · OpenSupplyHub · GDELT · GLEIF"]:::red
     end
 
-    subgraph MOUTH_INFRA ["MOUTH — Ingestion services"]
-        CT400["Browserless  CT400\n10.0.5.100:3500\nJS scraper  prod\nPOST /scrape"]:::green
-        CT306["Browserless  CT306\n10.0.3.106:3500\nJS scraper  acc fallback"]:::green
-        CT104["n8n  CT104\n10.0.1.104:5678\ncron scheduler\nOSINT API pulls"]:::orange
-        CT120["Kotaemon  CT120\n10.0.1.120:8501\nmanual PDF upload + RAG"]:::orange
-        CT121["MongoDB  CT121\n10.0.1.121:27017\nraw_scrapes store"]:::red
+    subgraph MOUTH ["MOUTH — Ingestion"]
+        direction LR
+        CT400["Browserless CT400"]:::green
+        CT306["Browserless CT306"]:::green
+        CT104["n8n CT104"]:::orange
+        CT120["Kotaemon CT120"]:::orange
     end
 
-    subgraph GUT_INFRA ["GUT — Processing services"]
-        CT119["LangGraph  CT119\n10.0.1.119:8000\norchestrates the loop"]:::green
-        CT117["Unstructured  CT117\n10.0.1.117:8000\nHTML/PDF text extraction"]:::green
-        CT115["Tika  CT115\n10.0.1.115:9998\nbinary doc parser"]:::green
-        CT205["LiteLLM  CT205\n10.0.2.205:4000\nGroq llama-3.3-70b"]:::green
-        CT102["Qdrant  CT102\n10.0.1.102:6333\nvector store  768-dim"]:::green
-        CT112["Langfuse  CT112\n10.0.1.112:3000\nLLM trace + audit"]:::orange
-        SCORER["Confidence scorer\nmulti-signal fusion"]:::red
-        EDRM_SVC["EDRM evidence stamp\nreport generator"]:::red
+    MONGO[("MongoDB CT121  —  raw store")]:::red
+
+    subgraph GUT ["GUT — Processing & Inference"]
+        direction LR
+        CT119["LangGraph CT119"]:::green
+        CT117["Unstructured CT117"]:::green
+        CT115["Tika CT115"]:::green
+        CT205["LiteLLM CT205"]:::green
+        CT102["Qdrant CT102"]:::green
+        CT112["Langfuse CT112"]:::orange
     end
 
-    subgraph STORE ["Knowledge Store"]
-        CT114["Neo4j  CT114\n10.0.1.114:7474 / :7687\nKnowledge Graph"]:::store
-        CT100["PostgreSQL  CT100\n10.0.1.100:5432\nknopenkonings DB"]:::orange
+    subgraph KSTORE ["Knowledge Store"]
+        direction LR
+        CT114["Neo4j CT114"]:::store
+        CT100["PostgreSQL CT100"]:::orange
     end
 
-    subgraph PRES_INFRA ["PRESENTATION — Output services"]
-        CT130["NeoDash  CT130\n10.0.1.130:5005\nanalytics dashboard"]:::green
-        CT206["Superset  CT206\n10.0.2.206:8088\nSQL dashboards"]:::green
-        CT202["Metabase  CT202\n10.0.2.202:3000\nalternative dashboards"]:::green
-        KEPLER["Kepler.gl\ngeographic arc map"]:::red
-        BLOOM["Neo4j Bloom\ngraph exploration"]:::red
+    subgraph PRES ["PRESENTATION — Output"]
+        direction LR
+        CT130["NeoDash CT130"]:::green
+        CT206["Superset CT206"]:::green
+        CT202["Metabase CT202"]:::green
+        KEPLER["Kepler.gl"]:::red
+        BLOOM["Neo4j Bloom"]:::red
+        EDRM_RPT["EDRM Report"]:::red
     end
 
-    subgraph EXT ["External services"]
-        GROQ["Groq API\nllama-3.3-70b"]:::green
-        COMTRADE["UN Comtrade API"]:::red
-        IMPORTYETI["ImportYeti\nbill-of-lading"]:::red
-        OSH["OpenSupplyHub API"]:::red
-        GDELT["GDELT API"]:::red
-        GLEIF["GLEIF / OpenCorporates"]:::red
-    end
-
-    TUNNELS --> CT130
-    TUNNELS --> CT114
-
-    CT400 --> CT121
-    CT306 --> CT121
-    CT104 --> CT400
-    CT104 --> COMTRADE & IMPORTYETI & OSH & GDELT & GLEIF
-    CT104 --> CT119
-
-    CT121 --> CT119
-    CT119 --> CT117 & CT115 & CT102 & CT205 & CT112
-    CT119 --> SCORER --> EDRM_SVC
-    CT119 --> CT114
-
+    EXT --> MOUTH
+    MOUTH --> MONGO
+    MONGO --> GUT
     CT205 --> GROQ
-    CT120 --> CT205 & CT114
-
-    CT114 --> CT130 & CT206 & CT202 & CT100
-    CT114 --> KEPLER & BLOOM
+    CT104 --> OSINT_APIS
+    GUT --> KSTORE
+    KSTORE --> PRES
+    WS -.->|SSH tunnel| KSTORE
+    WS -.->|SSH tunnel| PRES
 ```
 
 ---
