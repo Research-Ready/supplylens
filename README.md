@@ -349,37 +349,197 @@ Or read directly: `ssh root@10.0.1.114 "cat /root/.credentials/neo4j.txt"`
 
 ---
 
-## Neo4j Graph Schema
+## Data Model
+
+Three stores, each owned by one organ.
+
+---
+
+### Neo4j — Knowledge Graph (CT114)
+
+Central store. Written by the Gut, read by Presentation.
+
+```mermaid
+erDiagram
+    Product {
+        string sku PK
+        string name
+        string category
+    }
+    Supplier {
+        string name PK
+        string country
+        int    tier
+        string website
+        float  confidence
+        bool   inferred
+        array  risk_flags
+        string lei
+    }
+    RawMaterial {
+        string name PK
+        string origin
+        string material_type
+        float  confidence
+        bool   inferred
+    }
+    Company {
+        string name PK
+        string country
+        string industry
+        string lei
+        string parent_lei
+    }
+    Certificate {
+        string name PK
+        string issuer
+        string standard
+        date   valid_until
+    }
+    EvidenceClaim {
+        string id PK
+        string source_url
+        string sha256
+        string method
+        string method_version
+        float  confidence
+        array  signals
+        datetime collected_at
+    }
+    Event {
+        string id PK
+        string event_type
+        string severity
+        date   date
+        string description
+        string source_url
+    }
+    FinancialAlert {
+        string id PK
+        string alert_type
+        string severity
+        float  value
+        string metric
+        date   date
+    }
+
+    Product        ||--o{  Supplier       : "SUPPLIED_BY"
+    Supplier       ||--o{  Supplier       : "SOURCED_FROM"
+    Supplier       ||--o{  RawMaterial    : "SOURCED_FROM"
+    Supplier       ||--o{  Certificate    : "CERTIFIED_BY"
+    Supplier       }o--||  Company        : "OWNED_BY"
+    Company        }o--o|  Company        : "SUBSIDIARY_OF"
+    EvidenceClaim  }o--o{  Supplier       : "EVIDENCE_FOR"
+    EvidenceClaim  }o--o{  RawMaterial    : "EVIDENCE_FOR"
+    Supplier       ||--o{  Event          : "AFFECTED_BY"
+    Supplier       ||--o{  FinancialAlert : "HAS_ALERT"
+```
+
+**Relationship properties:**
+
+| Relationship | Key properties |
+|---|---|
+| `SUPPLIED_BY` | `since` (year), `contract_value` (EUR) |
+| `SOURCED_FROM` | `confidence` (0–1), `inferred` (bool), `source` (string), `volume_kg_year` |
+| `EVIDENCE_FOR` | `signal_weight` (float), `reviewed_by` (researcher ID) |
+| `AFFECTED_BY` | `impact_severity` (LOW/MEDIUM/HIGH/CRITICAL) |
+
+**Traversal query:**
 
 ```cypher
-// Node types
-(p:Product   {name, sku, category})
-(s:Supplier  {name, country, website, tier, risk_flags[]})
-(r:RawMaterial {name, origin, material_type})
-(c:Company   {name, country, industry})
-(cert:Certificate {name, issuer, valid_until})
-(ev:EvidenceClaim {source_url, sha256, timestamp, confidence, signals[]})
-
-// Relationships
-(p)-[:SUPPLIED_BY  {since, contract_value}]->(s)
-(s)-[:SOURCED_FROM {volume_kg_year, confidence, inferred}]->(r|s)
-(s)-[:CERTIFIED_BY]->(cert)
-(s)-[:OWNED_BY]->(c)
-(c)-[:SUBSIDIARY_OF]->(c)
-(ev)-[:EVIDENCE_FOR]->(s|r)
-
-// Traversal pattern
 MATCH path = (p:Product {sku: $sku})-[:SUPPLIED_BY|SOURCED_FROM*1..3]->(n)
 RETURN [node in nodes(path) | coalesce(node.name, node.sku)] AS chain,
        length(path) AS depth
 ORDER BY depth
 ```
 
+**Risk flags written to `Supplier.risk_flags[]`:**
+
+| Flag | Condition |
+|---|---|
+| `SINGLE_SOURCE` | Only 1 inbound `SUPPLIED_BY` edge |
+| `GEOPOLITICAL_RISK` | `country IN [CN, RU, IR, BY]` |
+| `CBAM` | Supplier in carbon-border-tax scope |
+| `LkSG` | German Supply Chain Due Diligence Act applies |
+| `EUDR` | EU Deforestation Regulation commodity |
+
 ---
 
-## Confidence Score Model
+### MongoDB — Raw Store (CT121)
 
-Every inferred node carries a weighted confidence score from 5 OSINT signals:
+Written by Mouth, read by Gut. One document per collected item.
+
+```json
+{
+  "_id":          "ObjectId",
+  "source_url":   "https://...",
+  "source_type":  "web_scrape | api_pull | manual_upload",
+  "api_source":   "un_comtrade | importyeti | opensupplyhub | gdelt | gleif | null",
+  "company_query":"Scania AB",
+  "content":      "<html>...</html>  |  { trade flow JSON }  |  <binary ref>",
+  "content_type": "text/html | application/json | application/pdf | application/vnd.ms-excel",
+  "filename":     "scania_annual_report_2024.pdf  |  null",
+  "sha256":       "a3f9...",
+  "collected_at": "2026-08-20T06:00:00Z",
+  "status":       "pending | processing | processed | failed",
+  "processed_at": "2026-08-20T06:03:42Z  |  null",
+  "error":        "null  |  'Tika timeout after 30s'"
+}
+```
+
+**Indexes:** `source_url` (unique), `status`, `company_query`, `collected_at`
+
+---
+
+### PostgreSQL — Structured Entity Table (CT100)
+
+Mirror of Neo4j Supplier nodes for SQL dashboarding (Superset / Metabase).
+Synced by `src/postgres_sync.py` after each Gut run.
+
+```sql
+CREATE TABLE suppliers (
+    id            SERIAL PRIMARY KEY,
+    neo4j_name    TEXT    NOT NULL,
+    country       CHAR(2),
+    tier          SMALLINT,
+    confidence    FLOAT,
+    inferred      BOOLEAN DEFAULT FALSE,
+    risk_flags    TEXT[],
+    lat           FLOAT,
+    lon           FLOAT,
+    website       TEXT,
+    last_synced   TIMESTAMPTZ,
+    created_at    TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE evidence_claims (
+    id             SERIAL PRIMARY KEY,
+    supplier_name  TEXT REFERENCES suppliers(neo4j_name),
+    source_url     TEXT NOT NULL,
+    sha256         CHAR(64) NOT NULL,
+    method         TEXT,
+    confidence     FLOAT,
+    collected_at   TIMESTAMPTZ,
+    reviewed_by    TEXT,
+    status         TEXT DEFAULT 'unreviewed'  -- unreviewed | confirmed | rejected | flagged
+);
+
+CREATE TABLE events (
+    id            SERIAL PRIMARY KEY,
+    supplier_name TEXT,
+    event_type    TEXT,
+    severity      TEXT,
+    event_date    DATE,
+    description   TEXT,
+    source_url    TEXT
+);
+```
+
+---
+
+### Confidence Score Model
+
+Every inferred node carries a weighted score fused from 5 OSINT signals:
 
 | Signal | Weight | Source |
 |--------|--------|--------|
