@@ -568,3 +568,44 @@ ssh -J root@10.0.0.16 root@10.0.1.114 "cypher-shell -u neo4j -p $NEO4J_PW" < exa
 - **xlsx** — parse/generate Excel supplier lists
 - **pdf** — extract data from supplier capability statements
 - **docx** — generate supply chain audit reports
+
+---
+
+## Credentials
+
+passwords.kdbx in this repo root — master: KEEPASS_MASTER_PASSWORD env var.
+
+```python
+import os
+from pykeepass import PyKeePass
+kp = PyKeePass('/home/chris/Nextcloud/Github/uc4-supply-chain/passwords.kdbx', password=os.environ['KEEPASS_MASTER_PASSWORD'])
+e = kp.find_entries(title='ENTRY_NAME', first=True)
+print(e.password)
+```
+
+Never ask user for passwords. Never prompt for credentials. Look them up first.
+
+---
+
+## SSH key reference
+
+| Key | Hosts | Command |
+|-----|-------|---------|
+| ~/.ssh/id_ed25519 | 10.0.0.16, all 10.0.1.x, all 10.0.2.x | `ssh -o ProxyJump=root@10.0.0.16 root@10.0.1.XX` |
+| ~/.ssh/proxmox_node3 | 10.0.0.17/18, 10.0.3.x, 10.0.5.x | ProxyCommand: `ssh -i ~/.ssh/proxmox_node3 -o "ProxyCommand=ssh -i ~/.ssh/proxmox_node3 -W %h:%p root@10.0.0.17" root@10.0.3.XX` |
+
+Both private key contents stored in passwords.kdbx → SSH Keys group.
+
+---
+
+## Skills to load
+
+| Skill | When |
+|-------|------|
+| systematic-debugging | Any service failure |
+| verification-before-completion | Before claiming a fix worked |
+| writing-plans | Before any multi-step change |
+| executing-plans | Following a written plan |
+| differential-review | Before committing changes |
+| ansible-generator + ansible-validator | Writing or updating Ansible roles |
+| keepass | Looking up credentials |
