@@ -600,6 +600,7 @@ Both private key contents stored in passwords.kdbx → SSH Keys group.
 
 ## Skills to load
 
+### Generic (all usecases)
 | Skill | When |
 |-------|------|
 | systematic-debugging | Any service failure |
@@ -608,4 +609,20 @@ Both private key contents stored in passwords.kdbx → SSH Keys group.
 | executing-plans | Following a written plan |
 | differential-review | Before committing changes |
 | ansible-generator + ansible-validator | Writing or updating Ansible roles |
-| keepass | Looking up credentials |
+| bash-script-generator + bash-script-validator | Deployment or test scripts |
+| subagent-driven-development | Parallel independent tasks |
+| mcp-builder | Building MCP tools for LangGraph supply chain agents |
+
+### UC4-specific
+| Skill | When |
+|-------|------|
+| python-pro | LangGraph nodes, Neo4j client, scraping pipeline |
+| llm-application-dev-langchain-agent | LangGraph agent development |
+| llm-ops | LiteLLM routing, embedding model config |
+| database-architect | Neo4j schema design (nodes, relationships, indexes) |
+| data-engineer | ETL pipeline from scraped data to Neo4j |
+| vector-database-engineer | Qdrant collection design for supplier docs |
+| n8n-code-python | n8n Code nodes for scheduled refresh |
+| python-testing-patterns | Testing Cypher queries, scraping pipeline |
+| data-storytelling | Superset/Metabase dashboard design |
+| context7-auto-research | Fetching Neo4j / LangGraph API docs |
