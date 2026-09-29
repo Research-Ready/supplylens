@@ -13,19 +13,19 @@ Given a product SKU or company name, the pipeline traverses its full supply chai
 
 | Service | Container | IP:Port | Role |
 |---------|-----------|---------|------|
-| Neo4j | CT114 | 10.0.1.114:7687 | Supply chain graph (primary store) |
-| LangGraph | CT119 | 10.0.1.119:8000 | Multi-step enrichment agent |
+| Neo4j | CT114 | localhost:7687 | Supply chain graph (primary store) |
+| LangGraph | CT119 | localhost:8000 | Multi-step enrichment agent |
 | Browserless (prod) | CT400 | 10.0.5.100:3500 | JS-rendered page scraping |
 | Browserless (acc) | CT306 | 10.0.3.106:3500 | Fallback scraper |
 | Unstructured | CT117 | 10.0.1.117:8000 | HTML/PDF text extraction |
 | Tika | CT115 | 10.0.1.115:9998 | Binary doc parsing (XLS, DOC) |
-| Qdrant | CT102 | 10.0.1.102:6333 | Supplier doc vector search |
-| LiteLLM | CT205 | 10.0.2.205:4000 | LLM: infer supply chain links |
-| PostgreSQL | CT100 | 10.0.1.100:5432 | Structured entity table (knopenkonings DB) |
+| Qdrant | CT102 | localhost:6333 | Supplier doc vector search |
+| LiteLLM | CT205 | localhost:4000 | LLM: infer supply chain links |
+| PostgreSQL | CT100 | localhost:5432 | Structured entity table (knopenkonings DB) |
 | Superset | CT206 | 10.0.2.206:8088 | SQL dashboards |
 | Metabase | CT202 | 10.0.2.202:3000 | Alternative dashboards |
-| n8n | CT104 | 10.0.1.104:5678 | Scheduled refresh pipeline |
-| Langfuse | CT112 | 10.0.1.112:3000 | LLM call tracing |
+| n8n | CT104 | localhost:5678 | Scheduled refresh pipeline |
+| Langfuse | CT112 | localhost:3100 | LLM call tracing |
 | MongoDB | CT121 | 10.0.1.121:27017 | Raw scraped data store |
 | Kotaemon | CT120 | 10.0.1.120:8501 | RAG chat over supplier PDFs |
 | Graphiti | CT124 | 10.0.1.124:8000 | Temporal knowledge graph memory |

@@ -1,0 +1,227 @@
+---
+title: "System Architecture"
+---
+
+SupplyLens is structured as three semi-independent organs. Each runs on its own schedule and communicates through well-defined interfaces. The mouth ingests continuously. The gut processes whenever raw data arrives. The presentation layer reads Neo4j on demand, independently of when either of the others last ran.
+
+**Color key:** green = confirmed working · orange = service up, integration incomplete · red = not yet built/deployed
+
+---
+
+## Organ 1 — The Mouth (Ingestion)
+
+The mouth runs on its own schedule. It does not parse, infer, or score — it only collects and stores raw material. Three trigger paths feed into a common MongoDB store.
+
+```{mermaid}
+flowchart TD
+    classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff
+    classDef orange fill:#7a4500,stroke:#5a3000,color:#fff
+    classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff
+
+    T1["n8n cron  CT104\nMonday 06:00"]:::orange
+    T2["Researcher request\ncompany name / barcode / URL"]:::green
+    T3["Scheduled API poll\ndaily GDELT · weekly Comtrade"]:::red
+
+    T1 & T2 --> RESOLVE["Resolve company identity\nGS1 → brand owner\nOpenCorporates → LEI\nGLEIF → parent graph"]:::red
+
+    RESOLVE --> URLS["Build URL list\nsupplier pages · annual reports\nsustainability filings"]:::green
+
+    URLS --> SCRAPE["Scrape JS-rendered pages\nBrowserless CT400  POST /scrape\nwait_for: 1000ms"]:::green
+
+    SCRAPE --> FALLBACK{CT400 up?}
+    FALLBACK -->|Yes| HTML["Raw HTML\n+ timestamp + URL"]:::green
+    FALLBACK -->|No| FB["Fallback: Browserless CT306\n10.0.3.106:3500"]:::green
+    FB --> HTML
+
+    T3 --> APIS["Pull structured data\nUN Comtrade · ImportYeti\nOpenSupplyHub · GDELT · ILO"]:::red
+
+    T2 --> MANUAL["Researcher uploads\nPDF · XLS · DOCX\nvia Kotaemon CT120"]:::orange
+
+    HTML & APIS & MANUAL --> MONGO[("MongoDB CT121\n10.0.1.121:27017\nraw_scrapes")]:::red
+```
+
+**Mouth I/O:**
+
+| Direction | Item | Format |
+|-----------|------|--------|
+| In | Company name / SKU / barcode | Plain text |
+| In | Cron schedule | Time trigger (n8n) |
+| In | Researcher-provided URLs | Plain text |
+| Out | Scraped HTML pages | UTF-8 string + `{source_url, timestamp, sha256}` |
+| Out | Downloaded PDFs / XLS / DOC | Binary + `{filename, sha256, mime_type}` |
+| Out | Trade flow records | JSON — `{hs_code, reporter, partner, value, year}` |
+| Out | Bill-of-lading records | JSON — `{shipper, consignee, goods_description, port}` |
+| Out | Facility records | JSON — `{name, lat, lon, country, certifications[]}` |
+| Out | News/violation events | JSON — `{actor, location, event_type, date, url}` |
+| Out | Company ownership records | JSON — `{lei, name, parent_lei, subsidiaries[]}` |
+| Store | All outputs | MongoDB CT121 — collection `raw_scrapes` |
+
+---
+
+## Organ 2 — The Gut (Processing & Inference)
+
+The gut is triggered by new documents arriving in MongoDB. It loops through extraction, embedding, inference, scoring, and graph writing until no new nodes are found or the depth limit is reached.
+
+```{mermaid}
+flowchart TD
+    classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff
+    classDef orange fill:#7a4500,stroke:#5a3000,color:#fff
+    classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff
+
+    IN[("MongoDB CT121\nnew raw documents")]:::red
+
+    ORCH["LangGraph CT119\norchestrates the loop"]:::green
+
+    EXTRACT["Step 1 — Extract text\nHTML/PDF → Unstructured CT117\nbinary → Tika CT115"]:::green
+
+    EMBED["Step 2 — Embed + index\nLiteLLM CT205 → nomic-embed-text\n768-dim → Qdrant CT102"]:::green
+
+    INFER["Step 3 — Infer relationships\nLiteLLM CT205 → Groq llama-3.3-70b\nreturns JSON array of supplier links"]:::green
+
+    SCORE["Step 4 — Score confidence\nTrade ×0.30  Facility ×0.25\nCorporate ×0.20  Docs ×0.15  News ×0.10\nweighted sum + uncertainty band"]:::red
+
+    STAMP["Step 5 — EDRM evidence stamp\nURL · SHA256 · timestamp\ninference method version\nlog to Langfuse CT112"]:::red
+
+    WRITE["Step 6 — MERGE into Neo4j CT114\nSupplier / RawMaterial nodes\nSUPPLIED_BY / SOURCED_FROM edges\nconfidence · inferred: true"]:::green
+
+    FLAGS["Step 7 — Apply risk flags\nSINGLE_SOURCE · GEOPOLITICAL_RISK\nCBAM · LkSG · EUDR"]:::green
+
+    LOOP{New nodes found\nand depth < limit?}
+    OUT[("Neo4j CT114\nnodes + edges\nconfidence + evidence")]:::green
+
+    IN --> ORCH --> EXTRACT --> EMBED --> INFER --> SCORE --> STAMP --> WRITE --> FLAGS --> LOOP
+    LOOP -->|"Yes — go deeper"| EXTRACT
+    LOOP -->|Done| OUT
+```
+
+**Gut I/O:**
+
+| Direction | Item | Format |
+|-----------|------|--------|
+| In | Raw HTML | UTF-8 string — multipart POST to Unstructured CT117 |
+| In | Binary documents (PDF/XLS/DOC) | Binary — PUT to Tika CT115 |
+| In | Structured JSON (trade/facility/news) | JSON — parsed directly by LangGraph |
+| Out | Text elements | JSON array — `[{text, type, metadata}]` from Unstructured |
+| Out | 768-dim embeddings | `float[]` — nomic-embed-text via LiteLLM, upserted to Qdrant |
+| Out | Inferred relationships | JSON array — `[{name, country, tier, supplies, confidence}]` |
+| Out | Supplier / RawMaterial nodes | Neo4j MERGE — `{name, country, tier, confidence, inferred, signals[]}` |
+| Out | SUPPLIED_BY / SOURCED_FROM edges | Neo4j MERGE — `{confidence, inferred: true, source}` |
+| Out | EvidenceClaim nodes | Neo4j MERGE — `{source_url, sha256, timestamp, method_version}` |
+| Store | Nodes + edges + evidence | Neo4j CT114 + Qdrant CT102 (embeddings) |
+
+---
+
+## Organ 3 — The Presentation Layer
+
+The presentation layer reads Neo4j on demand. Three independent interfaces serve three research use cases: geographic visualization, graph topology exploration, and regulatory report generation.
+
+```{mermaid}
+flowchart TD
+    classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff
+    classDef orange fill:#7a4500,stroke:#5a3000,color:#fff
+    classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff
+
+    KG[("Neo4j CT114\nknowledge graph")]:::green
+
+    KG --> MAP_EXP["Export nodes with lat/lon\n+ risk flags + confidence"]:::red
+    MAP_EXP --> KEPLER["Kepler.gl  geographic map\nnode = facility · arc = flow\ncolor = risk · opacity = confidence\nclick → evidence panel"]:::red
+
+    KG --> GRAPH_EXP["Graph topology queries\nCypher: shortest path\nshared suppliers · bottlenecks"]:::green
+    GRAPH_EXP --> NEODASH["NeoDash CT130\nlocalhost:15005\nsupplier count · tier pie · heatmap"]:::green
+    GRAPH_EXP --> BLOOM["Neo4j Bloom\ngraph exploration\ncommunity detection"]:::red
+
+    KG --> REVIEW["Researcher reviews\ninferred nodes\nconfirm / reject / flag"]:::green
+    REVIEW --> EDRM_PKG["Retrieve EDRM package\nURL · SHA256 · signal weights\nper flagged node"]:::red
+    EDRM_PKG --> JUDGE{Violation +\nalternative\nevident?}
+    JUDGE -->|Yes| REPORT["Draft EDRM report\nLiteLLM CT205\nEU CSDD · LkSG · UK Modern Slavery"]:::red
+    JUDGE -->|Monitor| ARCHIVE["Archive case\nn8n weekly re-check"]:::orange
+    REPORT --> SUBMIT(["Submit to\nEuropean Commission\nor national authority"]):::red
+```
+
+**Presentation I/O:**
+
+| Direction | Item | Format |
+|-----------|------|--------|
+| In | Supply chain graph | Cypher query results from Neo4j CT114 |
+| In | Semantic search results | Qdrant similarity query — top-k chunks |
+| Out | Geographic arc map | Browser UI — Kepler.gl: nodes + arcs + evidence panel |
+| Out | Graph topology view | Browser UI — NeoDash CT130 / Neo4j Bloom |
+| Out | SQL analytics dashboard | Browser UI — Superset CT206 / Metabase CT202 |
+| Out | EDRM regulatory report | PDF — every claim hashed and traceable |
+| Out | BPMN process export | XML — bpmn.io format for regulatory submission |
+
+---
+
+## Infrastructure Map
+
+Data flows top to bottom through three organ layers. All IPs are listed in the Services chapter.
+
+```{mermaid}
+flowchart TB
+    classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff
+    classDef orange fill:#7a4500,stroke:#5a3000,color:#fff
+    classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff
+    classDef store  fill:#1a3a5c,stroke:#0d2640,color:#fff
+
+    WS["Researcher  VPN + SSH tunnels"]:::green
+
+    subgraph EXT ["External APIs"]
+        direction LR
+        GROQ["Groq API"]:::green
+        OSINT_APIS["UN Comtrade · ImportYeti · OpenSupplyHub · GDELT · GLEIF"]:::red
+    end
+
+    subgraph MOUTH ["MOUTH — Ingestion"]
+        direction LR
+        CT400["Browserless CT400"]:::green
+        CT306["Browserless CT306"]:::green
+        CT104["n8n CT104"]:::orange
+        CT120["Kotaemon CT120"]:::orange
+    end
+
+    MONGO[("MongoDB CT121  —  raw store")]:::red
+
+    subgraph GUT ["GUT — Processing & Inference"]
+        direction LR
+        CT119["LangGraph CT119"]:::green
+        CT117["Unstructured CT117"]:::green
+        CT115["Tika CT115"]:::green
+        CT205["LiteLLM CT205"]:::green
+        CT102["Qdrant CT102"]:::green
+        CT112["Langfuse CT112"]:::orange
+    end
+
+    subgraph KSTORE ["Knowledge Store"]
+        direction LR
+        CT114["Neo4j CT114"]:::store
+        CT100["PostgreSQL CT100"]:::orange
+    end
+
+    subgraph PRES ["PRESENTATION — Output"]
+        direction LR
+        CT130["NeoDash CT130"]:::green
+        CT206["Superset CT206"]:::green
+        CT202["Metabase CT202"]:::green
+        KEPLER["Kepler.gl"]:::red
+        BLOOM["Neo4j Bloom"]:::red
+        EDRM_RPT["EDRM Report"]:::red
+    end
+
+    EXT --> MOUTH
+    MOUTH --> MONGO
+    MONGO --> GUT
+    CT205 --> GROQ
+    CT104 --> OSINT_APIS
+    GUT --> KSTORE
+    KSTORE --> PRES
+    WS -.->|SSH tunnel| KSTORE
+    WS -.->|SSH tunnel| PRES
+```
+
+---
+
+## Signal to Action — End-to-End Data Flow
+
+A researcher submits a company name or product SKU. The mouth resolves the identity through GS1 and OpenCorporates, builds a list of URLs to scrape, and stores raw HTML and downloaded documents in MongoDB. That write triggers the gut: LangGraph orchestrates text extraction (Unstructured for HTML/PDF, Tika for binary formats), embedding into Qdrant, and LLM inference of probable supplier relationships. Each inferred node is scored using a weighted fusion of five OSINT signal types and written into Neo4j with a full evidence stamp — source URL, SHA-256 hash, inference method version, and confidence score. The loop repeats, following newly discovered nodes, until the depth limit is reached or no new nodes emerge.
+
+From Neo4j, the presentation layer consumes the graph on demand. NeoDash renders supplier counts, tier breakdowns, and risk heatmaps. The evidence map plots confirmed and inferred suppliers as geographic arcs. A researcher reviewing a flagged node can pull the full EDRM package for that node — every source document, its hash, the signal weights that produced the confidence score, and any violations detected — and use it as the basis for a regulatory report submitted to a national competent authority or the European Commission.

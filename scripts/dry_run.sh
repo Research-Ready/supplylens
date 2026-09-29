@@ -65,14 +65,14 @@ check_http() {
     fi
 }
 
-check_http "Neo4j"                  "http://10.0.1.114:7474/"           "200"
-check_http "LangGraph"              "http://10.0.1.119:8000/health"     "200"
+check_http "Neo4j"                  "http://localhost:7474/"           "200"
+check_http "LangGraph"              "http://localhost:8000/health"     "200"
 check_http "Browserless-prod"       "http://10.0.5.100:3500/health"     "200"
 # CT306 (Browserless-acc) not provisioned — pipeline uses CT400 (prod) for all scraping
 check_http "Unstructured"           "http://10.0.1.117:8000/health"     "200"
 check_http "Tika"                   "http://10.0.1.115:9998/tika"       "200"
-check_http "Qdrant"                 "http://10.0.1.102:6333/healthz"    "200"
-check_http "LiteLLM"                "http://10.0.2.205:4000/health/liveliness" "200"
+check_http "Qdrant"                 "http://localhost:6333/healthz"    "200"
+check_http "LiteLLM"                "http://localhost:4000/health/liveliness" "200"
 check_http "Superset"               "http://10.0.2.206:8088/health"     "200"
 check_http "Metabase"               "http://10.0.2.202:3000/api/health" "200"
 
@@ -233,7 +233,7 @@ log "=== STEP 5: LiteLLM inference ==="
 LLM_RESULT=$(ssh -o StrictHostKeyChecking=accept-new "$BASTION" "python3 -c \"
 import urllib.request, json
 req = urllib.request.Request(
-    'http://10.0.2.205:4000/v1/chat/completions',
+    'http://localhost:4000/v1/chat/completions',
     data=json.dumps({'model':'researcher-llm','messages':[{'role':'user','content':'Supplier: AMS Buttons BV (Netherlands). Makes plastic buttons using ABS plastic from BASF Germany and metal pins from Shenzhen. What 3 other raw materials are likely in their supply chain? JSON array only with keys: name, origin, material_type'}],'max_tokens':300}).encode(),
     headers={'Authorization':'Bearer $LITELLM_KEY','Content-Type':'application/json'},
     method='POST'
@@ -282,7 +282,7 @@ EMB_RESULT=$(ssh -o StrictHostKeyChecking=accept-new -o ProxyJump=root@10.0.0.16
 import urllib.request, json
 LITELLM_KEY = '$LITELLM_KEY'
 emb_req = urllib.request.Request(
-    'http://10.0.2.205:4000/v1/embeddings',
+    'http://localhost:4000/v1/embeddings',
     data=json.dumps({'model': 'ollama/nomic-embed-text', 'input': 'who supplies raw materials to button manufacturers?'}).encode(),
     headers={'Authorization': 'Bearer ' + LITELLM_KEY, 'Content-Type': 'application/json'},
     method='POST'

@@ -1,0 +1,361 @@
+---
+title: "Research Concept"
+---
+
+# The Problem
+
+## Supply chains are invisible — by design
+
+Every product on the market is the end result of a chain of suppliers, sub-suppliers,
+raw material extractors, logistics providers, and processors — spanning dozens of
+countries and hundreds of companies. This chain is called a *supply chain*, and it is
+almost entirely invisible.
+
+A typical manufacturer knows its direct suppliers — the companies it buys from
+directly. These are called **Tier 1** suppliers. Beyond that, visibility collapses
+rapidly. Most companies have partial insight into their Tier 2 suppliers, and almost no
+knowledge of Tier 3 and beyond. The deeper you go, the darker it gets.
+
+This is not accidental. Suppliers have strong commercial incentives to keep their own
+sourcing relationships confidential. Contracts, competitive pricing, and production
+methods are trade secrets. Even where disclosure is required by law, enforcement is
+weak and data is scattered across dozens of incompatible registers.
+
+The result: a global economy built on supply chains that no one can see.
+
+## The consequences are severe
+
+This invisibility has direct, measurable consequences:
+
+**Environmental:** Cobalt for electric vehicle batteries is mined in the Democratic
+Republic of Congo under conditions that cause severe water contamination and habitat
+destruction. Steel producers in Russia and Asia operate with carbon intensities
+multiple times higher than their European peers. Yet the companies whose products
+depend on these inputs often cannot name the source.
+
+**Human rights:** The UK Modern Slavery Act, the German Supply Chain Act (LkSG), and
+the EU Corporate Sustainability Due Diligence Directive (CSDD) all require companies
+to identify and address human rights risks in their supply chains. Compliance is
+currently impossible beyond Tier 1 — not because companies lack the will, but because
+they lack the data.
+
+**Regulatory evasion:** When a company knows of a cheaper, greener, or more ethical
+alternative to a current supplier but chooses not to act — perhaps because change is
+expensive, or because the current arrangement is profitable — there is presently no
+mechanism to detect, document, or penalise this decision. The knowledge disappears
+into internal memos and is never surfaced.
+
+**Innovation suppression:** Researchers and policymakers cannot identify systemic
+inefficiencies in supply chains they cannot see. Improvement opportunities — better
+materials, cleaner processes, more resilient sourcing — go undiscovered.
+
+## This is the "holy grail" of supply chain management
+
+The term *holy grail* is used deliberately in supply chain literature to describe
+full, end-to-end supply chain visibility. It is considered holy because it has never
+been achieved at scale. Altana AI, a commercial platform valued at over \$1 billion,
+has mapped approximately 50% of global trade using proprietary customs data. This
+represents the current state of the art — and it covers only known, disclosed
+transactions.
+
+**SupplyLens addresses the undisclosed portion.** The nodes no one has mapped. The
+suppliers no one admits to. The practices no one reports.
+
+# The Solution
+
+## What SupplyLens does
+
+SupplyLens is a research platform that:
+
+1. **Accepts a company name, product, or barcode as input**
+2. **Automatically gathers open-source intelligence** from trade databases, facility
+   registries, corporate filings, news sources, and satellite data
+3. **Uses AI to infer hidden supply chain nodes** — suppliers that are probable but
+   not publicly disclosed — with an explicit, calibrated confidence score for each
+4. **Stores all findings in EDRM-compliant format** — the Electronic Discovery
+   Reference Model used in legal proceedings — with a full chain of custody for
+   every claim
+5. **Surfaces violations, risks, and improvement opportunities** detected in the
+   graph
+6. **Generates regulatory-grade reports** suitable for submission to the European
+   Commission or national competent authorities
+
+The platform is built entirely on existing, maintained open-source software
+(Neo4j, LangGraph, n8n, NeoDash, draw.io) with AI inference orchestrated through
+LangGraph and LiteLLM. No proprietary data sources are required.
+
+## The research contribution
+
+The core scientific contribution of SupplyLens is the **multi-signal confidence
+fusion methodology** for supply chain node inference.
+
+When the AI infers that a particular supplier is probably part of a supply chain
+— even though no company has publicly disclosed this — it does not simply assert it.
+It combines multiple independent evidence signals, each with a calibrated weight:
+
+| Signal | Weight | Example |
+|--------|--------|---------|
+| Trade flow data (bill of lading) | 0.30 | Company X shipped product Y to company Z |
+| Facility location cross-reference | 0.25 | Factory within 50km of known customer |
+| Corporate ownership structure | 0.20 | Subsidiary relationship via OpenCorporates |
+| Document extraction (annual reports) | 0.15 | Supplier named in sustainability report |
+| News & incident data (GDELT) | 0.10 | Supplier mentioned in same news context |
+
+The result is a probabilistic knowledge graph where every inferred node carries a
+confidence score and a full list of contributing evidence sources. This is
+fundamentally different from existing approaches, which rely primarily on voluntary
+company disclosures.
+
+# The EDRM Evidence Layer
+
+## Why legal admissibility matters
+
+A supply chain map that cannot be defended in court is, for regulatory purposes,
+a map that does not exist. If a researcher discovers that a company knowingly
+suppressed a cheaper, greener alternative to a harmful material — but cannot prove
+it with traceable, verifiable evidence — nothing changes.
+
+SupplyLens is designed from the ground up to produce evidence that is legally
+admissible. Every piece of data in the system follows the **Electronic Discovery
+Reference Model (EDRM)** — the international standard for digital evidence management
+used in litigation and regulatory proceedings.
+
+## The chain of custody
+
+For every claim in the SupplyLens knowledge graph, the following is recorded and
+immutably stored:
+
+| Stage | What is recorded |
+|-------|-----------------|
+| **Identification** | Source URL, database name, API endpoint |
+| **Preservation** | SHA-256 hash of source content at time of collection |
+| **Collection** | Method (scraped/API/uploaded), timestamp, software version |
+| **Processing** | Extraction method, AI model version, confidence score |
+| **Review** | Researcher decision (confirmed/rejected/flagged), timestamp |
+| **Analysis** | Inference method, signal weights, uncertainty band |
+| **Production** | Export format, recipient, case ID, export timestamp |
+
+This means: if a company challenges the findings, every claim can be traced back to
+a source document with a cryptographic hash proving it has not been altered.
+
+## How the data actually gets collected
+
+The EDRM pipeline runs on two tracks:
+
+**Scheduled pulls (n8n, weekly):** n8n workflows automatically query ImportYeti for
+trade flow data, UN Comtrade for aggregate commodity flows, and OpenSupplyHub for new
+facility registrations. Every API response is hashed on arrival and stored in Neo4j
+with a full timestamp and source reference.
+
+**Triggered inference (LangGraph agent):** When a researcher submits a new company
+or product, LangGraph orchestrates a multi-step enrichment pipeline — scraping
+supplier websites via Browserless, extracting text via Unstructured, querying the
+vector store (Qdrant) for similar known suppliers, then calling the LLM (LiteLLM/Groq)
+to infer probable supply chain links. Each inferred link is stored with its confidence
+score and the evidence that generated it.
+
+No CrewAI or additional orchestration layer is needed — LangGraph already handles
+multi-step agent coordination with full state management and rollback.
+
+## The enforcement loop
+
+The practical consequence of EDRM compliance is a functioning enforcement mechanism:
+
+```
+Researcher discovers: Company X knew of improvement Y,
+                      chose not to implement it
+          ↓
+Evidence: internal document (hashed), patent filing,
+          sustainability report, news coverage
+          ↓
+EDRM report filed with European Commission
+          ↓
+Fine imposed, calibrated to violation severity
+          ↓
+Fine exceeds cost of implementing improvement
+          ↓
+Company implements improvement
+          ↓
+World is slightly better
+```
+
+This loop — from research finding to regulatory action to real-world change — is
+the ultimate purpose of SupplyLens. The tool is not an academic exercise. It is a
+mechanism for using evidence to make supply chains cleaner, fairer, and more
+transparent.
+
+
+# Partnership with Scania AB
+
+## Why Scania
+
+Scania AB is a Swedish manufacturer of heavy trucks, buses, and engines with revenues
+exceeding €20 billion and suppliers spanning more than 50 countries. Its supply chain
+is deep, complex, and representative of the challenges facing the entire automotive
+sector.
+
+Critically, Scania has agreed to act as a **ground truth partner**. This means:
+
+- Scania discloses its known Tier 1 and partial Tier 2 supplier data to the research team
+- SupplyLens attempts to map the same suppliers using public OSINT only
+- Scania validates or refutes the AI's inferences, node by node
+- This validation data is used to calibrate the confidence model
+
+This creates a rigorous, scientifically defensible validation methodology. Rather
+than claiming the model works in the abstract, we can demonstrate its precision and
+recall against a real-world ground truth.
+
+## The validation phases
+
+**Phase 1 — Baseline:** SupplyLens maps Scania's Tier 1 from public sources only.
+Scania confirms accuracy. We establish a baseline precision/recall score.
+
+**Phase 2 — Inference:** SupplyLens infers Tier 2–3 from OSINT. Scania confirms or
+denies each node. We calibrate the confidence weights.
+
+**Phase 3 — Unknown territory:** SupplyLens maps Tier 4–5 — beyond what even Scania
+knows. Independent verification via trade data, investigative databases, NGO reports.
+
+**Phase 4 — Violation detection:** SupplyLens flags known violations in the graph.
+Cross-referenced against public enforcement actions to validate detection accuracy.
+
+
+# Data Sources
+
+SupplyLens uses exclusively open, publicly available data sources. No proprietary
+databases are required. All sources have free access tiers suitable for academic research.
+
+| Source | What it provides | Cost |
+|--------|-----------------|------|
+| **ImportYeti** | US Customs bill-of-lading: exact shipments company-to-company | Free |
+| **UN Comtrade API** | Aggregate trade flows by product code and country pair | Free API |
+| **OpenSupplyHub** | 900,000+ verified manufacturing facilities with GPS coordinates | Free API |
+| **OpenCorporates** | 200 million companies, ownership structures, subsidiaries | Free tier |
+| **GLEIF (LEI data)** | Legal Entity Identifiers, parent/child company relationships | Free bulk |
+| **GDELT** | 500 million+ global news events, queryable by actor and location | Free API |
+| **Know The Chain** | Forced labour benchmarks by sector and company | Free |
+| **WikiRate** | Crowd-sourced ESG data, company-level | Free API |
+| **Sentinel Hub** | ESA satellite imagery (mine detection, deforestation, pollution) | Free research |
+| **Global Forest Watch** | Deforestation alerts linked to commodity supply chains | Free API |
+| **GS1 Verified** | Barcode prefix to brand owner company resolution | Free |
+| **ECHA** | EU REACH chemical substance declarations | Free |
+
+The combination of trade flow data, facility data, corporate structure data, and news
+data creates a rich, multi-dimensional picture of any supply chain — without requiring
+a single voluntary disclosure from the companies involved.
+
+
+# The Three Interfaces
+
+SupplyLens provides three complementary views of the supply chain, each built on
+existing, maintained software.
+
+## Geographic Map — NeoDash
+
+The primary interface is a world map showing supply chain arcs between supplier
+locations. Each node represents a facility, mine, factory, or headquarters. Arcs
+represent material and product flows. Node colour indicates risk level; opacity
+indicates confidence (inferred nodes appear translucent).
+
+Clicking a node opens an evidence panel showing everything the system knows about
+that supplier: confirmed facts, inferred relationships, confidence scores, source
+documents, and any violation flags.
+
+**Software:** NeoDash (Neo4j Labs open source)
+
+## Knowledge Graph — NeoDash
+
+The second view provides an interactive network topology of the supply chain,
+allowing researchers to explore relationships, find shortest paths between two
+suppliers, identify shared dependencies across multiple products, and detect
+structural bottlenecks (single-source nodes).
+
+**Software:** NeoDash graph view (same deployment as map, different dashboard tab)
+
+## Process Flow — draw.io
+
+The third view renders the supply chain as a BPMN-style left-to-right process
+diagram: raw material → processing → component → assembly → finished product. This
+view is used for documentation, regulatory submissions, and academic publication.
+Diagrams are exportable as BPMN XML, PDF, or SVG.
+
+**Software:** draw.io (jgraph open source)
+
+
+# Current Status
+
+## What is built
+
+The following components are complete and operational:
+
+- **Neo4j knowledge graph** — Scania supply chain graph with over 3,000 lines of
+  Cypher, covering 4 tiers of suppliers including the autonomous truck AI supply chain
+  and battery chemistry chain
+- **LangGraph agent** — AI pipeline orchestrating scrape → extract → infer → store
+- **Browserless scraper** — JS-rendered supplier website scraping
+- **Unstructured/Tika** — document text extraction from HTML, PDF, Excel
+- **LiteLLM** — LLM inference via Groq (llama-3.3-70b) with Ollama fallback
+- **Qdrant** — vector search over supplier documents
+- **Evidence store** — EDRM-compliant evidence storage in Neo4j with SHA-256 hashing
+- **n8n workflows** — scheduled weekly data pulls and pipeline automation
+
+## What is in progress
+
+- **NeoDash** — deployment pending; geographic map and graph interfaces
+- **draw.io** — deployment pending; BPMN process flow interface
+- **ImportYeti scraper** — n8n workflow for Scania trade data
+- **Confidence scorer** — multi-signal fusion implementation
+
+## What comes next
+
+1. **Real data pipeline** — ImportYeti scraper for Scania; UN Comtrade n8n workflow
+2. **Confidence scorer** — multi-signal fusion implementation
+3. **EDRM store hardening** — complete chain of custody implementation
+4. **Validation study** — Phase 1 with Scania (Tier 1 precision/recall baseline)
+5. **Publication** — methodology paper; tool paper; case study
+
+
+# Why This Matters
+
+## Regulatory context
+
+The European Union is implementing the most ambitious supply chain transparency
+legislation in history:
+
+- **EU Corporate Sustainability Due Diligence Directive (CSDD)** — requires companies
+  with 500+ employees to identify and address human rights and environmental risks
+  throughout their supply chains
+- **EU Carbon Border Adjustment Mechanism (CBAM)** — requires importers to declare
+  the embedded carbon in imported goods
+- **German Supply Chain Act (LkSG)** — already in force, requires due diligence on
+  environmental and human rights risks beyond Tier 1
+
+All three regulations face the same fundamental problem: the data does not exist.
+Companies cannot comply with due diligence requirements for supply chain tiers they
+cannot see. SupplyLens directly addresses this gap.
+
+## The broader vision
+
+If SupplyLens achieves its goal — a tool that can map any supply chain from public
+data, infer hidden nodes with calibrated confidence, and produce legally admissible
+evidence of violations and suppressed improvements — the consequences extend far beyond
+any single case.
+
+Researchers at any university with internet access could investigate any company's
+supply chain. Journalists could verify corporate sustainability claims against
+independent evidence. Regulators could prioritise enforcement against the cases where
+evidence is strongest. Companies would know that bad practices in their supply chain
+are discoverable — and would act accordingly.
+
+The information asymmetry that has protected supply chain opacity for decades would,
+for the first time, begin to close.
+
+---
+
+\vspace{2em}
+
+*SupplyLens is developed by Research-Ready in partnership with Scania AB.*
+
+*Technical documentation: see* `02-technical.pdf`
+
+*User guide: see* `03-userguide.pdf`

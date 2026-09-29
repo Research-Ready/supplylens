@@ -7,11 +7,11 @@ kotaemon_data_dir: /var/lib/kotaemon
 kotaemon_admin_user: "admin@research-ready.nl"
 
 # LLM backend — point at LiteLLM proxy (CT205)
-kotaemon_llm_api_base: "http://10.0.2.205:4000/v1"
+kotaemon_llm_api_base: "http://localhost:4000/v1"
 kotaemon_llm_model: "researcher-llm"
 
 # Embedding backend — nomic-embed-text via LiteLLM
-kotaemon_embed_api_base: "http://10.0.2.205:4000/v1"
+kotaemon_embed_api_base: "http://localhost:4000/v1"
 kotaemon_embed_model: "ollama/nomic-embed-text"
 
 # Qdrant for vector storage

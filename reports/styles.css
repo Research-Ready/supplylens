@@ -1,0 +1,43 @@
+/* SupplyLens gitbook styles */
+
+:root {
+  --brand-blue: #1E3A5F;
+  --accent-blue: #2563EB;
+  --light-blue: #DBEAFE;
+  --muted: #64748B;
+}
+
+/* Sidebar nav */
+.sidebar .sidebar-title {
+  font-weight: 700;
+  color: var(--brand-blue);
+}
+
+/* Section headings */
+h1 { color: var(--brand-blue); border-bottom: 2px solid var(--accent-blue); padding-bottom: 0.3em; }
+h2 { color: var(--brand-blue); }
+h3 { color: var(--muted); }
+
+/* Callout-style status badges */
+.status-pass { background: #d1fae5; color: #065f46; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; }
+.status-partial { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; }
+.status-pending { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; font-weight: 600; }
+
+/* Mermaid diagrams */
+.mermaid { margin: 1.5em 0; }
+
+/* Tables */
+table { font-size: 0.9em; }
+thead th { background-color: var(--light-blue); color: var(--brand-blue); font-weight: 600; }
+
+/* Code blocks */
+pre { background-color: #f8fafc; border: 1px solid #e2e8f0; }
+
+/* Cover callout box */
+.cover-box {
+  background: var(--light-blue);
+  border-left: 4px solid var(--accent-blue);
+  padding: 1em 1.5em;
+  margin: 1.5em 0;
+  border-radius: 0 4px 4px 0;
+}

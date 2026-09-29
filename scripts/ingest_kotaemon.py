@@ -33,9 +33,9 @@ import urllib.parse
 REPO_ROOT    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 KOTAEMON_URL = os.getenv("KOTAEMON_URL",         "http://10.0.1.120:8501")
 BROWSERLESS  = os.getenv("BROWSERLESS_PROD_URL", "http://10.0.5.100:3500")
-LITELLM      = os.getenv("LITELLM_URL",          "http://10.0.2.205:4000")
+LITELLM      = os.getenv("LITELLM_URL",          "http://localhost:4000")
 LITELLM_KEY  = os.getenv("LITELLM_KEY",          "")
-NEO4J_URL    = os.getenv("NEO4J_URL",            "http://10.0.1.114:7474")
+NEO4J_URL    = os.getenv("NEO4J_URL",            "http://localhost:7474")
 NEO4J_USER   = os.getenv("NEO4J_USER",           "neo4j")
 NEO4J_PASS   = os.getenv("NEO4J_PASS",           "")
 

@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.31">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Research Concept – SupplyLens</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./02-architecture.html" rel="next">
+<link href="./requirements.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-4a990d8dcb58f517c7c86712b8f2ac7c.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-b4cc82f450ce07761fc9dc81b3fffcff.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-sidebar docked nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">SupplyLens</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./01-concept.html">Research Concept</a></li><li class="breadcrumb-item"><a href="./01-concept.html"><span class="chapter-title">Research Concept</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Welcome</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./workflow.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Workflow</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plan.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Plan</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./requirements.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Requirements</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Research Concept</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-concept.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Research Concept</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">System Architecture</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">System Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-data-model.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Data Model</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Services &amp; Access</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Outputs</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-dashboards.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dashboards &amp; Outputs</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Project Status</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06-status.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Project Status</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#the-problem" id="toc-the-problem" class="nav-link active" data-scroll-target="#the-problem">The Problem</a>
+  <ul class="collapse">
+  <li><a href="#supply-chains-are-invisible-by-design" id="toc-supply-chains-are-invisible-by-design" class="nav-link" data-scroll-target="#supply-chains-are-invisible-by-design">Supply chains are invisible — by design</a></li>
+  <li><a href="#the-consequences-are-severe" id="toc-the-consequences-are-severe" class="nav-link" data-scroll-target="#the-consequences-are-severe">The consequences are severe</a></li>
+  <li><a href="#this-is-the-holy-grail-of-supply-chain-management" id="toc-this-is-the-holy-grail-of-supply-chain-management" class="nav-link" data-scroll-target="#this-is-the-holy-grail-of-supply-chain-management">This is the “holy grail” of supply chain management</a></li>
+  </ul></li>
+  <li><a href="#the-solution" id="toc-the-solution" class="nav-link" data-scroll-target="#the-solution">The Solution</a>
+  <ul class="collapse">
+  <li><a href="#what-supplylens-does" id="toc-what-supplylens-does" class="nav-link" data-scroll-target="#what-supplylens-does">What SupplyLens does</a></li>
+  <li><a href="#the-research-contribution" id="toc-the-research-contribution" class="nav-link" data-scroll-target="#the-research-contribution">The research contribution</a></li>
+  </ul></li>
+  <li><a href="#the-edrm-evidence-layer" id="toc-the-edrm-evidence-layer" class="nav-link" data-scroll-target="#the-edrm-evidence-layer">The EDRM Evidence Layer</a>
+  <ul class="collapse">
+  <li><a href="#why-legal-admissibility-matters" id="toc-why-legal-admissibility-matters" class="nav-link" data-scroll-target="#why-legal-admissibility-matters">Why legal admissibility matters</a></li>
+  <li><a href="#the-chain-of-custody" id="toc-the-chain-of-custody" class="nav-link" data-scroll-target="#the-chain-of-custody">The chain of custody</a></li>
+  <li><a href="#how-the-data-actually-gets-collected" id="toc-how-the-data-actually-gets-collected" class="nav-link" data-scroll-target="#how-the-data-actually-gets-collected">How the data actually gets collected</a></li>
+  <li><a href="#the-enforcement-loop" id="toc-the-enforcement-loop" class="nav-link" data-scroll-target="#the-enforcement-loop">The enforcement loop</a></li>
+  </ul></li>
+  <li><a href="#partnership-with-scania-ab" id="toc-partnership-with-scania-ab" class="nav-link" data-scroll-target="#partnership-with-scania-ab">Partnership with Scania AB</a>
+  <ul class="collapse">
+  <li><a href="#why-scania" id="toc-why-scania" class="nav-link" data-scroll-target="#why-scania">Why Scania</a></li>
+  <li><a href="#the-validation-phases" id="toc-the-validation-phases" class="nav-link" data-scroll-target="#the-validation-phases">The validation phases</a></li>
+  </ul></li>
+  <li><a href="#data-sources" id="toc-data-sources" class="nav-link" data-scroll-target="#data-sources">Data Sources</a></li>
+  <li><a href="#the-three-interfaces" id="toc-the-three-interfaces" class="nav-link" data-scroll-target="#the-three-interfaces">The Three Interfaces</a>
+  <ul class="collapse">
+  <li><a href="#geographic-map-neodash" id="toc-geographic-map-neodash" class="nav-link" data-scroll-target="#geographic-map-neodash">Geographic Map — NeoDash</a></li>
+  <li><a href="#knowledge-graph-neodash" id="toc-knowledge-graph-neodash" class="nav-link" data-scroll-target="#knowledge-graph-neodash">Knowledge Graph — NeoDash</a></li>
+  <li><a href="#process-flow-draw.io" id="toc-process-flow-draw.io" class="nav-link" data-scroll-target="#process-flow-draw.io">Process Flow — draw.io</a></li>
+  </ul></li>
+  <li><a href="#current-status" id="toc-current-status" class="nav-link" data-scroll-target="#current-status">Current Status</a>
+  <ul class="collapse">
+  <li><a href="#what-is-built" id="toc-what-is-built" class="nav-link" data-scroll-target="#what-is-built">What is built</a></li>
+  <li><a href="#what-is-in-progress" id="toc-what-is-in-progress" class="nav-link" data-scroll-target="#what-is-in-progress">What is in progress</a></li>
+  <li><a href="#what-comes-next" id="toc-what-comes-next" class="nav-link" data-scroll-target="#what-comes-next">What comes next</a></li>
+  </ul></li>
+  <li><a href="#why-this-matters" id="toc-why-this-matters" class="nav-link" data-scroll-target="#why-this-matters">Why This Matters</a>
+  <ul class="collapse">
+  <li><a href="#regulatory-context" id="toc-regulatory-context" class="nav-link" data-scroll-target="#regulatory-context">Regulatory context</a></li>
+  <li><a href="#the-broader-vision" id="toc-the-broader-vision" class="nav-link" data-scroll-target="#the-broader-vision">The broader vision</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./01-concept.html">Research Concept</a></li><li class="breadcrumb-item"><a href="./01-concept.html"><span class="chapter-title">Research Concept</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Research Concept</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="the-problem" class="level1">
+<h1>The Problem</h1>
+<section id="supply-chains-are-invisible-by-design" class="level2">
+<h2 class="anchored" data-anchor-id="supply-chains-are-invisible-by-design">Supply chains are invisible — by design</h2>
+<p>Every product on the market is the end result of a chain of suppliers, sub-suppliers, raw material extractors, logistics providers, and processors — spanning dozens of countries and hundreds of companies. This chain is called a <em>supply chain</em>, and it is almost entirely invisible.</p>
+<p>A typical manufacturer knows its direct suppliers — the companies it buys from directly. These are called <strong>Tier 1</strong> suppliers. Beyond that, visibility collapses rapidly. Most companies have partial insight into their Tier 2 suppliers, and almost no knowledge of Tier 3 and beyond. The deeper you go, the darker it gets.</p>
+<p>This is not accidental. Suppliers have strong commercial incentives to keep their own sourcing relationships confidential. Contracts, competitive pricing, and production methods are trade secrets. Even where disclosure is required by law, enforcement is weak and data is scattered across dozens of incompatible registers.</p>
+<p>The result: a global economy built on supply chains that no one can see.</p>
+</section>
+<section id="the-consequences-are-severe" class="level2">
+<h2 class="anchored" data-anchor-id="the-consequences-are-severe">The consequences are severe</h2>
+<p>This invisibility has direct, measurable consequences:</p>
+<p><strong>Environmental:</strong> Cobalt for electric vehicle batteries is mined in the Democratic Republic of Congo under conditions that cause severe water contamination and habitat destruction. Steel producers in Russia and Asia operate with carbon intensities multiple times higher than their European peers. Yet the companies whose products depend on these inputs often cannot name the source.</p>
+<p><strong>Human rights:</strong> The UK Modern Slavery Act, the German Supply Chain Act (LkSG), and the EU Corporate Sustainability Due Diligence Directive (CSDD) all require companies to identify and address human rights risks in their supply chains. Compliance is currently impossible beyond Tier 1 — not because companies lack the will, but because they lack the data.</p>
+<p><strong>Regulatory evasion:</strong> When a company knows of a cheaper, greener, or more ethical alternative to a current supplier but chooses not to act — perhaps because change is expensive, or because the current arrangement is profitable — there is presently no mechanism to detect, document, or penalise this decision. The knowledge disappears into internal memos and is never surfaced.</p>
+<p><strong>Innovation suppression:</strong> Researchers and policymakers cannot identify systemic inefficiencies in supply chains they cannot see. Improvement opportunities — better materials, cleaner processes, more resilient sourcing — go undiscovered.</p>
+</section>
+<section id="this-is-the-holy-grail-of-supply-chain-management" class="level2">
+<h2 class="anchored" data-anchor-id="this-is-the-holy-grail-of-supply-chain-management">This is the “holy grail” of supply chain management</h2>
+<p>The term <em>holy grail</em> is used deliberately in supply chain literature to describe full, end-to-end supply chain visibility. It is considered holy because it has never been achieved at scale. Altana AI, a commercial platform valued at over $1 billion, has mapped approximately 50% of global trade using proprietary customs data. This represents the current state of the art — and it covers only known, disclosed transactions.</p>
+<p><strong>SupplyLens addresses the undisclosed portion.</strong> The nodes no one has mapped. The suppliers no one admits to. The practices no one reports.</p>
+</section>
+</section>
+<section id="the-solution" class="level1">
+<h1>The Solution</h1>
+<section id="what-supplylens-does" class="level2">
+<h2 class="anchored" data-anchor-id="what-supplylens-does">What SupplyLens does</h2>
+<p>SupplyLens is a research platform that:</p>
+<ol type="1">
+<li><strong>Accepts a company name, product, or barcode as input</strong></li>
+<li><strong>Automatically gathers open-source intelligence</strong> from trade databases, facility registries, corporate filings, news sources, and satellite data</li>
+<li><strong>Uses AI to infer hidden supply chain nodes</strong> — suppliers that are probable but not publicly disclosed — with an explicit, calibrated confidence score for each</li>
+<li><strong>Stores all findings in EDRM-compliant format</strong> — the Electronic Discovery Reference Model used in legal proceedings — with a full chain of custody for every claim</li>
+<li><strong>Surfaces violations, risks, and improvement opportunities</strong> detected in the graph</li>
+<li><strong>Generates regulatory-grade reports</strong> suitable for submission to the European Commission or national competent authorities</li>
+</ol>
+<p>The platform is built entirely on existing, maintained open-source software (Neo4j, LangGraph, n8n, NeoDash, draw.io) with AI inference orchestrated through LangGraph and LiteLLM. No proprietary data sources are required.</p>
+</section>
+<section id="the-research-contribution" class="level2">
+<h2 class="anchored" data-anchor-id="the-research-contribution">The research contribution</h2>
+<p>The core scientific contribution of SupplyLens is the <strong>multi-signal confidence fusion methodology</strong> for supply chain node inference.</p>
+<p>When the AI infers that a particular supplier is probably part of a supply chain — even though no company has publicly disclosed this — it does not simply assert it. It combines multiple independent evidence signals, each with a calibrated weight:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 32%">
+<col style="width: 32%">
+<col style="width: 36%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Signal</th>
+<th>Weight</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Trade flow data (bill of lading)</td>
+<td>0.30</td>
+<td>Company X shipped product Y to company Z</td>
+</tr>
+<tr class="even">
+<td>Facility location cross-reference</td>
+<td>0.25</td>
+<td>Factory within 50km of known customer</td>
+</tr>
+<tr class="odd">
+<td>Corporate ownership structure</td>
+<td>0.20</td>
+<td>Subsidiary relationship via OpenCorporates</td>
+</tr>
+<tr class="even">
+<td>Document extraction (annual reports)</td>
+<td>0.15</td>
+<td>Supplier named in sustainability report</td>
+</tr>
+<tr class="odd">
+<td>News &amp; incident data (GDELT)</td>
+<td>0.10</td>
+<td>Supplier mentioned in same news context</td>
+</tr>
+</tbody>
+</table>
+<p>The result is a probabilistic knowledge graph where every inferred node carries a confidence score and a full list of contributing evidence sources. This is fundamentally different from existing approaches, which rely primarily on voluntary company disclosures.</p>
+</section>
+</section>
+<section id="the-edrm-evidence-layer" class="level1">
+<h1>The EDRM Evidence Layer</h1>
+<section id="why-legal-admissibility-matters" class="level2">
+<h2 class="anchored" data-anchor-id="why-legal-admissibility-matters">Why legal admissibility matters</h2>
+<p>A supply chain map that cannot be defended in court is, for regulatory purposes, a map that does not exist. If a researcher discovers that a company knowingly suppressed a cheaper, greener alternative to a harmful material — but cannot prove it with traceable, verifiable evidence — nothing changes.</p>
+<p>SupplyLens is designed from the ground up to produce evidence that is legally admissible. Every piece of data in the system follows the <strong>Electronic Discovery Reference Model (EDRM)</strong> — the international standard for digital evidence management used in litigation and regulatory proceedings.</p>
+</section>
+<section id="the-chain-of-custody" class="level2">
+<h2 class="anchored" data-anchor-id="the-chain-of-custody">The chain of custody</h2>
+<p>For every claim in the SupplyLens knowledge graph, the following is recorded and immutably stored:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 29%">
+<col style="width: 70%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Stage</th>
+<th>What is recorded</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Identification</strong></td>
+<td>Source URL, database name, API endpoint</td>
+</tr>
+<tr class="even">
+<td><strong>Preservation</strong></td>
+<td>SHA-256 hash of source content at time of collection</td>
+</tr>
+<tr class="odd">
+<td><strong>Collection</strong></td>
+<td>Method (scraped/API/uploaded), timestamp, software version</td>
+</tr>
+<tr class="even">
+<td><strong>Processing</strong></td>
+<td>Extraction method, AI model version, confidence score</td>
+</tr>
+<tr class="odd">
+<td><strong>Review</strong></td>
+<td>Researcher decision (confirmed/rejected/flagged), timestamp</td>
+</tr>
+<tr class="even">
+<td><strong>Analysis</strong></td>
+<td>Inference method, signal weights, uncertainty band</td>
+</tr>
+<tr class="odd">
+<td><strong>Production</strong></td>
+<td>Export format, recipient, case ID, export timestamp</td>
+</tr>
+</tbody>
+</table>
+<p>This means: if a company challenges the findings, every claim can be traced back to a source document with a cryptographic hash proving it has not been altered.</p>
+</section>
+<section id="how-the-data-actually-gets-collected" class="level2">
+<h2 class="anchored" data-anchor-id="how-the-data-actually-gets-collected">How the data actually gets collected</h2>
+<p>The EDRM pipeline runs on two tracks:</p>
+<p><strong>Scheduled pulls (n8n, weekly):</strong> n8n workflows automatically query ImportYeti for trade flow data, UN Comtrade for aggregate commodity flows, and OpenSupplyHub for new facility registrations. Every API response is hashed on arrival and stored in Neo4j with a full timestamp and source reference.</p>
+<p><strong>Triggered inference (LangGraph agent):</strong> When a researcher submits a new company or product, LangGraph orchestrates a multi-step enrichment pipeline — scraping supplier websites via Browserless, extracting text via Unstructured, querying the vector store (Qdrant) for similar known suppliers, then calling the LLM (LiteLLM/Groq) to infer probable supply chain links. Each inferred link is stored with its confidence score and the evidence that generated it.</p>
+<p>No CrewAI or additional orchestration layer is needed — LangGraph already handles multi-step agent coordination with full state management and rollback.</p>
+</section>
+<section id="the-enforcement-loop" class="level2">
+<h2 class="anchored" data-anchor-id="the-enforcement-loop">The enforcement loop</h2>
+<p>The practical consequence of EDRM compliance is a functioning enforcement mechanism:</p>
+<pre><code>Researcher discovers: Company X knew of improvement Y,
+                      chose not to implement it
+          ↓
+Evidence: internal document (hashed), patent filing,
+          sustainability report, news coverage
+          ↓
+EDRM report filed with European Commission
+          ↓
+Fine imposed, calibrated to violation severity
+          ↓
+Fine exceeds cost of implementing improvement
+          ↓
+Company implements improvement
+          ↓
+World is slightly better</code></pre>
+<p>This loop — from research finding to regulatory action to real-world change — is the ultimate purpose of SupplyLens. The tool is not an academic exercise. It is a mechanism for using evidence to make supply chains cleaner, fairer, and more transparent.</p>
+</section>
+</section>
+<section id="partnership-with-scania-ab" class="level1">
+<h1>Partnership with Scania AB</h1>
+<section id="why-scania" class="level2">
+<h2 class="anchored" data-anchor-id="why-scania">Why Scania</h2>
+<p>Scania AB is a Swedish manufacturer of heavy trucks, buses, and engines with revenues exceeding €20 billion and suppliers spanning more than 50 countries. Its supply chain is deep, complex, and representative of the challenges facing the entire automotive sector.</p>
+<p>Critically, Scania has agreed to act as a <strong>ground truth partner</strong>. This means:</p>
+<ul>
+<li>Scania discloses its known Tier 1 and partial Tier 2 supplier data to the research team</li>
+<li>SupplyLens attempts to map the same suppliers using public OSINT only</li>
+<li>Scania validates or refutes the AI’s inferences, node by node</li>
+<li>This validation data is used to calibrate the confidence model</li>
+</ul>
+<p>This creates a rigorous, scientifically defensible validation methodology. Rather than claiming the model works in the abstract, we can demonstrate its precision and recall against a real-world ground truth.</p>
+</section>
+<section id="the-validation-phases" class="level2">
+<h2 class="anchored" data-anchor-id="the-validation-phases">The validation phases</h2>
+<p><strong>Phase 1 — Baseline:</strong> SupplyLens maps Scania’s Tier 1 from public sources only. Scania confirms accuracy. We establish a baseline precision/recall score.</p>
+<p><strong>Phase 2 — Inference:</strong> SupplyLens infers Tier 2–3 from OSINT. Scania confirms or denies each node. We calibrate the confidence weights.</p>
+<p><strong>Phase 3 — Unknown territory:</strong> SupplyLens maps Tier 4–5 — beyond what even Scania knows. Independent verification via trade data, investigative databases, NGO reports.</p>
+<p><strong>Phase 4 — Violation detection:</strong> SupplyLens flags known violations in the graph. Cross-referenced against public enforcement actions to validate detection accuracy.</p>
+</section>
+</section>
+<section id="data-sources" class="level1">
+<h1>Data Sources</h1>
+<p>SupplyLens uses exclusively open, publicly available data sources. No proprietary databases are required. All sources have free access tiers suitable for academic research.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 54%">
+<col style="width: 19%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Source</th>
+<th>What it provides</th>
+<th>Cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>ImportYeti</strong></td>
+<td>US Customs bill-of-lading: exact shipments company-to-company</td>
+<td>Free</td>
+</tr>
+<tr class="even">
+<td><strong>UN Comtrade API</strong></td>
+<td>Aggregate trade flows by product code and country pair</td>
+<td>Free API</td>
+</tr>
+<tr class="odd">
+<td><strong>OpenSupplyHub</strong></td>
+<td>900,000+ verified manufacturing facilities with GPS coordinates</td>
+<td>Free API</td>
+</tr>
+<tr class="even">
+<td><strong>OpenCorporates</strong></td>
+<td>200 million companies, ownership structures, subsidiaries</td>
+<td>Free tier</td>
+</tr>
+<tr class="odd">
+<td><strong>GLEIF (LEI data)</strong></td>
+<td>Legal Entity Identifiers, parent/child company relationships</td>
+<td>Free bulk</td>
+</tr>
+<tr class="even">
+<td><strong>GDELT</strong></td>
+<td>500 million+ global news events, queryable by actor and location</td>
+<td>Free API</td>
+</tr>
+<tr class="odd">
+<td><strong>Know The Chain</strong></td>
+<td>Forced labour benchmarks by sector and company</td>
+<td>Free</td>
+</tr>
+<tr class="even">
+<td><strong>WikiRate</strong></td>
+<td>Crowd-sourced ESG data, company-level</td>
+<td>Free API</td>
+</tr>
+<tr class="odd">
+<td><strong>Sentinel Hub</strong></td>
+<td>ESA satellite imagery (mine detection, deforestation, pollution)</td>
+<td>Free research</td>
+</tr>
+<tr class="even">
+<td><strong>Global Forest Watch</strong></td>
+<td>Deforestation alerts linked to commodity supply chains</td>
+<td>Free API</td>
+</tr>
+<tr class="odd">
+<td><strong>GS1 Verified</strong></td>
+<td>Barcode prefix to brand owner company resolution</td>
+<td>Free</td>
+</tr>
+<tr class="even">
+<td><strong>ECHA</strong></td>
+<td>EU REACH chemical substance declarations</td>
+<td>Free</td>
+</tr>
+</tbody>
+</table>
+<p>The combination of trade flow data, facility data, corporate structure data, and news data creates a rich, multi-dimensional picture of any supply chain — without requiring a single voluntary disclosure from the companies involved.</p>
+</section>
+<section id="the-three-interfaces" class="level1">
+<h1>The Three Interfaces</h1>
+<p>SupplyLens provides three complementary views of the supply chain, each built on existing, maintained software.</p>
+<section id="geographic-map-neodash" class="level2">
+<h2 class="anchored" data-anchor-id="geographic-map-neodash">Geographic Map — NeoDash</h2>
+<p>The primary interface is a world map showing supply chain arcs between supplier locations. Each node represents a facility, mine, factory, or headquarters. Arcs represent material and product flows. Node colour indicates risk level; opacity indicates confidence (inferred nodes appear translucent).</p>
+<p>Clicking a node opens an evidence panel showing everything the system knows about that supplier: confirmed facts, inferred relationships, confidence scores, source documents, and any violation flags.</p>
+<p><strong>Software:</strong> NeoDash (Neo4j Labs open source)</p>
+</section>
+<section id="knowledge-graph-neodash" class="level2">
+<h2 class="anchored" data-anchor-id="knowledge-graph-neodash">Knowledge Graph — NeoDash</h2>
+<p>The second view provides an interactive network topology of the supply chain, allowing researchers to explore relationships, find shortest paths between two suppliers, identify shared dependencies across multiple products, and detect structural bottlenecks (single-source nodes).</p>
+<p><strong>Software:</strong> NeoDash graph view (same deployment as map, different dashboard tab)</p>
+</section>
+<section id="process-flow-draw.io" class="level2">
+<h2 class="anchored" data-anchor-id="process-flow-draw.io">Process Flow — draw.io</h2>
+<p>The third view renders the supply chain as a BPMN-style left-to-right process diagram: raw material → processing → component → assembly → finished product. This view is used for documentation, regulatory submissions, and academic publication. Diagrams are exportable as BPMN XML, PDF, or SVG.</p>
+<p><strong>Software:</strong> draw.io (jgraph open source)</p>
+</section>
+</section>
+<section id="current-status" class="level1">
+<h1>Current Status</h1>
+<section id="what-is-built" class="level2">
+<h2 class="anchored" data-anchor-id="what-is-built">What is built</h2>
+<p>The following components are complete and operational:</p>
+<ul>
+<li><strong>Neo4j knowledge graph</strong> — Scania supply chain graph with over 3,000 lines of Cypher, covering 4 tiers of suppliers including the autonomous truck AI supply chain and battery chemistry chain</li>
+<li><strong>LangGraph agent</strong> — AI pipeline orchestrating scrape → extract → infer → store</li>
+<li><strong>Browserless scraper</strong> — JS-rendered supplier website scraping</li>
+<li><strong>Unstructured/Tika</strong> — document text extraction from HTML, PDF, Excel</li>
+<li><strong>LiteLLM</strong> — LLM inference via Groq (llama-3.3-70b) with Ollama fallback</li>
+<li><strong>Qdrant</strong> — vector search over supplier documents</li>
+<li><strong>Evidence store</strong> — EDRM-compliant evidence storage in Neo4j with SHA-256 hashing</li>
+<li><strong>n8n workflows</strong> — scheduled weekly data pulls and pipeline automation</li>
+</ul>
+</section>
+<section id="what-is-in-progress" class="level2">
+<h2 class="anchored" data-anchor-id="what-is-in-progress">What is in progress</h2>
+<ul>
+<li><strong>NeoDash</strong> — deployment pending; geographic map and graph interfaces</li>
+<li><strong>draw.io</strong> — deployment pending; BPMN process flow interface</li>
+<li><strong>ImportYeti scraper</strong> — n8n workflow for Scania trade data</li>
+<li><strong>Confidence scorer</strong> — multi-signal fusion implementation</li>
+</ul>
+</section>
+<section id="what-comes-next" class="level2">
+<h2 class="anchored" data-anchor-id="what-comes-next">What comes next</h2>
+<ol type="1">
+<li><strong>Real data pipeline</strong> — ImportYeti scraper for Scania; UN Comtrade n8n workflow</li>
+<li><strong>Confidence scorer</strong> — multi-signal fusion implementation</li>
+<li><strong>EDRM store hardening</strong> — complete chain of custody implementation</li>
+<li><strong>Validation study</strong> — Phase 1 with Scania (Tier 1 precision/recall baseline)</li>
+<li><strong>Publication</strong> — methodology paper; tool paper; case study</li>
+</ol>
+</section>
+</section>
+<section id="why-this-matters" class="level1">
+<h1>Why This Matters</h1>
+<section id="regulatory-context" class="level2">
+<h2 class="anchored" data-anchor-id="regulatory-context">Regulatory context</h2>
+<p>The European Union is implementing the most ambitious supply chain transparency legislation in history:</p>
+<ul>
+<li><strong>EU Corporate Sustainability Due Diligence Directive (CSDD)</strong> — requires companies with 500+ employees to identify and address human rights and environmental risks throughout their supply chains</li>
+<li><strong>EU Carbon Border Adjustment Mechanism (CBAM)</strong> — requires importers to declare the embedded carbon in imported goods</li>
+<li><strong>German Supply Chain Act (LkSG)</strong> — already in force, requires due diligence on environmental and human rights risks beyond Tier 1</li>
+</ul>
+<p>All three regulations face the same fundamental problem: the data does not exist. Companies cannot comply with due diligence requirements for supply chain tiers they cannot see. SupplyLens directly addresses this gap.</p>
+</section>
+<section id="the-broader-vision" class="level2">
+<h2 class="anchored" data-anchor-id="the-broader-vision">The broader vision</h2>
+<p>If SupplyLens achieves its goal — a tool that can map any supply chain from public data, infer hidden nodes with calibrated confidence, and produce legally admissible evidence of violations and suppressed improvements — the consequences extend far beyond any single case.</p>
+<p>Researchers at any university with internet access could investigate any company’s supply chain. Journalists could verify corporate sustainability claims against independent evidence. Regulators could prioritise enforcement against the cases where evidence is strongest. Companies would know that bad practices in their supply chain are discoverable — and would act accordingly.</p>
+<p>The information asymmetry that has protected supply chain opacity for decades would, for the first time, begin to close.</p>
+<hr>
+<p><em>SupplyLens is developed by Research-Ready in partnership with Scania AB.</em></p>
+<p><em>Technical documentation: see</em> <code>02-technical.pdf</code></p>
+<p><em>User guide: see</em> <code>03-userguide.pdf</code></p>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./requirements.html" class="pagination-link" aria-label="Requirements">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Requirements</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./02-architecture.html" class="pagination-link" aria-label="System Architecture">
+        <span class="nav-page-text"><span class="chapter-title">System Architecture</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

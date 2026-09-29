@@ -28,7 +28,7 @@
       "position": [360, 240],
       "parameters": {
         "method": "POST",
-        "url": "http://10.0.1.119:8000/runs",
+        "url": "http://localhost:8000/runs",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -52,7 +52,7 @@
       "position": [360, 480],
       "parameters": {
         "method": "POST",
-        "url": "http://10.0.1.119:8000/runs",
+        "url": "http://localhost:8000/runs",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -98,7 +98,7 @@
       "notes": "Basic auth: set Authorization header to 'Basic <base64(neo4j:PASSWORD)>'. Password from KeePass -> Neo4j.",
       "parameters": {
         "method": "POST",
-        "url": "http://10.0.1.114:7474/db/neo4j/tx/commit",
+        "url": "http://localhost:7474/db/neo4j/tx/commit",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -123,7 +123,7 @@
       "notes": "Query Neo4j for suppliers with risk_score >= 0.6 to detect new HIGH/CRITICAL flags.",
       "parameters": {
         "method": "POST",
-        "url": "http://10.0.1.114:7474/db/neo4j/tx/commit",
+        "url": "http://localhost:7474/db/neo4j/tx/commit",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -147,7 +147,7 @@
       "position": [1080, 600],
       "notes": "Re-scores all suppliers and writes risk_score back to Neo4j nodes.",
       "parameters": {
-        "command": "cd /opt/uc4-supply-chain && NEO4J_URL=http://10.0.1.114:7474 NEO4J_PASSWORD=$NEO4J_PASS python3 src/risk_scorer.py 2>&1 | tail -20"
+        "command": "cd /opt/uc4-supply-chain && NEO4J_URL=http://localhost:7474 NEO4J_PASSWORD=$NEO4J_PASS python3 src/risk_scorer.py 2>&1 | tail -20"
       }
     },
     {
@@ -159,7 +159,7 @@
       "notes": "Find all SINGLE_SOURCE relationships — these are maximum disruption risk points.",
       "parameters": {
         "method": "POST",
-        "url": "http://10.0.1.114:7474/db/neo4j/tx/commit",
+        "url": "http://localhost:7474/db/neo4j/tx/commit",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -229,7 +229,7 @@
       "position": [1320, 240],
       "notes": "Syncs Neo4j Supplier nodes into knopenkonings.suppliers table on CT100. Requires schema created first (scripts/create_pg_schema.sh).",
       "parameters": {
-        "command": "cd /opt/uc4-supply-chain && NEO4J_URL=http://10.0.1.114:7474 NEO4J_PASSWORD=$NEO4J_PASS python3 src/postgres_sync.py 2>&1 | tail -10"
+        "command": "cd /opt/uc4-supply-chain && NEO4J_URL=http://localhost:7474 NEO4J_PASSWORD=$NEO4J_PASS python3 src/postgres_sync.py 2>&1 | tail -10"
       }
     },
     {
@@ -241,7 +241,7 @@
       "notes": "Write KPI snapshot to knopenkonings.kpi_snapshots via PostgreSQL REST (or via execute command). Uses HTTP POST to Neo4j to gather counts first.",
       "parameters": {
         "method": "POST",
-        "url": "http://10.0.1.114:7474/db/neo4j/tx/commit",
+        "url": "http://localhost:7474/db/neo4j/tx/commit",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

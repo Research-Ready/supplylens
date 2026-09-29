@@ -1,0 +1,64 @@
+# UC4 workflow — source for the colour-coded diagram (see ResearchReady/workbook/scripts/workflows.py)
+# status: working | partial | broken | planned     flows: wired false = dashed (not automated yet)
+# UC4 has no JSON dry-run results; statuses come from the 17/17 dry-run (2026-08-06) and PLAN.md.
+title: UC4 SupplyLens (Supply Chain) — workflow
+updated: 2026-09-28
+direction: LR
+summary: >
+  SupplyLens maps a company's supply chain into Neo4j and analyses it. Every service passed the
+  dry-run and the analysis modules and dashboards are built. The LangGraph agent that automates
+  scrape → extract → infer → merge exists as code but is not deployed, the Scania graph is not
+  seeded (cluster unreachable over VPN), and Kotaemon evidence RAG is not provisioned.
+
+lanes:
+  - {id: input, label: "Input"}
+  - {id: collect, label: "Collect & extract"}
+  - {id: infer, label: "Infer & store"}
+  - {id: analyse, label: "Analyse"}
+  - {id: present, label: "Present"}
+
+steps:
+  - {id: company, kind: start, lane: input, label: "Company / product", status: working}
+  - {id: refresh, lane: input, label: "Weekly refresh (Mon 06:00)", service: "n8n CT104", status: partial,
+     note: "14-node workflow in config/n8n_workflow.json; not deployed"}
+  - {id: agent, lane: input, label: "SupplyLens agent", service: "LangGraph CT119", status: partial,
+     note: "src/agent.py built; POST /runs not deployed on CT119"}
+  - {id: scrape, lane: collect, label: "Scrape supplier pages", service: "Browserless CT400", status: working}
+  - {id: extract, lane: collect, label: "Extract text", service: "Unstructured CT117 / Tika CT115", status: working}
+  - {id: rag, lane: collect, label: "Evidence RAG + citations", service: "Kotaemon CT120", status: planned,
+     note: "CT120 not provisioned (needs VPN) — PLAN B1/E5"}
+  - {id: embed, kind: store, lane: infer, label: "Embed", service: "Qdrant CT102 (nomic-embed)", status: working}
+  - {id: llm, lane: infer, label: "Infer hidden suppliers", service: "LiteLLM CT205", status: working,
+     note: "Groq llama-3.3-70b; inferred links carry a confidence"}
+  - {id: graph, kind: store, lane: infer, label: "Supply-chain graph", service: "Neo4j CT114", status: working}
+  - {id: seed, lane: infer, label: "Seed Scania demo graph", service: "scripts/seed_scania.sh", status: broken,
+     note: "Blocked: bastion and CT114 unreachable over VPN (2026-08-24)"}
+  - {id: evidence, kind: store, lane: infer, label: "Evidence store (EDRM)", service: "src/evidence_store.py", status: working}
+  - {id: pg, kind: store, lane: infer, label: "Supplier table sync", service: "PostgreSQL knopenkonings", status: partial,
+     note: "src/postgres_sync.py exists; not scheduled"}
+  - {id: modules, lane: analyse, label: "Risk, CBAM, resilience, Monte Carlo, sanctions, carbon, dual sourcing",
+     service: "src/*.py", status: working, note: "Built; run standalone"}
+  - {id: html, kind: end, lane: present, label: "Interactive dashboards", service: "docs/*.html", status: working}
+  - {id: live3d, lane: present, label: "3D graph with live evidence", status: partial, note: "Evidence still hard-coded (PLAN E3)"}
+  - {id: bi, lane: present, label: "BI dashboards", service: "Superset CT206 / Metabase CT202", status: partial,
+     note: "Services up; dashboards not provisioned"}
+  - {id: pdf, lane: present, label: "Supplier scorecard PDF", status: planned, note: "PLAN E4"}
+  - {id: book, kind: end, lane: present, label: "SupplyLens book", service: "Gitea Actions", status: working}
+
+flows:
+  - {from: company, to: agent, wired: false}
+  - {from: refresh, to: agent, wired: false, label: weekly}
+  - {from: agent, to: scrape}
+  - {from: scrape, to: extract}
+  - {from: extract, to: rag, wired: false}
+  - {from: extract, to: embed}
+  - {from: embed, to: llm}
+  - {from: llm, to: graph, label: MERGE}
+  - {from: seed, to: graph, wired: false}
+  - {from: graph, to: evidence}
+  - {from: graph, to: pg, wired: false}
+  - {from: graph, to: modules, wired: false, label: export}
+  - {from: modules, to: html}
+  - {from: evidence, to: live3d, wired: false}
+  - {from: pg, to: bi, wired: false}
+  - {from: modules, to: pdf, wired: false}

@@ -1,0 +1,97 @@
+{
+  "title": "Scania Supply Chain — Overview",
+  "version": "2.4",
+  "settings": {
+    "pagenumber": 0,
+    "editable": true,
+    "fullscreenEnabled": false,
+    "parameters": {},
+    "extensions": ["core", "actions"]
+  },
+  "pages": [
+    {
+      "title": "Overview",
+      "reports": [
+        {
+          "title": "Supplier Count by Country",
+          "query": "MATCH (s:Supplier) WHERE s.country IS NOT NULL RETURN s.country AS country, count(s) AS suppliers ORDER BY suppliers DESC",
+          "width": 8,
+          "height": 4,
+          "x": 0,
+          "y": 0,
+          "type": "bar",
+          "selection": { "index": "country", "value": "suppliers", "key": "(none)" },
+          "settings": { "colors": "paired" }
+        },
+        {
+          "title": "Suppliers by Tier",
+          "query": "MATCH (s:Supplier) WHERE s.tier IS NOT NULL RETURN toString(s.tier) AS tier, count(s) AS suppliers ORDER BY tier",
+          "width": 4,
+          "height": 4,
+          "x": 8,
+          "y": 0,
+          "type": "pie",
+          "selection": { "index": "tier", "value": "suppliers", "key": "(none)" },
+          "settings": { "colors": "pastel1" }
+        },
+        {
+          "title": "Risk Flags (all nodes)",
+          "query": "MATCH (n) WHERE n.risk_flags IS NOT NULL UNWIND n.risk_flags AS flag RETURN flag, count(*) AS occurrences ORDER BY occurrences DESC",
+          "width": 6,
+          "height": 4,
+          "x": 0,
+          "y": 4,
+          "type": "bar",
+          "selection": { "index": "flag", "value": "occurrences", "key": "(none)" },
+          "settings": { "colors": "paired" }
+        },
+        {
+          "title": "Suppliers with Risk Flags",
+          "query": "MATCH (s:Supplier) WHERE s.risk_flags IS NOT NULL RETURN s.name AS supplier, s.country AS country, s.tier AS tier, s.risk_flags AS risk_flags ORDER BY s.tier",
+          "width": 6,
+          "height": 4,
+          "x": 6,
+          "y": 4,
+          "type": "table",
+          "selection": {},
+          "settings": {}
+        },
+        {
+          "title": "Scania R-500 Supply Chain Network",
+          "query": "MATCH path = (p:Product {sku:'SCANIA-R-500'})-[:SUPPLIED_BY|SOURCED_FROM*1..3]->(n) RETURN path LIMIT 100",
+          "width": 12,
+          "height": 6,
+          "x": 0,
+          "y": 8,
+          "type": "graph",
+          "selection": {
+            "Product": "name",
+            "Supplier": "name"
+          },
+          "settings": {
+            "nodeColorScheme": "paired"
+          }
+        },
+        {
+          "title": "Supplier & Facility Locations",
+          "query": "MATCH (n) WHERE n.lat IS NOT NULL AND n.long IS NOT NULL RETURN n",
+          "width": 12,
+          "height": 6,
+          "x": 0,
+          "y": 14,
+          "type": "map",
+          "selection": {
+            "Supplier": "(no label)",
+            "RawMaterial": "(no label)",
+            "MiningOperation": "(no label)",
+            "LogisticsHub": "(no label)"
+          },
+          "settings": {
+            "nodeColorScheme": "category10"
+          }
+        }
+      ]
+    }
+  ],
+  "parameters": {}
+}

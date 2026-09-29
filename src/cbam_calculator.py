@@ -24,7 +24,7 @@ from datetime import datetime
 from typing import Dict, List, Optional, Tuple
 
 # ── Config ──────────────────────────────────────────────────────────────────
-NEO4J_URL  = os.getenv("NEO4J_URL",  "http://10.0.1.114:7474")
+NEO4J_URL  = os.getenv("NEO4J_URL",  "http://localhost:7474")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
 NEO4J_PASS = os.getenv("NEO4J_PASSWORD", "")
 

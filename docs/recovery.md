@@ -22,7 +22,7 @@ ssh -o ProxyJump=root@10.0.0.16 root@10.0.1.114 "cat /root/.credentials/neo4j.tx
 # Verify with:
 NEO4J_PW=<password>
 AUTH=$(python3 -c "import base64; print(base64.b64encode(f'neo4j:$NEO4J_PW'.encode()).decode())")
-curl -s -H "Authorization: Basic $AUTH" http://10.0.1.114:7474/db/neo4j/tx/commit \
+curl -s -H "Authorization: Basic $AUTH" http://localhost:7474/db/neo4j/tx/commit \
   -H 'Content-Type: application/json' \
   -d '{"statements":[{"statement":"RETURN 1"}]}'
 ```
@@ -84,7 +84,7 @@ from pykeepass import PyKeePass
 kp = PyKeePass('usecases/uc4-supply-chain/passwords.kdbx', password='SupplyChainBaby100!')
 print(kp.find_entries(title='Qdrant', first=True).password)
 ")
-curl -H "api-key: $QDRANT_KEY" http://10.0.1.102:6333/collections
+curl -H "api-key: $QDRANT_KEY" http://localhost:6333/collections
 ```
 
 ### LiteLLM 429 / corrupt Groq key

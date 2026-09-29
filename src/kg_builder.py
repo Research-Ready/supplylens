@@ -23,8 +23,8 @@ from typing import Optional
 
 # ── Config ──────────────────────────────────────────────────────────────────
 
-NEO4J_HTTP = "http://10.0.1.114:7474/db/neo4j/tx/commit"
-LITELLM_URL = "http://10.0.2.205:4000/v1/chat/completions"
+NEO4J_HTTP = "http://localhost:7474/db/neo4j/tx/commit"
+LITELLM_URL = "http://localhost:4000/v1/chat/completions"
 KOTAEMON_URL = "http://10.0.1.120:8501"
 
 # Circuit breaker: if Kotaemon fails this many times consecutively, use demo

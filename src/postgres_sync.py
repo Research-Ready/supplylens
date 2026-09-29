@@ -21,7 +21,7 @@ try:
 except ImportError:
     sys.exit("ERROR: pip install psycopg2-binary")
 
-NEO4J_URL  = os.getenv("NEO4J_URL",      "http://10.0.1.114:7474")
+NEO4J_URL  = os.getenv("NEO4J_URL",      "http://localhost:7474")
 NEO4J_USER = os.getenv("NEO4J_USER",     "neo4j")
 NEO4J_PASS = os.getenv("NEO4J_PASSWORD", "")
 PG_HOST    = os.getenv("PG_HOST",        "10.0.1.100")

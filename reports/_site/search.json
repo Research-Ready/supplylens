@@ -1,0 +1,758 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "SupplyLens",
+    "section": "",
+    "text": "SupplyLens\nAI Supply Chain Intelligence & Regulatory Enforcement\nIndustry partner: Scania AB (ground truth validation) Research goal: Multi-signal OSINT inference + EDRM evidence chain + EU regulatory output Status: All 8 dry-run steps PASS (re-verified 2026-08-06). Phases 1–10 built. NeoDash deployed (CT130).",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Welcome</span>"
+    ]
+  },
+  {
+    "objectID": "index.html#three-research-use-cases",
+    "href": "index.html#three-research-use-cases",
+    "title": "SupplyLens",
+    "section": "Three Research Use Cases",
+    "text": "Three Research Use Cases\n\n\n\n\n\n\n\n\nUse Case\nDescription\nOutput\n\n\n\n\nSupply Chain Mapping\nAuto-discover Tier 1–5 suppliers from OSINT\nProbabilistic graph with confidence scores\n\n\nMaterial Alternative Research\nFind cheaper/greener alternatives to flagged materials\nCost + CO2 improvement proposal\n\n\nSuppressed Evidence & Regulatory Filing\nProve a company knew about a better alternative and chose not to use it\nEDRM-compliant EU enforcement report",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Welcome</span>"
+    ]
+  },
+  {
+    "objectID": "index.html#key-numbers",
+    "href": "index.html#key-numbers",
+    "title": "SupplyLens",
+    "section": "Key Numbers",
+    "text": "Key Numbers\n\n\n\nMetric\nValue\n\n\n\n\nDry-run steps passing\n17 / 17\n\n\nDashboard tabs\n30\n\n\nNeo4j Cypher lines (sample graph)\n~2,305\n\n\nSuppliers in demo graph\n45+\n\n\nPipeline phases built\n10\n\n\nConfidence signal sources\n5\n\n\nActive containers\n15",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Welcome</span>"
+    ]
+  },
+  {
+    "objectID": "index.html#how-to-read-this-book",
+    "href": "index.html#how-to-read-this-book",
+    "title": "SupplyLens",
+    "section": "How to Read This Book",
+    "text": "How to Read This Book\n\n\n\nChapter\nWhat you find\n\n\n\n\nThe Problem\nWhy supply chain visibility is the “holy grail” — and why SupplyLens addresses it\n\n\nSystem Architecture\nThree-organ pipeline: Mouth → Gut → Presentation; infrastructure map\n\n\nData Model\nNeo4j knowledge graph schema, MongoDB raw store, PostgreSQL entity table, confidence model\n\n\nServices\nAll 15 containers, IPs, ports, access patterns\n\n\nDashboards\nInventory of all 30 dashboard tabs and standalone views\n\n\nProject Status\nWhat’s built, what’s remaining, execution order",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Welcome</span>"
+    ]
+  },
+  {
+    "objectID": "index.html#quick-access",
+    "href": "index.html#quick-access",
+    "title": "SupplyLens",
+    "section": "Quick Access",
+    "text": "Quick Access\n# SSH tunnels (run on laptop before opening any UI)\nssh -f -L 15005:10.0.1.130:5005 -L 17687:localhost:7687 \\\n    -N -o ProxyJump=root@10.0.0.16 root@10.0.1.114\n\n# Open NeoDash\nxdg-open \"http://localhost:15005\"\n# Connect: bolt://localhost:17687  |  neo4j  |  &lt;password from KeePass&gt;\n\n# Open local dashboard\nxdg-open \"docs/dashboard.html\"\n\n# Health check all services\nbash scripts/health_check.sh\n\nSupplyLens is developed by Research-Ready in partnership with Scania AB.",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Welcome</span>"
+    ]
+  },
+  {
+    "objectID": "workflow.html",
+    "href": "workflow.html",
+    "title": "Workflow",
+    "section": "",
+    "text": "Steps\nSupplyLens maps a company’s supply chain into Neo4j and analyses it. Every service passed the dry-run and the analysis modules and dashboards are built. The LangGraph agent that automates scrape → extract → infer → merge exists as code but is not deployed, the Scania graph is not seeded (cluster unreachable over VPN), and Kotaemon evidence RAG is not provisioned.\n18 steps: 10 working, 5 partial / unverified, 1 broken / blocked, 2 planned, not built. Updated 2026-09-28.\n✅ Working · ⚠️ Partial / unverified · ❌ Broken / blocked · ⏳ Planned, not built · solid arrow = automated · dashed arrow = not wired yet",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Workflow</span>"
+    ]
+  },
+  {
+    "objectID": "workflow.html#steps",
+    "href": "workflow.html#steps",
+    "title": "Workflow",
+    "section": "",
+    "text": "Step\nService\nStatus\nSource\nNote\n\n\n\n\nCompany / product\n\n✅ Working\nmanual\n\n\n\nWeekly refresh (Mon 06:00)\nn8n CT104\n⚠️ Partial / unverified\nmanual\n14-node workflow in config/n8n_workflow.json; not deployed\n\n\nSupplyLens agent\nLangGraph CT119\n⚠️ Partial / unverified\nmanual\nsrc/agent.py built; POST /runs not deployed on CT119\n\n\nScrape supplier pages\nBrowserless CT400\n✅ Working\nmanual\n\n\n\nExtract text\nUnstructured CT117 / Tika CT115\n✅ Working\nmanual\n\n\n\nEvidence RAG + citations\nKotaemon CT120\n⏳ Planned, not built\nmanual\nCT120 not provisioned (needs VPN) — PLAN B1/E5\n\n\nEmbed\nQdrant CT102 (nomic-embed)\n✅ Working\nmanual\n\n\n\nInfer hidden suppliers\nLiteLLM CT205\n✅ Working\nmanual\nGroq llama-3.3-70b; inferred links carry a confidence\n\n\nSupply-chain graph\nNeo4j CT114\n✅ Working\nmanual\n\n\n\nSeed Scania demo graph\nscripts/seed_scania.sh\n❌ Broken / blocked\nmanual\nBlocked: bastion and CT114 unreachable over VPN (2026-08-24)\n\n\nEvidence store (EDRM)\nsrc/evidence_store.py\n✅ Working\nmanual\n\n\n\nSupplier table sync\nPostgreSQL knopenkonings\n⚠️ Partial / unverified\nmanual\nsrc/postgres_sync.py exists; not scheduled\n\n\nRisk, CBAM, resilience, Monte Carlo, sanctions, carbon, dual sourcing\nsrc/*.py\n✅ Working\nmanual\nBuilt; run standalone\n\n\nInteractive dashboards\ndocs/*.html\n✅ Working\nmanual\n\n\n\n3D graph with live evidence\n\n⚠️ Partial / unverified\nmanual\nEvidence still hard-coded (PLAN E3)\n\n\nBI dashboards\nSuperset CT206 / Metabase CT202\n⚠️ Partial / unverified\nmanual\nServices up; dashboards not provisioned\n\n\nSupplier scorecard PDF\n\n⏳ Planned, not built\nmanual\nPLAN E4\n\n\nSupplyLens book\nGitea Actions\n✅ Working\nmanual",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Workflow</span>"
+    ]
+  },
+  {
+    "objectID": "plan.html",
+    "href": "plan.html",
+    "title": "Plan",
+    "section": "",
+    "text": "What exists now\nConcept: Given a company name, product, or barcode — automatically map its complete supply chain using OSINT, infer hidden nodes with AI confidence scoring, flag violations, and produce EDRM-compliant evidence for regulatory enforcement.\nIndustry partner: Scania AB (ground truth validation) Goal: Multi-signal OSINT inference + EDRM evidence chain + EU regulatory output",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Plan</span>"
+    ]
+  },
+  {
+    "objectID": "plan.html#what-exists-now",
+    "href": "plan.html#what-exists-now",
+    "title": "Plan",
+    "section": "",
+    "text": "Live services (VPN required)\n\n\n\nService\nURL\nRole\n\n\n\n\nNeo4j Browser\nhttp://localhost:7474\nQuery supply chain graph\n\n\nLangGraph Agent\nhttp://localhost:8000\nEnrichment pipeline\n\n\nKotaemon RAG\nhttp://10.0.1.120:8501\nChat with supplier docs\n\n\nSuperset\nhttp://10.0.2.206:8088\nSQL dashboards\n\n\nMetabase\nhttp://10.0.2.202:3000\nAlt dashboards\n\n\nn8n\nhttp://localhost:5678\nScheduled refresh\n\n\nLiteLLM\nhttp://localhost:4000\nLLM + embeddings\n\n\nQdrant\nhttp://localhost:6333\nVector search\n\n\n\n\n\nDashboard (open docs/dashboard.html in browser)\n30 tabs:\n\n\n\n\n\n\n\n\nTab\nFile\nWhat you see\n\n\n\n\nRisk\ndashboard.html (inline)\nRisk leaderboard, score bars\n\n\nGraph\ndashboard.html (inline)\nD3 force graph, 2D\n\n\nGeo\nsupply_chain_geo.html\nWorld map, supplier pins\n\n\nEvents\ndashboard.html (inline)\nSupply chain events timeline\n\n\nDisruption\ndisruption_impact.html\nRevenue at risk per scenario\n\n\nFinance\nfinancial_exposure.html\nContract values, exposure\n\n\nResilience\nresilience_dashboard.html\n6-dim HHI resilience radar\n\n\nSupplierIntel\nsupplier_intel.html\nPer-supplier detail cards\n\n\nReport\nreport_demo.html\nAuto-generated procurement report\n\n\nCompliance\ncompliance_tracker.html\n7-regulation matrix\n\n\nSharedSuppliers\nshared_suppliers.html\nCross-product concentration\n\n\nTierDrill\ntier_drill.html\nCollapsible T0→T4 tree\n\n\nCBAM\ncbam_dashboard.html\nCarbon border tax liability\n\n\nScenarios\nscenario_dashboard.html\n7 stress test scenarios\n\n\nNetwork\nnetwork_analytics.html\nCentrality, HHI, bottlenecks\n\n\nMonte Carlo\nsimulation_dashboard.html\n10k-trial disruption sim\n\n\nFin Health\nfinancial_health.html\nAltman Z-scores, leverage\n\n\nLogistics Risk\nlogistics_risk.html\n7 chokepoint routes, €456M rev-at-risk, supplier exposure matrix\n\n\nFin Monitor\nfinancial_monitor.html\nAltman Z + ND/EBITDA bars, CRITICAL/HIGH/MEDIUM alerts\n\n\nKotaemon\nkotaemon_search.html\nRAG chat over supplier docs, citation display, live CT120 health\n\n\nEvidenceMap\nevidence_map.html\nD3 geo map, 45 supplier pins, great-circle arcs, evidence sidebar\n\n\nEDRM\nedrm_tracker.html\nPer-supplier pipeline grid: Scraped/Extracted/RAG-Indexed/Reviewed\n\n\nChainDiff\nchain_diff.html\nSnapshot diff: CRITICAL/HIGH/MEDIUM severity, new nodes/rels/events\n\n\nDeepDive\nsupplier_deep_dive.html\nPer-supplier deep dive: 9 suppliers, risk ring, financials, events\n\n\nProcurement\nprocurement_actions.html\n13 action cards, €1.7B exposure, CSV export\n\n\nHeatmap\nrisk_heatmap.html\nD3 country×risk-type matrix, 14 countries × 7 types, 3 modes\n\n\nTimeline\nsupplier_timeline.html\nD3 swimlane, 18 suppliers × 18 events, Z trend lines, zoom slider\n\n\nScorecards\nscorecard.html\nPrintable scorecards, 12 suppliers, risk ring + compliance grid\n\n\nCarbon\ncarbon_footprint.html\nScope 1/2/3, CBAM liability, SBTi/CDP alignment, 5 chart modes\n\n\nDualSrc\ndual_sourcing.html\nDual sourcing optimizer, budget slider, priority scatter, 9 suppliers\n\n\n\n\n\nStandalone\n\n\n\n\n\n\n\nFile\nWhat you see\n\n\n\n\ndocs/supplylens_3d.html\n3D Three.js graph — click node for evidence panel\n\n\n\n\n\nCode\n\n\n\n\n\n\n\nFile\nWhat it does\n\n\n\n\nsrc/agent.py\nLangGraph: scrape→extract→kotaemon_rag→embed→infer→compliance_check→merge\n\n\nsrc/neo4j_client.py\nCypher query wrapper\n\n\nsrc/kotaemon_client.py\nKotaemon RAG client, circuit breaker, fact sheet builder\n\n\nsrc/risk_scorer.py\nRisk flag → score logic\n\n\nsrc/cbam_calculator.py\nCBAM liability per supplier\n\n\nsrc/alternative_sourcing.py\nAlt supplier scorer, SWITCH_NOW/DUAL_SOURCE\n\n\nsrc/disruption_model.py\nDisruption scenarios, revenue-at-risk\n\n\nsrc/resilience_scorer.py\n6-dim HHI resilience\n\n\nsrc/scenario_modeler.py\n7 named scenarios with best/base/worst\n\n\nsrc/supply_chain_simulator.py\nMonte Carlo 10k trials, P10/P50/P90\n\n\nsrc/graph_analyzer.py\nDegree/betweenness/HHI/bottleneck/longest-path\n\n\nsrc/sanctions_screener.py\nFuzzy OFAC/EU/UN name screening\n\n\nsrc/procurement_report.py\nHTML procurement report per SKU\n\n\nsrc/postgres_sync.py\nNeo4j → PostgreSQL knopenkonings.suppliers\n\n\nexample_outputs/sample_graph.cypher\nv10: 2305 lines; 17 events; SCANIA-AXL autonomous truck AI chain (NVIDIA/TSMC/ASML/JSR)\n\n\nscripts/ingest_kotaemon.py\nBulk ingest supplier docs into Kotaemon\n\n\nscripts/seed_scania.sh\nLoad cypher into Neo4j CT114\n\n\nconfig/n8n_workflow.json\n14-node n8n weekly refresh workflow",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Plan</span>"
+    ]
+  },
+  {
+    "objectID": "plan.html#epics",
+    "href": "plan.html#epics",
+    "title": "Plan",
+    "section": "Epics",
+    "text": "Epics\nEpics are ordered from very simple to advanced; each one ends in working software you can demo. Items keep their original IDs (A–G). Requirements are in docs/requirements.yml.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Plan</span>"
+    ]
+  },
+  {
+    "objectID": "plan.html#epic-1-static-supplylens-demo",
+    "href": "plan.html#epic-1-static-supplylens-demo",
+    "title": "Plan",
+    "section": "Epic 1: Static SupplyLens demo",
+    "text": "Epic 1: Static SupplyLens demo\nWorking software: The interactive dashboards (docs/*.html) run in a browser on the embedded Scania data: logistics risk, financial monitor, deep dive, chain diff, carbon, dual sourcing.\nDemo: Open docs/supplier_deep_dive.html and docs/logistics_risk.html offline.\nRequires: none (static files)\nA2 — Evidence geo map docs/evidence_map.html - What: D3 world map, supplier pins at real lat/lon, supply chain arcs, click supplier → evidence sidebar (docs, claims, confidence, source) - Data: lat/lon already in cypher v8 for mines/logistics - Status: BUILT\nA4 — EDRM pipeline tracker docs/edrm_tracker.html - What: per-supplier status grid — Scraped / Extracted / RAG-indexed / Reviewed - Shows: pipeline completeness %, next action per supplier - Status: BUILT\nC2 — Logistics route risk src/logistics_risk.py - What: score Suez / Malacca / Trans-Sib routes by disruption probability - Which products halt, for how long, alt routes + cost premium - Status: BUILT (7 routes, per-supplier routing map, €456M rev-at-risk demo)\nC3 — Financial monitoring script scripts/financial_monitor.py - What: weekly check — Z-score thresholds, covenant breach alerts - Write alerts to Neo4j, surface in dashboard - Status: BUILT (20 suppliers, Altman Z + ND/EBITDA + credit rating; FinancialAlert nodes)\nD1 — Logistics Risk Dashboard docs/logistics_risk.html - 7 chokepoint routes (Suez/Malacca/Trans-Sib/Cape/Panama/Bosphorus/Hormuz) - D3 probability bars, scatter (Rev@Risk vs Delay, bubble=prob), supplier×route matrix - Status: BUILT\nD2 — Financial Monitor Dashboard docs/financial_monitor.html - Altman Z-Score + ND/EBITDA D3 bars with zone thresholds (red 1.81 / yellow 2.99) - D3 scatter: Z vs ND/EBITDA, quadrant shading; CRITICAL/HIGH/MEDIUM alert cards - Status: BUILT\nD3 — Kotaemon RAG Search UI docs/kotaemon_search.html - Chat UI over 20 indexed supplier docs; citation display; 5 demo answers offline - Live health-check of CT120 (10.0.1.120:8501) every 30s; real API call if online - Status: BUILT\nD4 — Cypher v10 — Autonomous Truck AI chain (appended to sample_graph.cypher) - SCANIA-AXL Level 4 autonomous truck product - T1: NVIDIA Corporation, Mobileye Global, Luminar Technologies (DISTRESS), Knorr-Bremse, HERE, Parker Hannifin - T2: TSMC (Taiwan risk), ARM Holdings (SINGLE_SOURCE), ASML (export controls), Synopsys, Cadence - T3: Shin-Etsu Chemical, JSR Corporation (EUV photoresist), Cryoin Engineering (Ukraine neon), Orano - RawMaterials: Silicon Wafers, EUV Photoresist, Neon Gas, Hafnium, Germanium (China export controls) - 17 events total (added NVIDIA export controls 2023, ASML China restriction, neon shortage 2022) - Status: BUILT\nE1 — Chain Diff src/chain_diff.py + docs/chain_diff.html - Snapshot diff: new risk flags, Altman Z threshold crossings, tier changes, new suppliers - Visual diff dashboard: CRITICAL/HIGH/MEDIUM severity filter, new nodes/relationships/events - Status: BUILT (commit b2c0978)\nE2 — Supplier Deep Dive docs/supplier_deep_dive.html - Per-supplier comprehensive view: risk ring, financial bars, credit rating, events, logistics, evidence, compliance, alt suppliers - 9 suppliers embedded: ZF/CATL/TSMC/Norilsk/Luminar/Leoni/SSAB/JSR/Bosch - Status: BUILT (commit b2c0978)\nF1 — Carbon & CBAM tracker src/carbon_tracker.py + docs/carbon_footprint.html - Scope 1/2/3 emissions for 12 Scania suppliers; CBAM certificate cost; SBTi on-track check; CDP scores - D3 bar chart: 5 modes (Scope1+2, Scope3, CO2 intensity, CBAM cost, YoY trend) - Sidebar: per-supplier scope bars + SBTi/CDP badges + CBAM detail - Status: BUILT (Phase 10)\nF2 — Dual sourcing optimizer src/dual_sourcing.py + docs/dual_sourcing.html - 9 suppliers × all alternatives; risk-weighted priority score; budget slider (greedy knapsack) - Action tiers: IMMEDIATE/SHORT_TERM/MEDIUM_TERM/MONITOR - D3 scatter: Priority vs Qualification Cost (bubble = rev@risk) - Filter by action tier or single-source flag; per-supplier detail panel - Status: BUILT (Phase 10)",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Plan</span>"
+    ]
+  },
+  {
+    "objectID": "plan.html#epic-2-live-scania-graph",
+    "href": "plan.html#epic-2-live-scania-graph",
+    "title": "Plan",
+    "section": "Epic 2: Live Scania graph",
+    "text": "Epic 2: Live Scania graph\nWorking software: The Scania graph is seeded in Neo4j with evidence on every node, and the 3D graph and evidence map read it live instead of hard-coded data.\nDemo: Click a supplier in docs/supplylens_3d.html; its evidence comes from Neo4j.\nRequires: neo4j · seed via VPN or the public Neo4j endpoint\nA1 — Evidence store src/evidence_store.py - What: every Neo4j node gets source_doc, source_excerpt, confidence properties - Functions: store_evidence(), get_evidence(), mark_reviewed() - CLI: python3 src/evidence_store.py get \"Norilsk Nickel\" - Status: BUILT (commit 3a2d19e)\nG1 — Seed the Scania demo graph into Neo4j - What: run bash scripts/seed_scania.sh (loads example_outputs/sample_graph.cypher v10 into CT114) - Done when: MATCH (n) RETURN count(n) on CT114 matches the node count in the cypher file - Blocked by: bastion 10.0.0.16 and CT114 unreachable over VPN (infra D-3, see SCANIA_DEMO_STATUS.md) - Status: BLOCKED (needs VPN)\nA3 — 3D graph live evidence (update docs/supplylens_3d.html) - What: pull evidence from Neo4j via SSH tunnel instead of hardcoded JS - Currently: evidence panel has hardcoded JS data - Status: PARTIALLY BUILT (hardcoded evidence only)\nE3 — A3 live evidence in 3D graph (update docs/supplylens_3d.html) - Pull evidence from Neo4j via fetch instead of hardcoded JS - Status: PARTIALLY BUILT (hardcoded evidence only)",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Plan</span>"
+    ]
+  },
+  {
+    "objectID": "plan.html#epic-3-automated-mapping-agent",
+    "href": "plan.html#epic-3-automated-mapping-agent",
+    "title": "Plan",
+    "section": "Epic 3: Automated mapping agent",
+    "text": "Epic 3: Automated mapping agent\nWorking software: POST /runs {\"company\": \"Scania AB\"} scrapes, extracts, retrieves cited evidence from Kotaemon, infers hidden suppliers and merges them into Neo4j.\nDemo: Run the agent for one supplier; new nodes appear with citations and confidence.\nRequires: langgraph, browserless, unstructured, tika, kotaemon, qdrant, litellm\nB1 — Deploy Kotaemon CT120 - What: run bash scripts/provision_ct120.sh on cluster - Then: python3 scripts/ingest_kotaemon.py loads synthetic docs - Status: PARTIALLY BUILT — Kotaemon answers at kotaemon.research-ready.nl (inventory: CT129, port 7860, probed 2026-09-28); verify the synthetic docs are ingested\nB2 — Citation extraction (update src/kotaemon_client.py) - What: parse [Source: doc_name, p.N] from Kotaemon answers - Write citations back to Neo4j node as evidence via evidence_store - Status: BUILT (commit c0e9f23)\nB3 — Wire citations into pipeline (update src/agent.py) - What: call store_evidence() in merge node after each inferred fact - Result: every LLM-inferred supply chain link has a document citation - Status: BUILT (commit c0e9f23)\nC1 — Cypher v9: event evidence links - What: each Event node gets source_doc + source_url properties - Add: Taiwan Strait risk, Red Sea Houthi events with citations - Status: BUILT (14 events, backfilled citations on all 12 existing, :AFFECTED_BY rel)\nE5 — Point SupplyLens at Kotaemon on CT129 - Kotaemon runs on CT129:7860 (inventory), not CT120 (that is monitoring); update scripts/provision_ct120.sh, src/kotaemon_client.py and the D3 search UI health check (10.0.1.120:8501) - Then: python3 scripts/ingest_kotaemon.py loads the synthetic docs - Status: NOT BUILT\nG2 — Deploy the SupplyLens agent on CT119 - What: serve src/agent.py as LangGraph POST /runs (scrape → extract → embed → infer → merge) - Done when: POST /runs {\"company\": \"Scania AB\"} adds or updates suppliers in Neo4j with evidence - Depends on: G1 - Status: NOT BUILT",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Plan</span>"
+    ]
+  },
+  {
+    "objectID": "plan.html#epic-4-self-refreshing-intelligence",
+    "href": "plan.html#epic-4-self-refreshing-intelligence",
+    "title": "Plan",
+    "section": "Epic 4: Self-refreshing intelligence",
+    "text": "Epic 4: Self-refreshing intelligence\nWorking software: A weekly n8n run refreshes the graph, syncs suppliers to PostgreSQL and updates the BI dashboards; the chain diff shows what changed.\nDemo: After Monday’s run, the chain diff and Superset show the week’s changes.\nRequires: n8n, postgres, superset or metabase\nG3 — Activate the weekly n8n refresh - What: import config/n8n_workflow.json into n8n CT104; Monday 06:00 cron calls G2 - Done when: one scheduled execution finishes and the chain diff (E1) shows its changes - Depends on: G2 - Status: NOT BUILT\nG4 — Schedule the PostgreSQL supplier sync - What: run src/postgres_sync.py after each refresh so Superset/Metabase can read knopenkonings.suppliers - Done when: supplier rows match Neo4j after a G3 run - Status: PARTIALLY BUILT (script exists, not scheduled)\nG5 — Provision Superset dashboards - What: supplier count by country, tier pie, risk heatmap on CT206 (scripts/setup_superset.py) - Done when: the three charts load from knopenkonings.suppliers - Depends on: G4 - Status: NOT BUILT",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Plan</span>"
+    ]
+  },
+  {
+    "objectID": "plan.html#epic-5-deliverables-for-scania",
+    "href": "plan.html#epic-5-deliverables-for-scania",
+    "title": "Plan",
+    "section": "Epic 5: Deliverables for Scania",
+    "text": "Epic 5: Deliverables for Scania\nWorking software: Per-supplier scorecard PDFs and a validated graph, documented in the SupplyLens book.\nDemo: Hand Scania a scorecard PDF and the validation figures.\nRequires: gitea (book CI) · Scania ground truth\nE4 — Supplier scorecard PDF export scripts/export_scorecard.py - Per-supplier PDF: evidence + risk flags + financial health + compliance - Status: NOT BUILT\nG6 — Validate against Scania ground truth - What: compare the inferred tier-1/2 suppliers with a supplier list confirmed by Scania - Done when: precision/recall of inferred links is reported in the book - Status: NOT BUILT",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Plan</span>"
+    ]
+  },
+  {
+    "objectID": "plan.html#build-history-original-execution-order",
+    "href": "plan.html#build-history-original-execution-order",
+    "title": "Plan",
+    "section": "Build history (original execution order)",
+    "text": "Build history (original execution order)\n\nA1 — evidence_store.py ✓\nA2 — evidence_map.html ✓\nA4 — edrm_tracker.html ✓\nB2 — kotaemon citation extraction ✓\nB3 — wire citations into pipeline ✓\nC1 — cypher v9 event evidence ✓\nC2 — logistics route risk ✓\nC3 — financial monitor ✓\nD1 — logistics risk dashboard ✓\nD2 — financial monitor dashboard ✓\nD3 — Kotaemon search UI ✓\nD4 — cypher v10 AI chain ✓\nE1 — chain diff ✓\nE2 — supplier deep dive ✓\nF1 — carbon tracker + dashboard ✓\nF2 — dual sourcing optimizer + dashboard ✓\nE3 — 3D graph live evidence ← NEXT\nE4 — scorecard PDF export\nE5 — deploy CT120 (needs VPN)",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Plan</span>"
+    ]
+  },
+  {
+    "objectID": "plan.html#definition-of-done",
+    "href": "plan.html#definition-of-done",
+    "title": "Plan",
+    "section": "Definition of done",
+    "text": "Definition of done\nSupplyLens is done for the Scania demo when:\n\nThe Scania graph is seeded and the agent refreshes it weekly without manual steps (G1–G3)\nEvery inferred supplier carries evidence and a confidence score (A1, B3 — done)\nDashboards and the SupplyLens book show live data, not hard-coded examples (E3, G5)\nA supplier scorecard PDF can be handed to Scania (E4)\nThe dry-run writes test-results/ JSON and passes, so the coordinator shows UC4 green (R1)",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Plan</span>"
+    ]
+  },
+  {
+    "objectID": "plan.html#risks-blockers",
+    "href": "plan.html#risks-blockers",
+    "title": "Plan",
+    "section": "Risks & blockers",
+    "text": "Risks & blockers\n\n\n\n\n\n\n\n\nRisk / blocker\nImpact\nMitigation\n\n\n\n\nVPN routing broken (infra D-3)\nG1, G2, E5 cannot run on the cluster\nFix on the VPN server (ip_forward, FORWARD chain); until then work on local artefacts\n\n\nKotaemon CT120 not provisioned\nEvidence RAG and citations stay synthetic\nE5 once VPN works\n\n\nLiteLLM model routing changes (Groq key, embedding model)\nInference step fails silently\nKeep dry-run step 5/7 in CI; alias ollama/nomic-embed-text\n\n\nSuperset loses DB session (PendingRollbackError)\nDashboards error\nsystemctl restart superset; health check in dry-run\n\n\nEvidence is synthetic for part of the graph\nDemo credibility with Scania\nLabel synthetic evidence in the UI; replace via Kotaemon ingest",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Plan</span>"
+    ]
+  },
+  {
+    "objectID": "plan.html#documentation-readiness",
+    "href": "plan.html#documentation-readiness",
+    "title": "Plan",
+    "section": "Documentation & readiness",
+    "text": "Documentation & readiness\nR1 — Dry-run writes JSON results - What: scripts/dry_run.sh writes test-results/dry_run_YYYYMMDD_HHMMSS.json with steps: [{name, status}] - Done when: the ResearchReady workbook shows UC4’s latest dry-run from the file, not from CLAUDE.md - Status: NOT BUILT\nR2 — Colour-coded workflow - What: docs/workflow.yml describes every step with its status; rendered into the book and the workbook - Status: DONE ✅ (2026-09-28)\nR3 — Complete plan - What: goal, status, definition of done, risks, readiness in this file - Status: DONE ✅ (2026-09-28)\nR4 — Keep the book current - What: after each phase, update reports/06-status.qmd; CI (build-book.yml) publishes it - Done when: book status chapter matches this plan - Status: PARTIALLY BUILT (CI works; status chapter last updated before Phase 10)\n\nNext\nWork the epics in order: finish Epic 2 (seed + live evidence), then Epic 3. R1 can be done any time.",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>Plan</span>"
+    ]
+  },
+  {
+    "objectID": "requirements.html",
+    "href": "requirements.html",
+    "title": "Requirements",
+    "section": "",
+    "text": "Shared services\nLive service status from the ResearchReady probe (2026-09-28T20:52). ✅ up / available · ⚠️ partial · ❔ not probed (internal only or no public route) · ❌ down / broken · ⏳ missing · ❓ open decision.",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Requirements</span>"
+    ]
+  },
+  {
+    "objectID": "requirements.html#shared-services",
+    "href": "requirements.html#shared-services",
+    "title": "Requirements",
+    "section": "",
+    "text": "Item\nStatus\nNeeded for\nNote\n\n\n\n\nneo4j — supply-chain graph\n✅ up\nEpic 2\nCT114 · https://neo4j.research-ready.nl\n\n\nbrowserless — scrape supplier pages\n✅ up\nEpic 3\nCT400 · https://browserless.research-ready.nl\n\n\nunstructured — extract text\n✅ up\nEpic 3\nCT117 · https://unstructured.research-ready.nl\n\n\ntika — extract binary files\n❌ down\nEpic 3\nCT115 · https://tika.research-ready.nl\n\n\nqdrant — embeddings\n✅ up\nEpic 3\nCT102 · https://qdrant.research-ready.nl\n\n\nlitellm — infer hidden suppliers\n✅ up\nEpic 3\nCT205 · https://litellm.research-ready.nl\n\n\nlanggraph — SupplyLens agent (POST /runs)\n✅ up\nEpic 3\nCT119 · https://langgraph.research-ready.nl\n\n\nkotaemon — evidence RAG + citations\n✅ up\nEpic 3\nCT129 · https://kotaemon.research-ready.nl Inventory has Kotaemon on CT129 and it answers; PLAN.md said CT120 / not provisioned\n\n\nn8n — weekly refresh\n✅ up\nEpic 4\nCT104 · https://n8n.research-ready.nl\n\n\npostgres — knopenkonings.suppliers\n❔ not probed\nEpic 4\nCT100\n\n\nsuperset — BI dashboards\n✅ up\nEpic 4\nCT206 · https://superset.research-ready.nl\n\n\nmetabase — BI dashboards (alternative)\n✅ up\nEpic 4\nCT202 · https://metabase.research-ready.nl\n\n\ngitea — SupplyLens book CI\n✅ up\nEpic 5\nCT200 · https://gitea.research-ready.nl",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Requirements</span>"
+    ]
+  },
+  {
+    "objectID": "requirements.html#tools-code",
+    "href": "requirements.html#tools-code",
+    "title": "Requirements",
+    "section": "Tools & code",
+    "text": "Tools & code\n\n\n\n\n\n\n\n\n\nItem\nStatus\nNeeded for\nNote\n\n\n\n\nStatic dashboards + analysis modules (src/.py, docs/.html)\n✅ available\nEpic 1\n\n\n\nSeed script (scripts/seed_scania.sh)\n✅ available\nEpic 2\n\n\n\nAgent packaged as a LangGraph service\n⏳ missing\nEpic 3\nsrc/agent.py exists\n\n\nScorecard PDF export (scripts/export_scorecard.py)\n⏳ missing\nEpic 5",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Requirements</span>"
+    ]
+  },
+  {
+    "objectID": "requirements.html#access-keys",
+    "href": "requirements.html#access-keys",
+    "title": "Requirements",
+    "section": "Access & keys",
+    "text": "Access & keys\n\n\n\n\n\n\n\n\n\nItem\nStatus\nNeeded for\nNote\n\n\n\n\nVPN route to bastion 10.0.0.16 (for seeding over SSH)\n❌ broken\nEpic 2\ninfra D-3\n\n\nNeo4j password\n✅ available\nEpic 2\nKeePass entry Neo4j\n\n\nGroq key for inference\n✅ available\nEpic 3",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Requirements</span>"
+    ]
+  },
+  {
+    "objectID": "requirements.html#data",
+    "href": "requirements.html#data",
+    "title": "Requirements",
+    "section": "Data",
+    "text": "Data\n\n\n\n\n\n\n\n\n\nItem\nStatus\nNeeded for\nNote\n\n\n\n\nScania graph cypher v10 (example_outputs/sample_graph.cypher)\n✅ available\nEpic 2\n\n\n\nSynthetic supplier evidence documents\n✅ available\nEpic 3\n\n\n\nReal supplier documents / ground truth from Scania\n⏳ missing\nEpic 5",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Requirements</span>"
+    ]
+  },
+  {
+    "objectID": "requirements.html#decisions-external-actions",
+    "href": "requirements.html#decisions-external-actions",
+    "title": "Requirements",
+    "section": "Decisions & external actions",
+    "text": "Decisions & external actions\n\n\n\n\n\n\n\n\n\nItem\nStatus\nNeeded for\nNote\n\n\n\n\nSeed via SSH (needs VPN) or via the public Neo4j endpoint\n❓ open decision\nEpic 2\n\n\n\nBI tool: Superset or Metabase\n❓ open decision\nEpic 4",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>Requirements</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html",
+    "href": "01-concept.html",
+    "title": "Research Concept",
+    "section": "",
+    "text": "The Problem",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#supply-chains-are-invisible-by-design",
+    "href": "01-concept.html#supply-chains-are-invisible-by-design",
+    "title": "Research Concept",
+    "section": "Supply chains are invisible — by design",
+    "text": "Supply chains are invisible — by design\nEvery product on the market is the end result of a chain of suppliers, sub-suppliers, raw material extractors, logistics providers, and processors — spanning dozens of countries and hundreds of companies. This chain is called a supply chain, and it is almost entirely invisible.\nA typical manufacturer knows its direct suppliers — the companies it buys from directly. These are called Tier 1 suppliers. Beyond that, visibility collapses rapidly. Most companies have partial insight into their Tier 2 suppliers, and almost no knowledge of Tier 3 and beyond. The deeper you go, the darker it gets.\nThis is not accidental. Suppliers have strong commercial incentives to keep their own sourcing relationships confidential. Contracts, competitive pricing, and production methods are trade secrets. Even where disclosure is required by law, enforcement is weak and data is scattered across dozens of incompatible registers.\nThe result: a global economy built on supply chains that no one can see.",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#the-consequences-are-severe",
+    "href": "01-concept.html#the-consequences-are-severe",
+    "title": "Research Concept",
+    "section": "The consequences are severe",
+    "text": "The consequences are severe\nThis invisibility has direct, measurable consequences:\nEnvironmental: Cobalt for electric vehicle batteries is mined in the Democratic Republic of Congo under conditions that cause severe water contamination and habitat destruction. Steel producers in Russia and Asia operate with carbon intensities multiple times higher than their European peers. Yet the companies whose products depend on these inputs often cannot name the source.\nHuman rights: The UK Modern Slavery Act, the German Supply Chain Act (LkSG), and the EU Corporate Sustainability Due Diligence Directive (CSDD) all require companies to identify and address human rights risks in their supply chains. Compliance is currently impossible beyond Tier 1 — not because companies lack the will, but because they lack the data.\nRegulatory evasion: When a company knows of a cheaper, greener, or more ethical alternative to a current supplier but chooses not to act — perhaps because change is expensive, or because the current arrangement is profitable — there is presently no mechanism to detect, document, or penalise this decision. The knowledge disappears into internal memos and is never surfaced.\nInnovation suppression: Researchers and policymakers cannot identify systemic inefficiencies in supply chains they cannot see. Improvement opportunities — better materials, cleaner processes, more resilient sourcing — go undiscovered.",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#this-is-the-holy-grail-of-supply-chain-management",
+    "href": "01-concept.html#this-is-the-holy-grail-of-supply-chain-management",
+    "title": "Research Concept",
+    "section": "This is the “holy grail” of supply chain management",
+    "text": "This is the “holy grail” of supply chain management\nThe term holy grail is used deliberately in supply chain literature to describe full, end-to-end supply chain visibility. It is considered holy because it has never been achieved at scale. Altana AI, a commercial platform valued at over $1 billion, has mapped approximately 50% of global trade using proprietary customs data. This represents the current state of the art — and it covers only known, disclosed transactions.\nSupplyLens addresses the undisclosed portion. The nodes no one has mapped. The suppliers no one admits to. The practices no one reports.",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#what-supplylens-does",
+    "href": "01-concept.html#what-supplylens-does",
+    "title": "Research Concept",
+    "section": "What SupplyLens does",
+    "text": "What SupplyLens does\nSupplyLens is a research platform that:\n\nAccepts a company name, product, or barcode as input\nAutomatically gathers open-source intelligence from trade databases, facility registries, corporate filings, news sources, and satellite data\nUses AI to infer hidden supply chain nodes — suppliers that are probable but not publicly disclosed — with an explicit, calibrated confidence score for each\nStores all findings in EDRM-compliant format — the Electronic Discovery Reference Model used in legal proceedings — with a full chain of custody for every claim\nSurfaces violations, risks, and improvement opportunities detected in the graph\nGenerates regulatory-grade reports suitable for submission to the European Commission or national competent authorities\n\nThe platform is built entirely on existing, maintained open-source software (Neo4j, LangGraph, n8n, NeoDash, draw.io) with AI inference orchestrated through LangGraph and LiteLLM. No proprietary data sources are required.",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#the-research-contribution",
+    "href": "01-concept.html#the-research-contribution",
+    "title": "Research Concept",
+    "section": "The research contribution",
+    "text": "The research contribution\nThe core scientific contribution of SupplyLens is the multi-signal confidence fusion methodology for supply chain node inference.\nWhen the AI infers that a particular supplier is probably part of a supply chain — even though no company has publicly disclosed this — it does not simply assert it. It combines multiple independent evidence signals, each with a calibrated weight:\n\n\n\n\n\n\n\n\nSignal\nWeight\nExample\n\n\n\n\nTrade flow data (bill of lading)\n0.30\nCompany X shipped product Y to company Z\n\n\nFacility location cross-reference\n0.25\nFactory within 50km of known customer\n\n\nCorporate ownership structure\n0.20\nSubsidiary relationship via OpenCorporates\n\n\nDocument extraction (annual reports)\n0.15\nSupplier named in sustainability report\n\n\nNews & incident data (GDELT)\n0.10\nSupplier mentioned in same news context\n\n\n\nThe result is a probabilistic knowledge graph where every inferred node carries a confidence score and a full list of contributing evidence sources. This is fundamentally different from existing approaches, which rely primarily on voluntary company disclosures.",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#why-legal-admissibility-matters",
+    "href": "01-concept.html#why-legal-admissibility-matters",
+    "title": "Research Concept",
+    "section": "Why legal admissibility matters",
+    "text": "Why legal admissibility matters\nA supply chain map that cannot be defended in court is, for regulatory purposes, a map that does not exist. If a researcher discovers that a company knowingly suppressed a cheaper, greener alternative to a harmful material — but cannot prove it with traceable, verifiable evidence — nothing changes.\nSupplyLens is designed from the ground up to produce evidence that is legally admissible. Every piece of data in the system follows the Electronic Discovery Reference Model (EDRM) — the international standard for digital evidence management used in litigation and regulatory proceedings.",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#the-chain-of-custody",
+    "href": "01-concept.html#the-chain-of-custody",
+    "title": "Research Concept",
+    "section": "The chain of custody",
+    "text": "The chain of custody\nFor every claim in the SupplyLens knowledge graph, the following is recorded and immutably stored:\n\n\n\n\n\n\n\nStage\nWhat is recorded\n\n\n\n\nIdentification\nSource URL, database name, API endpoint\n\n\nPreservation\nSHA-256 hash of source content at time of collection\n\n\nCollection\nMethod (scraped/API/uploaded), timestamp, software version\n\n\nProcessing\nExtraction method, AI model version, confidence score\n\n\nReview\nResearcher decision (confirmed/rejected/flagged), timestamp\n\n\nAnalysis\nInference method, signal weights, uncertainty band\n\n\nProduction\nExport format, recipient, case ID, export timestamp\n\n\n\nThis means: if a company challenges the findings, every claim can be traced back to a source document with a cryptographic hash proving it has not been altered.",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#how-the-data-actually-gets-collected",
+    "href": "01-concept.html#how-the-data-actually-gets-collected",
+    "title": "Research Concept",
+    "section": "How the data actually gets collected",
+    "text": "How the data actually gets collected\nThe EDRM pipeline runs on two tracks:\nScheduled pulls (n8n, weekly): n8n workflows automatically query ImportYeti for trade flow data, UN Comtrade for aggregate commodity flows, and OpenSupplyHub for new facility registrations. Every API response is hashed on arrival and stored in Neo4j with a full timestamp and source reference.\nTriggered inference (LangGraph agent): When a researcher submits a new company or product, LangGraph orchestrates a multi-step enrichment pipeline — scraping supplier websites via Browserless, extracting text via Unstructured, querying the vector store (Qdrant) for similar known suppliers, then calling the LLM (LiteLLM/Groq) to infer probable supply chain links. Each inferred link is stored with its confidence score and the evidence that generated it.\nNo CrewAI or additional orchestration layer is needed — LangGraph already handles multi-step agent coordination with full state management and rollback.",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#the-enforcement-loop",
+    "href": "01-concept.html#the-enforcement-loop",
+    "title": "Research Concept",
+    "section": "The enforcement loop",
+    "text": "The enforcement loop\nThe practical consequence of EDRM compliance is a functioning enforcement mechanism:\nResearcher discovers: Company X knew of improvement Y,\n                      chose not to implement it\n          ↓\nEvidence: internal document (hashed), patent filing,\n          sustainability report, news coverage\n          ↓\nEDRM report filed with European Commission\n          ↓\nFine imposed, calibrated to violation severity\n          ↓\nFine exceeds cost of implementing improvement\n          ↓\nCompany implements improvement\n          ↓\nWorld is slightly better\nThis loop — from research finding to regulatory action to real-world change — is the ultimate purpose of SupplyLens. The tool is not an academic exercise. It is a mechanism for using evidence to make supply chains cleaner, fairer, and more transparent.",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#why-scania",
+    "href": "01-concept.html#why-scania",
+    "title": "Research Concept",
+    "section": "Why Scania",
+    "text": "Why Scania\nScania AB is a Swedish manufacturer of heavy trucks, buses, and engines with revenues exceeding €20 billion and suppliers spanning more than 50 countries. Its supply chain is deep, complex, and representative of the challenges facing the entire automotive sector.\nCritically, Scania has agreed to act as a ground truth partner. This means:\n\nScania discloses its known Tier 1 and partial Tier 2 supplier data to the research team\nSupplyLens attempts to map the same suppliers using public OSINT only\nScania validates or refutes the AI’s inferences, node by node\nThis validation data is used to calibrate the confidence model\n\nThis creates a rigorous, scientifically defensible validation methodology. Rather than claiming the model works in the abstract, we can demonstrate its precision and recall against a real-world ground truth.",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#the-validation-phases",
+    "href": "01-concept.html#the-validation-phases",
+    "title": "Research Concept",
+    "section": "The validation phases",
+    "text": "The validation phases\nPhase 1 — Baseline: SupplyLens maps Scania’s Tier 1 from public sources only. Scania confirms accuracy. We establish a baseline precision/recall score.\nPhase 2 — Inference: SupplyLens infers Tier 2–3 from OSINT. Scania confirms or denies each node. We calibrate the confidence weights.\nPhase 3 — Unknown territory: SupplyLens maps Tier 4–5 — beyond what even Scania knows. Independent verification via trade data, investigative databases, NGO reports.\nPhase 4 — Violation detection: SupplyLens flags known violations in the graph. Cross-referenced against public enforcement actions to validate detection accuracy.",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#geographic-map-neodash",
+    "href": "01-concept.html#geographic-map-neodash",
+    "title": "Research Concept",
+    "section": "Geographic Map — NeoDash",
+    "text": "Geographic Map — NeoDash\nThe primary interface is a world map showing supply chain arcs between supplier locations. Each node represents a facility, mine, factory, or headquarters. Arcs represent material and product flows. Node colour indicates risk level; opacity indicates confidence (inferred nodes appear translucent).\nClicking a node opens an evidence panel showing everything the system knows about that supplier: confirmed facts, inferred relationships, confidence scores, source documents, and any violation flags.\nSoftware: NeoDash (Neo4j Labs open source)",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#knowledge-graph-neodash",
+    "href": "01-concept.html#knowledge-graph-neodash",
+    "title": "Research Concept",
+    "section": "Knowledge Graph — NeoDash",
+    "text": "Knowledge Graph — NeoDash\nThe second view provides an interactive network topology of the supply chain, allowing researchers to explore relationships, find shortest paths between two suppliers, identify shared dependencies across multiple products, and detect structural bottlenecks (single-source nodes).\nSoftware: NeoDash graph view (same deployment as map, different dashboard tab)",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#process-flow-draw.io",
+    "href": "01-concept.html#process-flow-draw.io",
+    "title": "Research Concept",
+    "section": "Process Flow — draw.io",
+    "text": "Process Flow — draw.io\nThe third view renders the supply chain as a BPMN-style left-to-right process diagram: raw material → processing → component → assembly → finished product. This view is used for documentation, regulatory submissions, and academic publication. Diagrams are exportable as BPMN XML, PDF, or SVG.\nSoftware: draw.io (jgraph open source)",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#what-is-built",
+    "href": "01-concept.html#what-is-built",
+    "title": "Research Concept",
+    "section": "What is built",
+    "text": "What is built\nThe following components are complete and operational:\n\nNeo4j knowledge graph — Scania supply chain graph with over 3,000 lines of Cypher, covering 4 tiers of suppliers including the autonomous truck AI supply chain and battery chemistry chain\nLangGraph agent — AI pipeline orchestrating scrape → extract → infer → store\nBrowserless scraper — JS-rendered supplier website scraping\nUnstructured/Tika — document text extraction from HTML, PDF, Excel\nLiteLLM — LLM inference via Groq (llama-3.3-70b) with Ollama fallback\nQdrant — vector search over supplier documents\nEvidence store — EDRM-compliant evidence storage in Neo4j with SHA-256 hashing\nn8n workflows — scheduled weekly data pulls and pipeline automation",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#what-is-in-progress",
+    "href": "01-concept.html#what-is-in-progress",
+    "title": "Research Concept",
+    "section": "What is in progress",
+    "text": "What is in progress\n\nNeoDash — deployment pending; geographic map and graph interfaces\ndraw.io — deployment pending; BPMN process flow interface\nImportYeti scraper — n8n workflow for Scania trade data\nConfidence scorer — multi-signal fusion implementation",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#what-comes-next",
+    "href": "01-concept.html#what-comes-next",
+    "title": "Research Concept",
+    "section": "What comes next",
+    "text": "What comes next\n\nReal data pipeline — ImportYeti scraper for Scania; UN Comtrade n8n workflow\nConfidence scorer — multi-signal fusion implementation\nEDRM store hardening — complete chain of custody implementation\nValidation study — Phase 1 with Scania (Tier 1 precision/recall baseline)\nPublication — methodology paper; tool paper; case study",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#regulatory-context",
+    "href": "01-concept.html#regulatory-context",
+    "title": "Research Concept",
+    "section": "Regulatory context",
+    "text": "Regulatory context\nThe European Union is implementing the most ambitious supply chain transparency legislation in history:\n\nEU Corporate Sustainability Due Diligence Directive (CSDD) — requires companies with 500+ employees to identify and address human rights and environmental risks throughout their supply chains\nEU Carbon Border Adjustment Mechanism (CBAM) — requires importers to declare the embedded carbon in imported goods\nGerman Supply Chain Act (LkSG) — already in force, requires due diligence on environmental and human rights risks beyond Tier 1\n\nAll three regulations face the same fundamental problem: the data does not exist. Companies cannot comply with due diligence requirements for supply chain tiers they cannot see. SupplyLens directly addresses this gap.",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "01-concept.html#the-broader-vision",
+    "href": "01-concept.html#the-broader-vision",
+    "title": "Research Concept",
+    "section": "The broader vision",
+    "text": "The broader vision\nIf SupplyLens achieves its goal — a tool that can map any supply chain from public data, infer hidden nodes with calibrated confidence, and produce legally admissible evidence of violations and suppressed improvements — the consequences extend far beyond any single case.\nResearchers at any university with internet access could investigate any company’s supply chain. Journalists could verify corporate sustainability claims against independent evidence. Regulators could prioritise enforcement against the cases where evidence is strongest. Companies would know that bad practices in their supply chain are discoverable — and would act accordingly.\nThe information asymmetry that has protected supply chain opacity for decades would, for the first time, begin to close.\n\nSupplyLens is developed by Research-Ready in partnership with Scania AB.\nTechnical documentation: see 02-technical.pdf\nUser guide: see 03-userguide.pdf",
+    "crumbs": [
+      "Research Concept",
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>Research Concept</span>"
+    ]
+  },
+  {
+    "objectID": "02-architecture.html",
+    "href": "02-architecture.html",
+    "title": "System Architecture",
+    "section": "",
+    "text": "Organ 1 — The Mouth (Ingestion)\nSupplyLens is structured as three semi-independent organs. Each runs on its own schedule and communicates through well-defined interfaces. The mouth ingests continuously. The gut processes whenever raw data arrives. The presentation layer reads Neo4j on demand, independently of when either of the others last ran.\nColor key: green = confirmed working · orange = service up, integration incomplete · red = not yet built/deployed\nThe mouth runs on its own schedule. It does not parse, infer, or score — it only collects and stores raw material. Three trigger paths feed into a common MongoDB store.\nflowchart TD\n    classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff\n    classDef orange fill:#7a4500,stroke:#5a3000,color:#fff\n    classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff\n\n    T1[\"n8n cron  CT104\\nMonday 06:00\"]:::orange\n    T2[\"Researcher request\\ncompany name / barcode / URL\"]:::green\n    T3[\"Scheduled API poll\\ndaily GDELT · weekly Comtrade\"]:::red\n\n    T1 & T2 --&gt; RESOLVE[\"Resolve company identity\\nGS1 → brand owner\\nOpenCorporates → LEI\\nGLEIF → parent graph\"]:::red\n\n    RESOLVE --&gt; URLS[\"Build URL list\\nsupplier pages · annual reports\\nsustainability filings\"]:::green\n\n    URLS --&gt; SCRAPE[\"Scrape JS-rendered pages\\nBrowserless CT400  POST /scrape\\nwait_for: 1000ms\"]:::green\n\n    SCRAPE --&gt; FALLBACK{CT400 up?}\n    FALLBACK --&gt;|Yes| HTML[\"Raw HTML\\n+ timestamp + URL\"]:::green\n    FALLBACK --&gt;|No| FB[\"Fallback: Browserless CT306\\n10.0.3.106:3500\"]:::green\n    FB --&gt; HTML\n\n    T3 --&gt; APIS[\"Pull structured data\\nUN Comtrade · ImportYeti\\nOpenSupplyHub · GDELT · ILO\"]:::red\n\n    T2 --&gt; MANUAL[\"Researcher uploads\\nPDF · XLS · DOCX\\nvia Kotaemon CT120\"]:::orange\n\n    HTML & APIS & MANUAL --&gt; MONGO[(\"MongoDB CT121\\n10.0.1.121:27017\\nraw_scrapes\")]:::red\nMouth I/O:",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>System Architecture</span>"
+    ]
+  },
+  {
+    "objectID": "02-architecture.html#organ-1-the-mouth-ingestion",
+    "href": "02-architecture.html#organ-1-the-mouth-ingestion",
+    "title": "System Architecture",
+    "section": "",
+    "text": "Direction\nItem\nFormat\n\n\n\n\nIn\nCompany name / SKU / barcode\nPlain text\n\n\nIn\nCron schedule\nTime trigger (n8n)\n\n\nIn\nResearcher-provided URLs\nPlain text\n\n\nOut\nScraped HTML pages\nUTF-8 string + {source_url, timestamp, sha256}\n\n\nOut\nDownloaded PDFs / XLS / DOC\nBinary + {filename, sha256, mime_type}\n\n\nOut\nTrade flow records\nJSON — {hs_code, reporter, partner, value, year}\n\n\nOut\nBill-of-lading records\nJSON — {shipper, consignee, goods_description, port}\n\n\nOut\nFacility records\nJSON — {name, lat, lon, country, certifications[]}\n\n\nOut\nNews/violation events\nJSON — {actor, location, event_type, date, url}\n\n\nOut\nCompany ownership records\nJSON — {lei, name, parent_lei, subsidiaries[]}\n\n\nStore\nAll outputs\nMongoDB CT121 — collection raw_scrapes",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>System Architecture</span>"
+    ]
+  },
+  {
+    "objectID": "02-architecture.html#organ-2-the-gut-processing-inference",
+    "href": "02-architecture.html#organ-2-the-gut-processing-inference",
+    "title": "System Architecture",
+    "section": "Organ 2 — The Gut (Processing & Inference)",
+    "text": "Organ 2 — The Gut (Processing & Inference)\nThe gut is triggered by new documents arriving in MongoDB. It loops through extraction, embedding, inference, scoring, and graph writing until no new nodes are found or the depth limit is reached.\n\n\n\n\n\nflowchart TD\n    classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff\n    classDef orange fill:#7a4500,stroke:#5a3000,color:#fff\n    classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff\n\n    IN[(\"MongoDB CT121\\nnew raw documents\")]:::red\n\n    ORCH[\"LangGraph CT119\\norchestrates the loop\"]:::green\n\n    EXTRACT[\"Step 1 — Extract text\\nHTML/PDF → Unstructured CT117\\nbinary → Tika CT115\"]:::green\n\n    EMBED[\"Step 2 — Embed + index\\nLiteLLM CT205 → nomic-embed-text\\n768-dim → Qdrant CT102\"]:::green\n\n    INFER[\"Step 3 — Infer relationships\\nLiteLLM CT205 → Groq llama-3.3-70b\\nreturns JSON array of supplier links\"]:::green\n\n    SCORE[\"Step 4 — Score confidence\\nTrade ×0.30  Facility ×0.25\\nCorporate ×0.20  Docs ×0.15  News ×0.10\\nweighted sum + uncertainty band\"]:::red\n\n    STAMP[\"Step 5 — EDRM evidence stamp\\nURL · SHA256 · timestamp\\ninference method version\\nlog to Langfuse CT112\"]:::red\n\n    WRITE[\"Step 6 — MERGE into Neo4j CT114\\nSupplier / RawMaterial nodes\\nSUPPLIED_BY / SOURCED_FROM edges\\nconfidence · inferred: true\"]:::green\n\n    FLAGS[\"Step 7 — Apply risk flags\\nSINGLE_SOURCE · GEOPOLITICAL_RISK\\nCBAM · LkSG · EUDR\"]:::green\n\n    LOOP{New nodes found\\nand depth &lt; limit?}\n    OUT[(\"Neo4j CT114\\nnodes + edges\\nconfidence + evidence\")]:::green\n\n    IN --&gt; ORCH --&gt; EXTRACT --&gt; EMBED --&gt; INFER --&gt; SCORE --&gt; STAMP --&gt; WRITE --&gt; FLAGS --&gt; LOOP\n    LOOP --&gt;|\"Yes — go deeper\"| EXTRACT\n    LOOP --&gt;|Done| OUT\n\n\n\n\n\n\nGut I/O:\n\n\n\n\n\n\n\n\nDirection\nItem\nFormat\n\n\n\n\nIn\nRaw HTML\nUTF-8 string — multipart POST to Unstructured CT117\n\n\nIn\nBinary documents (PDF/XLS/DOC)\nBinary — PUT to Tika CT115\n\n\nIn\nStructured JSON (trade/facility/news)\nJSON — parsed directly by LangGraph\n\n\nOut\nText elements\nJSON array — [{text, type, metadata}] from Unstructured\n\n\nOut\n768-dim embeddings\nfloat[] — nomic-embed-text via LiteLLM, upserted to Qdrant\n\n\nOut\nInferred relationships\nJSON array — [{name, country, tier, supplies, confidence}]\n\n\nOut\nSupplier / RawMaterial nodes\nNeo4j MERGE — {name, country, tier, confidence, inferred, signals[]}\n\n\nOut\nSUPPLIED_BY / SOURCED_FROM edges\nNeo4j MERGE — {confidence, inferred: true, source}\n\n\nOut\nEvidenceClaim nodes\nNeo4j MERGE — {source_url, sha256, timestamp, method_version}\n\n\nStore\nNodes + edges + evidence\nNeo4j CT114 + Qdrant CT102 (embeddings)",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>System Architecture</span>"
+    ]
+  },
+  {
+    "objectID": "02-architecture.html#organ-3-the-presentation-layer",
+    "href": "02-architecture.html#organ-3-the-presentation-layer",
+    "title": "System Architecture",
+    "section": "Organ 3 — The Presentation Layer",
+    "text": "Organ 3 — The Presentation Layer\nThe presentation layer reads Neo4j on demand. Three independent interfaces serve three research use cases: geographic visualization, graph topology exploration, and regulatory report generation.\n\n\n\n\n\nflowchart TD\n    classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff\n    classDef orange fill:#7a4500,stroke:#5a3000,color:#fff\n    classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff\n\n    KG[(\"Neo4j CT114\\nknowledge graph\")]:::green\n\n    KG --&gt; MAP_EXP[\"Export nodes with lat/lon\\n+ risk flags + confidence\"]:::red\n    MAP_EXP --&gt; KEPLER[\"Kepler.gl  geographic map\\nnode = facility · arc = flow\\ncolor = risk · opacity = confidence\\nclick → evidence panel\"]:::red\n\n    KG --&gt; GRAPH_EXP[\"Graph topology queries\\nCypher: shortest path\\nshared suppliers · bottlenecks\"]:::green\n    GRAPH_EXP --&gt; NEODASH[\"NeoDash CT130\\nlocalhost:15005\\nsupplier count · tier pie · heatmap\"]:::green\n    GRAPH_EXP --&gt; BLOOM[\"Neo4j Bloom\\ngraph exploration\\ncommunity detection\"]:::red\n\n    KG --&gt; REVIEW[\"Researcher reviews\\ninferred nodes\\nconfirm / reject / flag\"]:::green\n    REVIEW --&gt; EDRM_PKG[\"Retrieve EDRM package\\nURL · SHA256 · signal weights\\nper flagged node\"]:::red\n    EDRM_PKG --&gt; JUDGE{Violation +\\nalternative\\nevident?}\n    JUDGE --&gt;|Yes| REPORT[\"Draft EDRM report\\nLiteLLM CT205\\nEU CSDD · LkSG · UK Modern Slavery\"]:::red\n    JUDGE --&gt;|Monitor| ARCHIVE[\"Archive case\\nn8n weekly re-check\"]:::orange\n    REPORT --&gt; SUBMIT([\"Submit to\\nEuropean Commission\\nor national authority\"]):::red\n\n\n\n\n\n\nPresentation I/O:\n\n\n\n\n\n\n\n\nDirection\nItem\nFormat\n\n\n\n\nIn\nSupply chain graph\nCypher query results from Neo4j CT114\n\n\nIn\nSemantic search results\nQdrant similarity query — top-k chunks\n\n\nOut\nGeographic arc map\nBrowser UI — Kepler.gl: nodes + arcs + evidence panel\n\n\nOut\nGraph topology view\nBrowser UI — NeoDash CT130 / Neo4j Bloom\n\n\nOut\nSQL analytics dashboard\nBrowser UI — Superset CT206 / Metabase CT202\n\n\nOut\nEDRM regulatory report\nPDF — every claim hashed and traceable\n\n\nOut\nBPMN process export\nXML — bpmn.io format for regulatory submission",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>System Architecture</span>"
+    ]
+  },
+  {
+    "objectID": "02-architecture.html#infrastructure-map",
+    "href": "02-architecture.html#infrastructure-map",
+    "title": "System Architecture",
+    "section": "Infrastructure Map",
+    "text": "Infrastructure Map\nData flows top to bottom through three organ layers. All IPs are listed in the Services chapter.\n\n\n\n\n\nflowchart TB\n    classDef green  fill:#1a5c1a,stroke:#0d3a0d,color:#fff\n    classDef orange fill:#7a4500,stroke:#5a3000,color:#fff\n    classDef red    fill:#7a1a1a,stroke:#5c0000,color:#fff\n    classDef store  fill:#1a3a5c,stroke:#0d2640,color:#fff\n\n    WS[\"Researcher  VPN + SSH tunnels\"]:::green\n\n    subgraph EXT [\"External APIs\"]\n        direction LR\n        GROQ[\"Groq API\"]:::green\n        OSINT_APIS[\"UN Comtrade · ImportYeti · OpenSupplyHub · GDELT · GLEIF\"]:::red\n    end\n\n    subgraph MOUTH [\"MOUTH — Ingestion\"]\n        direction LR\n        CT400[\"Browserless CT400\"]:::green\n        CT306[\"Browserless CT306\"]:::green\n        CT104[\"n8n CT104\"]:::orange\n        CT120[\"Kotaemon CT120\"]:::orange\n    end\n\n    MONGO[(\"MongoDB CT121  —  raw store\")]:::red\n\n    subgraph GUT [\"GUT — Processing & Inference\"]\n        direction LR\n        CT119[\"LangGraph CT119\"]:::green\n        CT117[\"Unstructured CT117\"]:::green\n        CT115[\"Tika CT115\"]:::green\n        CT205[\"LiteLLM CT205\"]:::green\n        CT102[\"Qdrant CT102\"]:::green\n        CT112[\"Langfuse CT112\"]:::orange\n    end\n\n    subgraph KSTORE [\"Knowledge Store\"]\n        direction LR\n        CT114[\"Neo4j CT114\"]:::store\n        CT100[\"PostgreSQL CT100\"]:::orange\n    end\n\n    subgraph PRES [\"PRESENTATION — Output\"]\n        direction LR\n        CT130[\"NeoDash CT130\"]:::green\n        CT206[\"Superset CT206\"]:::green\n        CT202[\"Metabase CT202\"]:::green\n        KEPLER[\"Kepler.gl\"]:::red\n        BLOOM[\"Neo4j Bloom\"]:::red\n        EDRM_RPT[\"EDRM Report\"]:::red\n    end\n\n    EXT --&gt; MOUTH\n    MOUTH --&gt; MONGO\n    MONGO --&gt; GUT\n    CT205 --&gt; GROQ\n    CT104 --&gt; OSINT_APIS\n    GUT --&gt; KSTORE\n    KSTORE --&gt; PRES\n    WS -.-&gt;|SSH tunnel| KSTORE\n    WS -.-&gt;|SSH tunnel| PRES",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>System Architecture</span>"
+    ]
+  },
+  {
+    "objectID": "02-architecture.html#signal-to-action-end-to-end-data-flow",
+    "href": "02-architecture.html#signal-to-action-end-to-end-data-flow",
+    "title": "System Architecture",
+    "section": "Signal to Action — End-to-End Data Flow",
+    "text": "Signal to Action — End-to-End Data Flow\nA researcher submits a company name or product SKU. The mouth resolves the identity through GS1 and OpenCorporates, builds a list of URLs to scrape, and stores raw HTML and downloaded documents in MongoDB. That write triggers the gut: LangGraph orchestrates text extraction (Unstructured for HTML/PDF, Tika for binary formats), embedding into Qdrant, and LLM inference of probable supplier relationships. Each inferred node is scored using a weighted fusion of five OSINT signal types and written into Neo4j with a full evidence stamp — source URL, SHA-256 hash, inference method version, and confidence score. The loop repeats, following newly discovered nodes, until the depth limit is reached or no new nodes emerge.\nFrom Neo4j, the presentation layer consumes the graph on demand. NeoDash renders supplier counts, tier breakdowns, and risk heatmaps. The evidence map plots confirmed and inferred suppliers as geographic arcs. A researcher reviewing a flagged node can pull the full EDRM package for that node — every source document, its hash, the signal weights that produced the confidence score, and any violations detected — and use it as the basis for a regulatory report submitted to a national competent authority or the European Commission.",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>System Architecture</span>"
+    ]
+  },
+  {
+    "objectID": "03-data-model.html",
+    "href": "03-data-model.html",
+    "title": "Data Model",
+    "section": "",
+    "text": "Neo4j — Knowledge Graph (CT114)\nSupplyLens uses three stores, each owned by one organ. MongoDB is the raw store written by the mouth. Neo4j is the knowledge graph written by the gut and read by the presentation layer. PostgreSQL is a structured mirror of Neo4j supplier nodes, maintained for SQL dashboarding in Superset and Metabase.\nThe central store. Written by the gut after every enrichment run; read by the presentation layer on demand. Every inferred node carries a confidence score, a list of contributing signals, and links to EvidenceClaim nodes that hold the source documents.\nerDiagram\n    Product {\n        string sku PK\n        string name\n        string category\n    }\n    Supplier {\n        string name PK\n        string country\n        int    tier\n        string website\n        float  confidence\n        bool   inferred\n        array  risk_flags\n        string lei\n    }\n    RawMaterial {\n        string name PK\n        string origin\n        string material_type\n        float  confidence\n        bool   inferred\n    }\n    Company {\n        string name PK\n        string country\n        string industry\n        string lei\n        string parent_lei\n    }\n    Certificate {\n        string name PK\n        string issuer\n        string standard\n        date   valid_until\n    }\n    EvidenceClaim {\n        string id PK\n        string source_url\n        string sha256\n        string method\n        string method_version\n        float  confidence\n        array  signals\n        datetime collected_at\n    }\n    Event {\n        string id PK\n        string event_type\n        string severity\n        date   date\n        string description\n        string source_url\n    }\n    FinancialAlert {\n        string id PK\n        string alert_type\n        string severity\n        float  value\n        string metric\n        date   date\n    }\n\n    Product        ||--o{  Supplier       : \"SUPPLIED_BY\"\n    Supplier       ||--o{  Supplier       : \"SOURCED_FROM\"\n    Supplier       ||--o{  RawMaterial    : \"SOURCED_FROM\"\n    Supplier       ||--o{  Certificate    : \"CERTIFIED_BY\"\n    Supplier       }o--||  Company        : \"OWNED_BY\"\n    Company        }o--o|  Company        : \"SUBSIDIARY_OF\"\n    EvidenceClaim  }o--o{  Supplier       : \"EVIDENCE_FOR\"\n    EvidenceClaim  }o--o{  RawMaterial    : \"EVIDENCE_FOR\"\n    Supplier       ||--o{  Event          : \"AFFECTED_BY\"\n    Supplier       ||--o{  FinancialAlert : \"HAS_ALERT\"",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Data Model</span>"
+    ]
+  },
+  {
+    "objectID": "03-data-model.html#neo4j-knowledge-graph-ct114",
+    "href": "03-data-model.html#neo4j-knowledge-graph-ct114",
+    "title": "Data Model",
+    "section": "",
+    "text": "Relationship Properties\n\n\n\n\n\n\n\nRelationship\nKey properties\n\n\n\n\nSUPPLIED_BY\nsince (year), contract_value (EUR)\n\n\nSOURCED_FROM\nconfidence (0–1), inferred (bool), source (string), volume_kg_year\n\n\nEVIDENCE_FOR\nsignal_weight (float), reviewed_by (researcher ID)\n\n\nAFFECTED_BY\nimpact_severity (LOW / MEDIUM / HIGH / CRITICAL)\n\n\n\n\n\nRisk Flags\nRisk flags are written to Supplier.risk_flags[] by Step 7 of the gut pipeline.\n\n\n\nFlag\nCondition\n\n\n\n\nSINGLE_SOURCE\nOnly 1 inbound SUPPLIED_BY edge\n\n\nGEOPOLITICAL_RISK\ncountry IN [CN, RU, IR, BY]\n\n\nCBAM\nSupplier in carbon-border-tax scope\n\n\nLkSG\nGerman Supply Chain Due Diligence Act applies\n\n\nEUDR\nEU Deforestation Regulation commodity\n\n\n\n\n\nStandard Traversal Query\nMATCH path = (p:Product {sku: $sku})-[:SUPPLIED_BY|SOURCED_FROM*1..3]-&gt;(n)\nRETURN [node in nodes(path) | coalesce(node.name, node.sku)] AS chain,\n       length(path) AS depth\nORDER BY depth\nLimit depth to *1..3 in production queries to avoid OOM on large graphs.",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Data Model</span>"
+    ]
+  },
+  {
+    "objectID": "03-data-model.html#mongodb-raw-store-ct121",
+    "href": "03-data-model.html#mongodb-raw-store-ct121",
+    "title": "Data Model",
+    "section": "MongoDB — Raw Store (CT121)",
+    "text": "MongoDB — Raw Store (CT121)\nWritten by the mouth; read by the gut. One document per collected item. The status field drives the gut’s processing queue: the gut polls for documents where status = \"pending\" and marks them \"processed\" or \"failed\" on completion.\n{\n  \"_id\":          \"ObjectId\",\n  \"source_url\":   \"https://...\",\n  \"source_type\":  \"web_scrape | api_pull | manual_upload\",\n  \"api_source\":   \"un_comtrade | importyeti | opensupplyhub | gdelt | gleif | null\",\n  \"company_query\":\"Scania AB\",\n  \"content\":      \"&lt;html&gt;...&lt;/html&gt;  |  { trade flow JSON }  |  &lt;binary ref&gt;\",\n  \"content_type\": \"text/html | application/json | application/pdf | application/vnd.ms-excel\",\n  \"filename\":     \"scania_annual_report_2024.pdf  |  null\",\n  \"sha256\":       \"a3f9...\",\n  \"collected_at\": \"2026-08-20T06:00:00Z\",\n  \"status\":       \"pending | processing | processed | failed\",\n  \"processed_at\": \"2026-08-20T06:03:42Z  |  null\",\n  \"error\":        \"null  |  'Tika timeout after 30s'\"\n}\nIndexes: source_url (unique), status, company_query, collected_at",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Data Model</span>"
+    ]
+  },
+  {
+    "objectID": "03-data-model.html#postgresql-structured-entity-table-ct100",
+    "href": "03-data-model.html#postgresql-structured-entity-table-ct100",
+    "title": "Data Model",
+    "section": "PostgreSQL — Structured Entity Table (CT100)",
+    "text": "PostgreSQL — Structured Entity Table (CT100)\nA SQL mirror of Neo4j supplier nodes, maintained for Superset and Metabase dashboarding. Synced by src/postgres_sync.py after each gut run. Three tables cover supplier nodes, evidence claims, and supply chain events.\nCREATE TABLE suppliers (\n    id            SERIAL PRIMARY KEY,\n    neo4j_name    TEXT    NOT NULL,\n    country       CHAR(2),\n    tier          SMALLINT,\n    confidence    FLOAT,\n    inferred      BOOLEAN DEFAULT FALSE,\n    risk_flags    TEXT[],\n    lat           FLOAT,\n    lon           FLOAT,\n    website       TEXT,\n    last_synced   TIMESTAMPTZ,\n    created_at    TIMESTAMPTZ DEFAULT NOW()\n);\n\nCREATE TABLE evidence_claims (\n    id             SERIAL PRIMARY KEY,\n    supplier_name  TEXT REFERENCES suppliers(neo4j_name),\n    source_url     TEXT NOT NULL,\n    sha256         CHAR(64) NOT NULL,\n    method         TEXT,\n    confidence     FLOAT,\n    collected_at   TIMESTAMPTZ,\n    reviewed_by    TEXT,\n    status         TEXT DEFAULT 'unreviewed'  -- unreviewed | confirmed | rejected | flagged\n);\n\nCREATE TABLE events (\n    id            SERIAL PRIMARY KEY,\n    supplier_name TEXT,\n    event_type    TEXT,\n    severity      TEXT,\n    event_date    DATE,\n    description   TEXT,\n    source_url    TEXT\n);",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Data Model</span>"
+    ]
+  },
+  {
+    "objectID": "03-data-model.html#confidence-score-model",
+    "href": "03-data-model.html#confidence-score-model",
+    "title": "Data Model",
+    "section": "Confidence Score Model",
+    "text": "Confidence Score Model\nEvery inferred node carries a weighted confidence score fused from five independent OSINT signals. The score is a weighted sum bounded to [0, 1]; each contributing signal is stored in the EvidenceClaim.signals[] array so the score is fully auditable.\n\n\n\nSignal\nWeight\nSource\n\n\n\n\nTrade flow data\n0.30\nUN Comtrade, ImportYeti bill-of-lading\n\n\nFacility location\n0.25\nOpenSupplyHub, satellite imagery\n\n\nCorporate structure\n0.20\nOpenCorporates, GLEIF LEI\n\n\nDocument extraction\n0.15\nAnnual reports, sustainability filings\n\n\nNews & incidents\n0.10\nGDELT, NGO databases, ILO\n\n\n\nA node inferred from a bill-of-lading hit (0.30) and a confirmed facility record (0.25) carries a score of 0.55 before any document or news signals are added. Scores below 0.40 are flagged as low-confidence and displayed with reduced opacity in the presentation layer. Scores above 0.80 require at least two independent signal types with no contradicting evidence.",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>Data Model</span>"
+    ]
+  },
+  {
+    "objectID": "04-services.html",
+    "href": "04-services.html",
+    "title": "Services & Access",
+    "section": "",
+    "text": "Services\nAll services run inside LXC containers on a Proxmox cluster. VPN is required for all access. The table below lists the 15 services used by SupplyLens.",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>Services & Access</span>"
+    ]
+  },
+  {
+    "objectID": "04-services.html#services",
+    "href": "04-services.html#services",
+    "title": "Services & Access",
+    "section": "",
+    "text": "Service\nContainer\nIP:Port\nRole\n\n\n\n\nNeo4j\nCT114\nlocalhost:7474 (HTTP) / :7687 (Bolt)\nSupply chain knowledge graph\n\n\nLangGraph\nCT119\nlocalhost:8000\nAgent orchestration\n\n\nBrowserless (prod)\nCT400\n10.0.5.100:3500\nJS scraping — POST /scrape\n\n\nBrowserless (acc)\nCT306\n10.0.3.106:3500\nFallback scraper\n\n\nUnstructured\nCT117\n10.0.1.117:8000\nHTML/PDF text extraction\n\n\nTika\nCT115\n10.0.1.115:9998\nBinary doc parsing (XLS, DOC)\n\n\nQdrant\nCT102\nlocalhost:6333\nVector search (768-dim)\n\n\nLiteLLM\nCT205\nlocalhost:4000\nLLM proxy + embeddings\n\n\nKotaemon\nCT120\n10.0.1.120:8501\nRAG over supplier docs\n\n\nNeoDash\nCT130\n10.0.1.130:5005\nAnalytics dashboard\n\n\nSuperset\nCT206\n10.0.2.206:8088\nSQL dashboards\n\n\nMetabase\nCT202\n10.0.2.202:3000\nAlternative dashboards\n\n\nn8n\nCT104\nlocalhost:5678\nScheduled OSINT refresh\n\n\nPostgreSQL\nCT100\nlocalhost:5432\nStructured entity table\n\n\nLangfuse\nCT112\nlocalhost:3100\nLLM tracing + evidence chain",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>Services & Access</span>"
+    ]
+  },
+  {
+    "objectID": "04-services.html#ssh-access-patterns",
+    "href": "04-services.html#ssh-access-patterns",
+    "title": "Services & Access",
+    "section": "SSH Access Patterns",
+    "text": "SSH Access Patterns\nTwo bastion nodes serve as proxies into the cluster:\n\nNode-1 bastion: root@10.0.0.16 — reaches containers on 10.0.1.*\nNode-2 bastion: root@10.0.0.15 — reaches containers on 10.0.2.*\n\nStandard SSH access pattern for node-1 containers:\nssh -o ProxyJump=root@10.0.0.16 root@10.0.1.114   # Neo4j CT114\nssh -o ProxyJump=root@10.0.0.16 root@10.0.1.119   # LangGraph CT119\nssh -o ProxyJump=root@10.0.0.16 root@10.0.1.117   # Unstructured CT117\nCT400 has no SSH keys. Use pct exec on node-4 instead:\nssh -i ~/.ssh/proxmox_node3 root@10.0.0.18 \"pct exec 400 -- python3 -c 'import urllib.request; ...'\"\nSSH tunnels for Neo4j and NeoDash (run once per session, then access via localhost):\nssh -f \\\n    -L 15005:10.0.1.130:5005 \\\n    -L 17474:localhost:7474 \\\n    -L 17687:localhost:7687 \\\n    -N -o ProxyJump=root@10.0.0.16 root@10.0.1.114\n\n# After tunnel is up:\n# Neo4j Browser:  http://localhost:17474\n# NeoDash:        http://localhost:15005\n# Bolt connector: bolt://localhost:17687",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>Services & Access</span>"
+    ]
+  },
+  {
+    "objectID": "04-services.html#credential-lookup",
+    "href": "04-services.html#credential-lookup",
+    "title": "Services & Access",
+    "section": "Credential Lookup",
+    "text": "Credential Lookup\nAll credentials are stored in passwords.kdbx. Master password: SupplyChainBaby100!\nfrom pykeepass import PyKeePass\n\nkp = PyKeePass('passwords.kdbx', password='SupplyChainBaby100!')\nentry = kp.find_entries(title='Neo4j', first=True)\nprint(entry.password)\nBash snippets for the most commonly needed credentials:\n# Neo4j password\nNEO4J_PW=$(grep neo4j_password ansible/inventory/group_vars/vault.yml \\\n    | awk '{print $2}' | tr -d '\"')\n\n# PostgreSQL password\nPG_PW=$(grep \"^postgres_password\" ansible/inventory/group_vars/vault.yml \\\n    | awk '{print $2}' | tr -d '\"')\n\n# Qdrant API key\nQDRANT_KEY=$(grep qdrant_api_key ansible/inventory/group_vars/vault.yml \\\n    | awk '{print $2}' | tr -d '\"')\n\n# LiteLLM master key (read from the container)\nLITELLM_KEY=$(ssh root@10.0.2.205 \\\n    \"grep master_key /etc/litellm/config.yaml | awk '{print \\$2}'\")\nNeo4j password can also be read directly from the container without touching the vault:\nssh -o ProxyJump=root@10.0.0.16 root@10.0.1.114 \"cat /root/.credentials/neo4j.txt\"",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>Services & Access</span>"
+    ]
+  },
+  {
+    "objectID": "04-services.html#critical-gotchas",
+    "href": "04-services.html#critical-gotchas",
+    "title": "Services & Access",
+    "section": "Critical Gotchas",
+    "text": "Critical Gotchas\nThese are the most common integration errors, each verified in the dry-run procedure.\n\n\n\n\n\n\n\n\nService\nWrong\nCorrect\n\n\n\n\nBrowserless\nPOST /chromium/content\nPOST /scrape on port 3500\n\n\nUnstructured\nContent-Type: text/html body\nmultipart/form-data with files field — plain body returns HTTP 422\n\n\nEmbeddings\ntext-embedding-3-small\nollama/nomic-embed-text (768 dims) — text-embedding-3-small is not configured in LiteLLM\n\n\nSuperset\nLogin returns 401/500 after idle\nRun systemctl restart superset to clear SQLAlchemy PendingRollbackError\n\n\nLiteLLM / Groq\n429 or 400 errors\nCheck /etc/litellm/config.yaml line ~230 for box-drawing chars (\\xe2\\x94\\x80) appended to the gsk_ key — remove and restart\n\n\nQdrant\nHTTP 403\nAdd -H \"api-key: $QDRANT_KEY\" header to all requests\n\n\nCT400\nSSH connection refused\nCT400 has no SSH keys — use pct exec 400 -- on node-4 (root@10.0.0.18)",
+    "crumbs": [
+      "System Architecture",
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>Services & Access</span>"
+    ]
+  },
+  {
+    "objectID": "05-dashboards.html",
+    "href": "05-dashboards.html",
+    "title": "Dashboards & Outputs",
+    "section": "",
+    "text": "Dashboard Tabs\nThe SupplyLens dashboard is a single HTML file (docs/dashboard.html) with 30 tabs, all reading from the same sample data derived from the Scania supply chain graph. Each tab is either inline in dashboard.html or a linked standalone HTML file in the docs/ directory. One additional standalone file provides a 3D graph view.\nOpen the dashboard:",
+    "crumbs": [
+      "Outputs",
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>Dashboards & Outputs</span>"
+    ]
+  },
+  {
+    "objectID": "05-dashboards.html#dashboard-tabs",
+    "href": "05-dashboards.html#dashboard-tabs",
+    "title": "Dashboards & Outputs",
+    "section": "",
+    "text": "Tab\nFile\nWhat you see\n\n\n\n\nRisk\ndashboard.html (inline)\nRisk leaderboard, score bars\n\n\nGraph\ndashboard.html (inline)\nD3 force graph, 2D\n\n\nGeo\nsupply_chain_geo.html\nWorld map, supplier pins\n\n\nEvents\ndashboard.html (inline)\nSupply chain events timeline\n\n\nDisruption\ndisruption_impact.html\nRevenue at risk per scenario\n\n\nFinance\nfinancial_exposure.html\nContract values, exposure\n\n\nResilience\nresilience_dashboard.html\n6-dim HHI resilience radar\n\n\nSupplierIntel\nsupplier_intel.html\nPer-supplier detail cards\n\n\nReport\nreport_demo.html\nAuto-generated procurement report\n\n\nCompliance\ncompliance_tracker.html\n7-regulation matrix\n\n\nSharedSuppliers\nshared_suppliers.html\nCross-product concentration\n\n\nTierDrill\ntier_drill.html\nCollapsible T0 to T4 tree\n\n\nCBAM\ncbam_dashboard.html\nCarbon border tax liability\n\n\nScenarios\nscenario_dashboard.html\n7 stress test scenarios\n\n\nNetwork\nnetwork_analytics.html\nCentrality, HHI, bottlenecks\n\n\nMonte Carlo\nsimulation_dashboard.html\n10k-trial disruption simulation\n\n\nFin Health\nfinancial_health.html\nAltman Z-scores, leverage\n\n\nLogistics Risk\nlogistics_risk.html\n7 chokepoint routes, revenue-at-risk, supplier exposure matrix\n\n\nFin Monitor\nfinancial_monitor.html\nAltman Z + ND/EBITDA bars, CRITICAL/HIGH/MEDIUM alerts\n\n\nKotaemon\nkotaemon_search.html\nRAG chat over supplier docs, citation display, live CT120 health check\n\n\nEvidenceMap\nevidence_map.html\nD3 geo map, 45 supplier pins, great-circle arcs, evidence sidebar\n\n\nEDRM\nedrm_tracker.html\nPer-supplier pipeline grid: Scraped / Extracted / RAG-Indexed / Reviewed\n\n\nChainDiff\nchain_diff.html\nSnapshot diff: CRITICAL/HIGH/MEDIUM severity, new nodes / relationships / events\n\n\nDeepDive\nsupplier_deep_dive.html\nPer-supplier deep dive: 9 suppliers, risk ring, financials, events\n\n\nProcurement\nprocurement_actions.html\n13 action cards, exposure summary, CSV export\n\n\nHeatmap\nrisk_heatmap.html\nD3 country x risk-type matrix, 14 countries x 7 types, 3 modes\n\n\nTimeline\nsupplier_timeline.html\nD3 swimlane, 18 suppliers x 18 events, Z trend lines, zoom slider\n\n\nScorecards\nscorecard.html\nPrintable scorecards, 12 suppliers, risk ring + compliance grid\n\n\nCarbon\ncarbon_footprint.html\nScope 1/2/3, CBAM liability, SBTi/CDP alignment, 5 chart modes\n\n\nDualSrc\ndual_sourcing.html\nDual sourcing optimizer, budget slider, priority scatter, 9 suppliers",
+    "crumbs": [
+      "Outputs",
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>Dashboards & Outputs</span>"
+    ]
+  },
+  {
+    "objectID": "05-dashboards.html#standalone-files",
+    "href": "05-dashboards.html#standalone-files",
+    "title": "Dashboards & Outputs",
+    "section": "Standalone Files",
+    "text": "Standalone Files\n\n\n\n\n\n\n\nFile\nWhat you see\n\n\n\n\ndocs/supplylens_3d.html\n3D Three.js graph — click any node to open its evidence panel",
+    "crumbs": [
+      "Outputs",
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>Dashboards & Outputs</span>"
+    ]
+  },
+  {
+    "objectID": "05-dashboards.html#source-code",
+    "href": "05-dashboards.html#source-code",
+    "title": "Dashboards & Outputs",
+    "section": "Source Code",
+    "text": "Source Code\nPython modules in src/ implement the pipeline logic and analytical models. Each module is independently importable and can be run as a CLI tool.\n\n\n\n\n\n\n\nFile\nWhat it does\n\n\n\n\nsrc/agent.py\nLangGraph pipeline: scrape → extract → kotaemon_rag → embed → infer → compliance_check → merge\n\n\nsrc/neo4j_client.py\nCypher query wrapper with connection pooling\n\n\nsrc/kotaemon_client.py\nKotaemon RAG client with circuit breaker and fact sheet builder\n\n\nsrc/risk_scorer.py\nRisk flag to score logic\n\n\nsrc/cbam_calculator.py\nCBAM carbon border tax liability per supplier\n\n\nsrc/alternative_sourcing.py\nAlternative supplier scorer; outputs SWITCH_NOW / DUAL_SOURCE recommendations\n\n\nsrc/disruption_model.py\nDisruption scenarios with revenue-at-risk calculation\n\n\nsrc/resilience_scorer.py\n6-dimensional HHI resilience scoring\n\n\nsrc/scenario_modeler.py\n7 named scenarios with best / base / worst outcomes\n\n\nsrc/supply_chain_simulator.py\nMonte Carlo simulation — 10,000 trials, P10 / P50 / P90 output\n\n\nsrc/graph_analyzer.py\nDegree, betweenness, HHI, bottleneck detection, longest-path\n\n\nsrc/sanctions_screener.py\nFuzzy name screening against OFAC / EU / UN sanctions lists\n\n\nsrc/procurement_report.py\nHTML procurement report generator per SKU\n\n\nsrc/postgres_sync.py\nSyncs Neo4j supplier nodes to PostgreSQL knopenkonings.suppliers\n\n\n\nAdditional scripts and data files:\n\n\n\n\n\n\n\nFile\nWhat it does\n\n\n\n\nexample_outputs/sample_graph.cypher\nv10: 2,305 lines; 17 events; Scania autonomous truck AI chain (NVIDIA / TSMC / ASML / JSR)\n\n\nscripts/ingest_kotaemon.py\nBulk ingest supplier documents into Kotaemon CT120\n\n\nscripts/seed_scania.sh\nLoad Cypher into Neo4j CT114\n\n\nconfig/n8n_workflow.json\n14-node n8n weekly refresh workflow definition",
+    "crumbs": [
+      "Outputs",
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>Dashboards & Outputs</span>"
+    ]
+  },
+  {
+    "objectID": "06-status.html",
+    "href": "06-status.html",
+    "title": "Project Status",
+    "section": "",
+    "text": "Build Status",
+    "crumbs": [
+      "Project Status",
+      "<span class='chapter-number'>10</span>  <span class='chapter-title'>Project Status</span>"
+    ]
+  },
+  {
+    "objectID": "06-status.html#what-is-built",
+    "href": "06-status.html#what-is-built",
+    "title": "Project Status",
+    "section": "What Is Built",
+    "text": "What Is Built\nAll 10 phases are complete. The 8-step dry-run passes on every service (last verified 2026-08-06).\n\nPhase summary\n\n\n\n\n\n\n\n\nPhase\nWhat was built\nStatus\n\n\n\n\n1\nNeo4j seed + traversal; Browserless scraper; Unstructured/Tika extraction\nComplete\n\n\n2\nLiteLLM inference; Qdrant embeddings; Neo4j inferred link storage\nComplete\n\n\n3\nEvidence store (src/evidence_store.py); Evidence geo map; EDRM tracker\nComplete\n\n\n4\nKotaemon citation extraction; pipeline integration (src/agent.py)\nComplete\n\n\n5\nCypher v9 — event evidence links; 14 events with :AFFECTED_BY\nComplete\n\n\n6\nLogistics route risk (src/logistics_risk.py); Financial monitor\nComplete\n\n\n7\nLogistics Risk dashboard; Financial Monitor dashboard; Kotaemon Search UI\nComplete\n\n\n8\nCypher v10 — Autonomous Truck AI chain (SCANIA-AXL; NVIDIA/TSMC/ASML/JSR)\nComplete\n\n\n9\nChain Diff (src/chain_diff.py); Supplier Deep Dive dashboard\nComplete\n\n\n10\nCarbon tracker (src/carbon_tracker.py); Dual sourcing optimizer\nComplete\n\n\n\n\n\nExecution order (all ticked)\n\nA1 — evidence_store.py ✓\nA2 — evidence_map.html ✓\nA4 — edrm_tracker.html ✓\nB2 — Kotaemon citation extraction ✓\nB3 — wire citations into pipeline ✓\nC1 — cypher v9 event evidence ✓\nC2 — logistics route risk ✓\nC3 — financial monitor ✓\nD1 — logistics risk dashboard ✓\nD2 — financial monitor dashboard ✓\nD3 — Kotaemon search UI ✓\nD4 — cypher v10 AI chain ✓\nE1 — chain diff ✓\nE2 — supplier deep dive ✓\nF1 — carbon tracker + dashboard ✓\nF2 — dual sourcing optimizer + dashboard ✓",
+    "crumbs": [
+      "Project Status",
+      "<span class='chapter-number'>10</span>  <span class='chapter-title'>Project Status</span>"
+    ]
+  },
+  {
+    "objectID": "06-status.html#remaining-tasks",
+    "href": "06-status.html#remaining-tasks",
+    "title": "Project Status",
+    "section": "Remaining Tasks",
+    "text": "Remaining Tasks\nThree items remain open.\n\n\n\n\n\n\n\n\n\nID\nTask\nFile\nStatus\n\n\n\n\nE3\n3D graph live evidence — pull from Neo4j via fetch instead of hardcoded JS\ndocs/supplylens_3d.html\nPartially built\n\n\nE4\nSupplier scorecard PDF export — evidence + risk flags + financial health + compliance\nscripts/export_scorecard.py\nNot built\n\n\nE5\nDeploy Kotaemon CT120 + bulk ingest supplier docs\nscripts/provision_ct120.sh + scripts/ingest_kotaemon.py\nPending VPN\n\n\n\n\nE3 — 3D Graph Live Evidence\nThe 3D Three.js graph at docs/supplylens_3d.html currently shows a hardcoded evidence panel (5 suppliers, static JS data). The goal is to replace that with a live fetch against the Neo4j HTTP API over the SSH tunnel.\nWhat remains: - Add fetch(\"http://localhost:17474/db/neo4j/tx/commit\", ...) call on node click - Pass query: MATCH (n {name: $name}) OPTIONAL MATCH (n)-[:EVIDENCE_FOR]-(e:EvidenceClaim) RETURN n, e - Render returned evidence fields (source_url, sha256, confidence, signals) into the side panel\nPrerequisite: SSH tunnel to Neo4j must be active (localhost:17474).\n\n\nE4 — Supplier Scorecard PDF Export\nNo implementation exists. Scope: - Python script: query Neo4j for a single supplier node + evidence claims + financial alerts + risk flags - Render to HTML template (reuse patterns from src/procurement_report.py) - Export to PDF via weasyprint or wkhtmltopdf - Output: one PDF per supplier, named scorecards/{supplier_name}.pdf\n\n\nE5 — Deploy CT120 (Kotaemon)\nCT120 provisioning script exists (scripts/provision_ct120.sh) but has not been run against the cluster. Kotaemon dashboard at docs/kotaemon_search.html runs in demo mode (offline fallback responses) until CT120 is live.\nSteps (requires VPN + cluster access):\nbash scripts/provision_ct120.sh\npython3 scripts/ingest_kotaemon.py   # loads 20 synthetic supplier docs\nExpected result: http://10.0.1.120:8501 becomes live; the Kotaemon RAG search UI switches from demo mode to live API calls.",
+    "crumbs": [
+      "Project Status",
+      "<span class='chapter-number'>10</span>  <span class='chapter-title'>Project Status</span>"
+    ]
+  },
+  {
+    "objectID": "06-status.html#demo-scenario-scania-ab",
+    "href": "06-status.html#demo-scenario-scania-ab",
+    "title": "Project Status",
+    "section": "Demo Scenario — Scania AB",
+    "text": "Demo Scenario — Scania AB\nThe full demo uses the Scania R-series heavy truck supply chain seeded into Neo4j from example_outputs/sample_graph.cypher (2,305 lines, v10).\nScania R-series Truck\n  └─► Scania AB (manufacturer, Sweden)\n        ├─► ZF Friedrichshafen (gearboxes, Germany) — Tier 1\n        │     └─► Saarstahl AG (steel billets, Germany) — Tier 2\n        ├─► Bosch (fuel injection, electronics, Germany) — Tier 1\n        │     ├─► Infineon Technologies (semiconductors, Germany) — Tier 2\n        │     └─► Sensata Technologies (sensors, Netherlands) — Tier 2\n        ├─► SSAB (high-strength steel, Sweden) — Tier 1\n        │     └─► LKAB (iron ore, Sweden) — Tier 2\n        ├─► Michelin (tyres, France) — Tier 1\n        ├─► Dana Incorporated (axles, driveshafts, USA) — Tier 1\n        └─► Cummins (engines for some variants, USA) — Tier 1\nCypher v10 adds the autonomous truck AI chain: - SCANIA-AXL Level 4 truck — NVIDIA, Mobileye, Luminar (DISTRESS), Knorr-Bremse - Tier 2: TSMC (Taiwan risk), ARM Holdings (SINGLE_SOURCE), ASML (export controls) - Tier 3: JSR Corporation (EUV photoresist), Cryoin Engineering (Ukraine neon, seized) - 17 events total including NVIDIA export controls 2023, neon shortage 2022\n\nLoad the demo graph\nNEO4J_PW=$(python3 -c \"\nfrom pykeepass import PyKeePass\nkp = PyKeePass('passwords.kdbx', password='SupplyChainBaby100!')\nprint(kp.find_entries(title='Neo4j', first=True).password)\n\")\n\nscp -o ProxyJump=root@10.0.0.16 \\\n  example_outputs/sample_graph.cypher \\\n  root@10.0.1.114:/tmp/\n\nssh -o ProxyJump=root@10.0.0.16 root@10.0.1.114 \\\n  \"cypher-shell -u neo4j -p '$NEO4J_PW' --file /tmp/sample_graph.cypher\"",
+    "crumbs": [
+      "Project Status",
+      "<span class='chapter-number'>10</span>  <span class='chapter-title'>Project Status</span>"
+    ]
+  },
+  {
+    "objectID": "06-status.html#knowledge-graph-current-state",
+    "href": "06-status.html#knowledge-graph-current-state",
+    "title": "Project Status",
+    "section": "Knowledge Graph — Current State",
+    "text": "Knowledge Graph — Current State\nThe graphify analysis of the project documentation (2026-07-11):\n\n\n\nMetric\nValue\n\n\n\n\nNodes\n34\n\n\nEdges\n68\n\n\nCommunities\n7\n\n\nExtraction quality\n93% extracted · 7% inferred\n\n\nInferred edge avg confidence\n0.89\n\n\n\nTop cross-cutting nodes (highest betweenness centrality):\n\nCLAUDE.md — dry-run runbook, config, fixes (0.270)\nn8n weekly refresh — Monday 06:00 cron (0.119)\nArchitecture doc — component roles, data flow (0.101)",
+    "crumbs": [
+      "Project Status",
+      "<span class='chapter-number'>10</span>  <span class='chapter-title'>Project Status</span>"
+    ]
+  },
+  {
+    "objectID": "06-status.html#dry-run-status",
+    "href": "06-status.html#dry-run-status",
+    "title": "Project Status",
+    "section": "Dry-Run Status",
+    "text": "Dry-Run Status\nAll 8 steps pass. Last full verification: 2026-08-06.\n\n\n\nStep\nService\nResult\n\n\n\n\nPre-flight\nNeo4j CT114\nPASS — systemctl is-active\n\n\nPre-flight\nLangGraph CT119\nPASS — 200 on /health\n\n\nPre-flight\nBrowserless CT400\nPASS — 200 on /health (port 3500)\n\n\nPre-flight\nUnstructured CT117\nPASS — 200 on /health\n\n\nPre-flight\nTika CT115\nPASS — 200\n\n\nPre-flight\nQdrant CT102\nPASS — 200 on /healthz\n\n\nPre-flight\nLiteLLM CT205\nPASS — 200\n\n\nPre-flight\nSuperset CT206\nPASS — 200 on /health\n\n\nStep 1\nNeo4j seed\nPASS — BTN-001 graph seeded\n\n\nStep 2\nNeo4j traversal\nPASS — 4 paths at correct depths\n\n\nStep 3\nBrowserless scrape\nPASS — 559 chars via /scrape\n\n\nStep 4\nUnstructured extract\nPASS — 6 elements (multipart)\n\n\nStep 5\nLiteLLM inference\nPASS — Groq llama-3.3-70b\n\n\nStep 6\nNeo4j inferred link\nPASS — inferred: true stored\n\n\nStep 7\nQdrant embedding\nPASS — 768-dim nomic-embed-text\n\n\nStep 8\nSuperset login\nPASS — JWT token issued",
+    "crumbs": [
+      "Project Status",
+      "<span class='chapter-number'>10</span>  <span class='chapter-title'>Project Status</span>"
+    ]
+  }
+]

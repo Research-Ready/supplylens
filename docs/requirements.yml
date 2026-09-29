@@ -1,0 +1,33 @@
+# UC4 requirements — what it takes to accomplish this use case.
+# services: names from the ResearchReady service catalog (live status is probed by workbook/scripts/requirements.py)
+# everything else: status available | partial | missing | broken | open (decisions); epics = which epics need it
+services:
+  - {service: neo4j, for: "supply-chain graph", epics: [2]}
+  - {service: browserless, for: "scrape supplier pages", epics: [3]}
+  - {service: unstructured, for: "extract text", epics: [3]}
+  - {service: tika, for: "extract binary files", epics: [3]}
+  - {service: qdrant, for: "embeddings", epics: [3]}
+  - {service: litellm, for: "infer hidden suppliers", epics: [3]}
+  - {service: langgraph, for: "SupplyLens agent (POST /runs)", epics: [3]}
+  - {service: kotaemon, for: "evidence RAG + citations", epics: [3], note: "Inventory has Kotaemon on CT129 and it answers; PLAN.md said CT120 / not provisioned"}
+  - {service: n8n, for: "weekly refresh", epics: [4]}
+  - {service: postgres, for: "knopenkonings.suppliers", epics: [4]}
+  - {service: superset, for: "BI dashboards", epics: [4]}
+  - {service: metabase, for: "BI dashboards (alternative)", epics: [4]}
+  - {service: gitea, for: "SupplyLens book CI", epics: [5]}
+tools:
+  - {name: "Static dashboards + analysis modules (src/*.py, docs/*.html)", status: available, epics: [1]}
+  - {name: "Seed script (scripts/seed_scania.sh)", status: available, epics: [2]}
+  - {name: "Agent packaged as a LangGraph service", status: missing, epics: [3], note: "src/agent.py exists"}
+  - {name: "Scorecard PDF export (scripts/export_scorecard.py)", status: missing, epics: [5]}
+access:
+  - {name: "VPN route to bastion 10.0.0.16 (for seeding over SSH)", status: broken, epics: [2], note: "infra D-3"}
+  - {name: "Neo4j password", status: available, epics: [2], note: "KeePass entry Neo4j"}
+  - {name: "Groq key for inference", status: available, epics: [3]}
+data:
+  - {name: "Scania graph cypher v10 (example_outputs/sample_graph.cypher)", status: available, epics: [2]}
+  - {name: "Synthetic supplier evidence documents", status: available, epics: [3]}
+  - {name: "Real supplier documents / ground truth from Scania", status: missing, epics: [5]}
+decisions:
+  - {name: "Seed via SSH (needs VPN) or via the public Neo4j endpoint", status: open, epics: [2]}
+  - {name: "BI tool: Superset or Metabase", status: open, epics: [4]}

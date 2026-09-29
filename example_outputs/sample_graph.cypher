@@ -1,6 +1,6 @@
 // UC4 Supply Chain — Sample Neo4j Graph
 // Scania R-series Truck supply chain + Knopenkoning (Button) demo
-// Run in Neo4j Browser (http://10.0.1.114:7474) or via cypher-shell
+// Run in Neo4j Browser (http://localhost:7474) or via cypher-shell
 // Credentials: neo4j / <KeePass UC4 -> Neo4j>
 
 // ============================================================
@@ -2323,7 +2323,7 @@ MERGE (cobalt_sulfate:RawMaterial {
   source_url: "https://www.oecd.org/daf/inv/mne/minerals-guidance.htm",
   cbam_applicable: false,
   lat: -4.3, lon: 15.3
-})
+});
 
 MERGE (glencore:Supplier {
   name: "Glencore (DRC Cobalt)",
@@ -2337,7 +2337,7 @@ MERGE (glencore:Supplier {
   revenue_at_risk: 95000000,
   source_doc: "Glencore Responsible Sourcing Report 2023",
   lat: -5.5, lon: 25.4
-})
+});
 
 MERGE (fqm:Supplier {
   name: "First Quantum Minerals (Zambia)",
@@ -2349,7 +2349,7 @@ MERGE (fqm:Supplier {
   revenue_at_risk: 48000000,
   source_doc: "First Quantum Annual Report 2023",
   lat: -13.9, lon: 27.8
-})
+});
 
 MERGE (glencore)-[:SOURCED_FROM {
   material: "Cobalt Sulfate",
@@ -2361,7 +2361,7 @@ MERGE (fqm)-[:SOURCED_FROM {
   material: "Cobalt",
   volume_tonnes_year: 5000,
   confidence: 0.82
-}]->(cobalt_sulfate)
+}]->(cobalt_sulfate);
 
 // Link to CATL
 MATCH (catl:Supplier {name: "CATL"})
@@ -2383,7 +2383,7 @@ MERGE (li_carbonate:RawMaterial {
   risk_flags: ["WATER_STRESS", "REGULATORY_RISK"],
   cbam_applicable: false,
   lat: -23.5, lon: -68.0
-})
+});
 
 MERGE (sqm_li:Supplier {
   name: "SQM Lithium (Atacama)",
@@ -2397,7 +2397,7 @@ MERGE (sqm_li:Supplier {
   source_doc: "SQM Annual Report 2023",
   source_url: "https://www.sqm.com/en/investors/annual-reports/",
   lat: -23.6, lon: -68.4
-})
+});
 
 MERGE (albemarle:Supplier {
   name: "Albemarle Lithium (Chile/AUS)",
@@ -2408,7 +2408,7 @@ MERGE (albemarle:Supplier {
   altman_z_score: 2.6,
   revenue_at_risk: 45000000,
   lat: -24.1, lon: -69.1
-})
+});
 
 MERGE (sqm_li)-[:SOURCED_FROM {
   material: "Lithium Carbonate",
@@ -2420,7 +2420,7 @@ MERGE (albemarle)-[:SOURCED_FROM {
   material: "Lithium Carbonate / Hydroxide",
   volume_tonnes_year: 65000,
   confidence: 0.90
-}]->(li_carbonate)
+}]->(li_carbonate);
 
 MATCH (catl:Supplier {name: "CATL"})
 MERGE (catl)-[:SOURCED_FROM {
@@ -2445,7 +2445,7 @@ MERGE (graphite:RawMaterial {
   risk_flags: ["GEOPOLITICAL_RISK", "UFLPA_RISK", "SINGLE_SOURCE"],
   cbam_applicable: false,
   lat: 35.0, lon: 105.0
-})
+});
 
 MERGE (battero:Supplier {
   name: "Battero Tech (China Graphite)",
@@ -2457,7 +2457,7 @@ MERGE (battero:Supplier {
   revenue_at_risk: 62000000,
   uflpa_listed: false,
   lat: 28.0, lon: 113.0
-})
+});
 
 MERGE (syrah:Supplier {
   name: "Syrah Resources (Mozambique)",
@@ -2468,7 +2468,7 @@ MERGE (syrah:Supplier {
   altman_z_score: 1.4,
   revenue_at_risk: 22000000,
   lat: -17.3, lon: 35.2
-})
+});
 
 MERGE (battero)-[:SOURCED_FROM {
   material: "Natural Graphite",
@@ -2479,7 +2479,7 @@ MERGE (syrah)-[:SOURCED_FROM {
   material: "Natural Graphite",
   confidence: 0.85,
   note: "Only large-scale graphite mine outside China"
-}]->(graphite)
+}]->(graphite);
 
 MATCH (catl:Supplier {name: "CATL"})
 MERGE (catl)-[:SOURCED_FROM {
@@ -2497,7 +2497,7 @@ MERGE (nmc_cam:RawMaterial {
   origin: "China / Belgium",
   nmc_chemistry: "NMC811",
   risk_flags: ["SINGLE_SOURCE", "GEOPOLITICAL_RISK"]
-})
+});
 
 MERGE (umicore_cam:Supplier {
   name: "Umicore Battery Materials (Belgium)",
@@ -2508,7 +2508,7 @@ MERGE (umicore_cam:Supplier {
   altman_z_score: 2.8,
   revenue_at_risk: 38000000,
   lat: 50.9, lon: 4.3
-})
+});
 
 MERGE (shanshan:Supplier {
   name: "Hunan Shanshan (China CAM)",
@@ -2520,7 +2520,7 @@ MERGE (shanshan:Supplier {
   revenue_at_risk: 45000000,
   uflpa_listed: true,
   lat: 28.2, lon: 113.0
-})
+});
 
 MERGE (umicore_cam)-[:SOURCED_FROM {
   material: "NMC811 CAM",
@@ -2529,7 +2529,7 @@ MERGE (umicore_cam)-[:SOURCED_FROM {
 MERGE (shanshan)-[:SOURCED_FROM {
   material: "NMC CAM",
   confidence: 0.91
-}]->(nmc_cam)
+}]->(nmc_cam);
 
 MATCH (catl:Supplier {name: "CATL"})
 MERGE (catl)-[:SOURCED_FROM {
@@ -2555,7 +2555,7 @@ MERGE (maersk:Supplier {
   altman_z_score: 3.8,
   revenue_at_risk: 0,
   lat: 55.7, lon: 12.6
-})
+});
 
 MERGE (msc:Supplier {
   name: "MSC Mediterranean Shipping",
@@ -2566,7 +2566,7 @@ MERGE (msc:Supplier {
   altman_z_score: 4.1,
   revenue_at_risk: 0,
   lat: 46.2, lon: 6.1
-})
+});
 
 MERGE (cosco:Supplier {
   name: "COSCO Shipping",
@@ -2577,7 +2577,7 @@ MERGE (cosco:Supplier {
   altman_z_score: 2.9,
   revenue_at_risk: 0,
   lat: 31.2, lon: 121.5
-})
+});
 
 // Routes for battery supply
 MATCH (catl:Supplier {name: "CATL"})
@@ -2592,7 +2592,7 @@ MERGE (catl)-[:SHIPPED_VIA {
   transit_days: 42,
   cost_premium_pct: 0.35,
   confidence: 0.80
-}]->(msc)
+}]->(msc);
 
 MATCH (tsmc:Supplier {name: "TSMC"})
 MERGE (tsmc)-[:SHIPPED_VIA {
@@ -2621,7 +2621,7 @@ MERGE (evt_graphite:Event {
   source_url: "https://www.mofcom.gov.cn/",
   financial_impact_m: 185,
   confidence: 0.98
-})
+});
 
 MERGE (evt_cobalt:Event {
   event_id: "EVT-DRC-COBALT-LkSG-2024",
@@ -2634,7 +2634,7 @@ MERGE (evt_cobalt:Event {
   source_url: "https://www.bafa.de/DE/Lieferketten/",
   financial_impact_m: 12,
   confidence: 0.96
-})
+});
 
 MERGE (evt_maersk:Event {
   event_id: "EVT-RED-SEA-MAERSK-REROUTE-2024",
@@ -2647,7 +2647,7 @@ MERGE (evt_maersk:Event {
   source_url: "https://www.maersk.com/news/",
   financial_impact_m: 68,
   confidence: 0.99
-})
+});
 
 // Link events to affected suppliers
 MATCH (battero:Supplier {name: "Battero Tech (China Graphite)"})
@@ -2656,20 +2656,20 @@ MERGE (battero)-[:AFFECTED_BY {
   impact: "Export license required; delivery delays 6-8 weeks",
   severity: "HIGH",
   revenue_impact_m: 62
-}]->(evt_graphite)
+}]->(evt_graphite);
 
 MATCH (graphite_rm:RawMaterial {name: "Natural Graphite (Anode Grade)"})
 MERGE (graphite_rm)-[:AFFECTED_BY {
   impact: "Supply restricted; price +40% on spot market",
   severity: "HIGH"
-}]->(evt_graphite)
+}]->(evt_graphite);
 
 MATCH (glencore:Supplier {name: "Glencore (DRC Cobalt)"})
 MATCH (evt_cobalt:Event {event_id: "EVT-DRC-COBALT-LkSG-2024"})
 MERGE (glencore)-[:AFFECTED_BY {
   impact: "Annual audit required; remediation plan submitted",
   severity: "MEDIUM"
-}]->(evt_cobalt)
+}]->(evt_cobalt);
 
 MATCH (maersk:Supplier {name: "Maersk Line"})
 MATCH (evt_maersk:Event {event_id: "EVT-RED-SEA-MAERSK-REROUTE-2024"})
@@ -2692,10 +2692,10 @@ MERGE (syrah_alert:FinancialAlert {
   message: "Syrah Resources Altman Z 1.4 (grey/distress boundary). Cash burn accelerating. Mozambique graphite mine below capacity.",
   recommended_action: "SWITCH_NOW",
   source_doc: "Syrah Resources ASX Announcement Q2 2024"
-})
+});
 
 MATCH (syrah:Supplier {name: "Syrah Resources (Mozambique)"})
-MERGE (syrah)-[:HAS_ALERT]->(syrah_alert)
+MERGE (syrah)-[:HAS_ALERT]->(syrah_alert);
 
 // ── v11 summary comment ──────────────────────────────────────────────────────
 // v11 adds:
@@ -3167,7 +3167,6 @@ MERGE (fa:FinancialAlert {
   level: "CRITICAL",
   reason: "OFAC_RISK",
   detail: "UN experts report MUMI mine supply chain potentially linked to sanctioned entities via intermediary traders. Recommend immediate due diligence audit and suspension of indirect sourcing.",
-  altman_z: null,
   triggered_at: "2024-03-01"
 });
 

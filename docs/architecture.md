@@ -15,7 +15,7 @@ score for analyst review.
 
 ## Component Roles
 
-### LangGraph (CT119 — 10.0.1.119:8000)
+### LangGraph (CT119 — localhost:8000)
 
 Orchestrates the enrichment loop. Each iteration:
 1. Query Neo4j for known nodes missing outbound edges
@@ -26,7 +26,7 @@ Orchestrates the enrichment loop. Each iteration:
 6. MERGE new nodes and edges into Neo4j
 7. Repeat until depth limit reached or no new nodes discovered
 
-### Neo4j (CT114 — 10.0.1.114:7474 HTTP / :7687 Bolt)
+### Neo4j (CT114 — localhost:7474 HTTP / :7687 Bolt)
 
 Central knowledge store. Graph schema:
 - `Product` → `SUPPLIED_BY` → `Supplier`
@@ -62,13 +62,13 @@ Requires `multipart/form-data` with a `files` field — plain text/html body ret
 Apache Tika for binary document parsing (XLS, DOC, PPTX, PDF). Used for procurement
 documents and supplier capability statements. Endpoint: `PUT /tika`.
 
-### Qdrant (CT102 — 10.0.1.102:6333)
+### Qdrant (CT102 — localhost:6333)
 
 Vector store for supplier document embeddings. Collection: `supplier_docs`.
 Embedding model: `ollama/nomic-embed-text` via LiteLLM (768 dimensions).
 Semantic queries: "who supplies raw materials to button manufacturers?" etc.
 
-### LiteLLM (CT205 — 10.0.2.205:4000)
+### LiteLLM (CT205 — localhost:4000)
 
 Unified LLM proxy. Model routing for UC4:
 - `researcher-llm` → Groq `llama-3.3-70b-versatile` (primary, free tier)
@@ -84,7 +84,7 @@ ssh root@10.0.2.205 "sed -i 's/\xe2\x94\x80//g' /etc/litellm/config.yaml && syst
 Apache Superset for SQL-based dashboards. Connects to Neo4j via JDBC connector,
 and to PostgreSQL `knopenkonings` DB for structured entity tables.
 
-### n8n (CT104 — 10.0.1.104:5678)
+### n8n (CT104 — localhost:5678)
 
 Weekly Cron trigger (Monday 06:00) runs the full enrichment loop for known companies.
 Also handles notifications (Slack/email) with new node counts after each run.

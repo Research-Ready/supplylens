@@ -36,8 +36,8 @@ STORAGE="local-lvm"
 BRIDGE="vmbr0"
 KOTAEMON_PORT=8501
 KOTAEMON_IMAGE="ghcr.io/cinnamon/kotaemon:latest"
-LITELLM_URL="http://10.0.2.205:4000/v1"
-QDRANT_URL="http://10.0.1.102:6333"
+LITELLM_URL="http://localhost:4000/v1"
+QDRANT_URL="http://localhost:6333"
 
 REDEPLOY="${1:-}"
 

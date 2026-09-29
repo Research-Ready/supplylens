@@ -17,14 +17,14 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 
 | Service | URL | Role |
 |---|---|---|
-| Neo4j Browser | http://10.0.1.114:7474 | Query supply chain graph |
-| LangGraph Agent | http://10.0.1.119:8000 | Enrichment pipeline |
+| Neo4j Browser | http://localhost:7474 | Query supply chain graph |
+| LangGraph Agent | http://localhost:8000 | Enrichment pipeline |
 | Kotaemon RAG | http://10.0.1.120:8501 | Chat with supplier docs |
 | Superset | http://10.0.2.206:8088 | SQL dashboards |
 | Metabase | http://10.0.2.202:3000 | Alt dashboards |
-| n8n | http://10.0.1.104:5678 | Scheduled refresh |
-| LiteLLM | http://10.0.2.205:4000 | LLM + embeddings |
-| Qdrant | http://10.0.1.102:6333 | Vector search |
+| n8n | http://localhost:5678 | Scheduled refresh |
+| LiteLLM | http://localhost:4000 | LLM + embeddings |
+| Qdrant | http://localhost:6333 | Vector search |
 
 ### Dashboard (open docs/dashboard.html in browser)
 
@@ -94,15 +94,17 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 
 ---
 
-## Build plan — ordered
+## Epics
 
-### A. SupplyLens evidence layer
+_Epics are ordered from very simple to advanced; each one ends in **working software** you can demo. Items keep their original IDs (A–G). Requirements are in `docs/requirements.yml`._
 
-**A1 — Evidence store** `src/evidence_store.py`
-- What: every Neo4j node gets `source_doc`, `source_excerpt`, `confidence` properties
-- Functions: `store_evidence()`, `get_evidence()`, `mark_reviewed()`
-- CLI: `python3 src/evidence_store.py get "Norilsk Nickel"`
-- Status: BUILT (commit 3a2d19e)
+## Epic 1: Static SupplyLens demo
+
+**Working software:** The interactive dashboards (`docs/*.html`) run in a browser on the embedded Scania data: logistics risk, financial monitor, deep dive, chain diff, carbon, dual sourcing.
+
+**Demo:** Open `docs/supplier_deep_dive.html` and `docs/logistics_risk.html` offline.
+
+**Requires:** none (static files)
 
 **A2 — Evidence geo map** `docs/evidence_map.html`
 - What: D3 world map, supplier pins at real lat/lon, supply chain arcs,
@@ -110,43 +112,10 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 - Data: lat/lon already in cypher v8 for mines/logistics
 - Status: BUILT
 
-**A3 — 3D graph live evidence** (update `docs/supplylens_3d.html`)
-- What: pull evidence from Neo4j via SSH tunnel instead of hardcoded JS
-- Currently: evidence panel has hardcoded JS data
-- Status: PARTIALLY BUILT (hardcoded evidence only)
-
 **A4 — EDRM pipeline tracker** `docs/edrm_tracker.html`
 - What: per-supplier status grid — Scraped / Extracted / RAG-indexed / Reviewed
 - Shows: pipeline completeness %, next action per supplier
 - Status: BUILT
-
----
-
-### B. Kotaemon integration
-
-**B1 — Deploy Kotaemon CT120**
-- What: run `bash scripts/provision_ct120.sh` on cluster
-- Then: `python3 scripts/ingest_kotaemon.py` loads synthetic docs
-- Status: CT120 not provisioned (script exists)
-
-**B2 — Citation extraction** (update `src/kotaemon_client.py`)
-- What: parse `[Source: doc_name, p.N]` from Kotaemon answers
-- Write citations back to Neo4j node as evidence via evidence_store
-- Status: BUILT (commit c0e9f23)
-
-**B3 — Wire citations into pipeline** (update `src/agent.py`)
-- What: call `store_evidence()` in merge node after each inferred fact
-- Result: every LLM-inferred supply chain link has a document citation
-- Status: BUILT (commit c0e9f23)
-
----
-
-### C. More supply chain depth
-
-**C1 — Cypher v9: event evidence links**
-- What: each Event node gets `source_doc` + `source_url` properties
-- Add: Taiwan Strait risk, Red Sea Houthi events with citations
-- Status: BUILT (14 events, backfilled citations on all 12 existing, :AFFECTED_BY rel)
 
 **C2 — Logistics route risk** `src/logistics_risk.py`
 - What: score Suez / Malacca / Trans-Sib routes by disruption probability
@@ -157,10 +126,6 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 - What: weekly check — Z-score thresholds, covenant breach alerts
 - Write alerts to Neo4j, surface in dashboard
 - Status: BUILT (20 suppliers, Altman Z + ND/EBITDA + credit rating; FinancialAlert nodes)
-
----
-
-### D. Phase 6 — Dashboards + cypher v10 (commit 94c2fc7)
 
 **D1 — Logistics Risk Dashboard** `docs/logistics_risk.html`
 - 7 chokepoint routes (Suez/Malacca/Trans-Sib/Cape/Panama/Bosphorus/Hormuz)
@@ -186,10 +151,6 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 - 17 events total (added NVIDIA export controls 2023, ASML China restriction, neon shortage 2022)
 - Status: BUILT
 
----
-
-### E. Phase 7 — Next build targets
-
 **E1 — Chain Diff** `src/chain_diff.py` + `docs/chain_diff.html`
 - Snapshot diff: new risk flags, Altman Z threshold crossings, tier changes, new suppliers
 - Visual diff dashboard: CRITICAL/HIGH/MEDIUM severity filter, new nodes/relationships/events
@@ -199,22 +160,6 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 - Per-supplier comprehensive view: risk ring, financial bars, credit rating, events, logistics, evidence, compliance, alt suppliers
 - 9 suppliers embedded: ZF/CATL/TSMC/Norilsk/Luminar/Leoni/SSAB/JSR/Bosch
 - Status: BUILT (commit b2c0978)
-
-**E3 — A3 live evidence in 3D graph** (update `docs/supplylens_3d.html`)
-- Pull evidence from Neo4j via fetch instead of hardcoded JS
-- Status: PARTIALLY BUILT (hardcoded evidence only)
-
-**E4 — Supplier scorecard PDF export** `scripts/export_scorecard.py`
-- Per-supplier PDF: evidence + risk flags + financial health + compliance
-- Status: NOT BUILT
-
-**E5 — B1 deploy CT120** (needs VPN + cluster access)
-- `bash scripts/provision_ct120.sh` → `python3 scripts/ingest_kotaemon.py`
-- Status: PENDING (needs VPN)
-
----
-
-### F. Phase 10 — Carbon + Dual Sourcing
 
 **F1 — Carbon & CBAM tracker** `src/carbon_tracker.py` + `docs/carbon_footprint.html`
 - Scope 1/2/3 emissions for 12 Scania suppliers; CBAM certificate cost; SBTi on-track check; CDP scores
@@ -229,9 +174,117 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 - Filter by action tier or single-source flag; per-supplier detail panel
 - Status: BUILT (Phase 10)
 
----
+## Epic 2: Live Scania graph
 
-## Execution order
+**Working software:** The Scania graph is seeded in Neo4j with evidence on every node, and the 3D graph and evidence map read it live instead of hard-coded data.
+
+**Demo:** Click a supplier in `docs/supplylens_3d.html`; its evidence comes from Neo4j.
+
+**Requires:** neo4j · seed via VPN or the public Neo4j endpoint
+
+**A1 — Evidence store** `src/evidence_store.py`
+- What: every Neo4j node gets `source_doc`, `source_excerpt`, `confidence` properties
+- Functions: `store_evidence()`, `get_evidence()`, `mark_reviewed()`
+- CLI: `python3 src/evidence_store.py get "Norilsk Nickel"`
+- Status: BUILT (commit 3a2d19e)
+
+**G1 — Seed the Scania demo graph into Neo4j**
+- What: run `bash scripts/seed_scania.sh` (loads `example_outputs/sample_graph.cypher` v10 into CT114)
+- Done when: `MATCH (n) RETURN count(n)` on CT114 matches the node count in the cypher file
+- Blocked by: bastion 10.0.0.16 and CT114 unreachable over VPN (infra D-3, see SCANIA_DEMO_STATUS.md)
+- Status: BLOCKED (needs VPN)
+
+**A3 — 3D graph live evidence** (update `docs/supplylens_3d.html`)
+- What: pull evidence from Neo4j via SSH tunnel instead of hardcoded JS
+- Currently: evidence panel has hardcoded JS data
+- Status: PARTIALLY BUILT (hardcoded evidence only)
+
+**E3 — A3 live evidence in 3D graph** (update `docs/supplylens_3d.html`)
+- Pull evidence from Neo4j via fetch instead of hardcoded JS
+- Status: PARTIALLY BUILT (hardcoded evidence only)
+
+## Epic 3: Automated mapping agent
+
+**Working software:** `POST /runs {"company": "Scania AB"}` scrapes, extracts, retrieves cited evidence from Kotaemon, infers hidden suppliers and merges them into Neo4j.
+
+**Demo:** Run the agent for one supplier; new nodes appear with citations and confidence.
+
+**Requires:** langgraph, browserless, unstructured, tika, kotaemon, qdrant, litellm
+
+**B1 — Deploy Kotaemon CT120**
+- What: run `bash scripts/provision_ct120.sh` on cluster
+- Then: `python3 scripts/ingest_kotaemon.py` loads synthetic docs
+- Status: PARTIALLY BUILT — Kotaemon answers at kotaemon.research-ready.nl (inventory: CT129, port 7860, probed 2026-09-28); verify the synthetic docs are ingested
+
+**B2 — Citation extraction** (update `src/kotaemon_client.py`)
+- What: parse `[Source: doc_name, p.N]` from Kotaemon answers
+- Write citations back to Neo4j node as evidence via evidence_store
+- Status: BUILT (commit c0e9f23)
+
+**B3 — Wire citations into pipeline** (update `src/agent.py`)
+- What: call `store_evidence()` in merge node after each inferred fact
+- Result: every LLM-inferred supply chain link has a document citation
+- Status: BUILT (commit c0e9f23)
+
+**C1 — Cypher v9: event evidence links**
+- What: each Event node gets `source_doc` + `source_url` properties
+- Add: Taiwan Strait risk, Red Sea Houthi events with citations
+- Status: BUILT (14 events, backfilled citations on all 12 existing, :AFFECTED_BY rel)
+
+**E5 — Point SupplyLens at Kotaemon on CT129**
+- Kotaemon runs on CT129:7860 (inventory), not CT120 (that is monitoring); update `scripts/provision_ct120.sh`, `src/kotaemon_client.py` and the D3 search UI health check (10.0.1.120:8501)
+- Then: `python3 scripts/ingest_kotaemon.py` loads the synthetic docs
+- Status: NOT BUILT
+
+**G2 — Deploy the SupplyLens agent on CT119**
+- What: serve `src/agent.py` as LangGraph `POST /runs` (scrape → extract → embed → infer → merge)
+- Done when: `POST /runs {"company": "Scania AB"}` adds or updates suppliers in Neo4j with evidence
+- Depends on: G1
+- Status: NOT BUILT
+
+## Epic 4: Self-refreshing intelligence
+
+**Working software:** A weekly n8n run refreshes the graph, syncs suppliers to PostgreSQL and updates the BI dashboards; the chain diff shows what changed.
+
+**Demo:** After Monday's run, the chain diff and Superset show the week's changes.
+
+**Requires:** n8n, postgres, superset or metabase
+
+**G3 — Activate the weekly n8n refresh**
+- What: import `config/n8n_workflow.json` into n8n CT104; Monday 06:00 cron calls G2
+- Done when: one scheduled execution finishes and the chain diff (E1) shows its changes
+- Depends on: G2
+- Status: NOT BUILT
+
+**G4 — Schedule the PostgreSQL supplier sync**
+- What: run `src/postgres_sync.py` after each refresh so Superset/Metabase can read `knopenkonings.suppliers`
+- Done when: supplier rows match Neo4j after a G3 run
+- Status: PARTIALLY BUILT (script exists, not scheduled)
+
+**G5 — Provision Superset dashboards**
+- What: supplier count by country, tier pie, risk heatmap on CT206 (`scripts/setup_superset.py`)
+- Done when: the three charts load from `knopenkonings.suppliers`
+- Depends on: G4
+- Status: NOT BUILT
+
+## Epic 5: Deliverables for Scania
+
+**Working software:** Per-supplier scorecard PDFs and a validated graph, documented in the SupplyLens book.
+
+**Demo:** Hand Scania a scorecard PDF and the validation figures.
+
+**Requires:** gitea (book CI) · Scania ground truth
+
+**E4 — Supplier scorecard PDF export** `scripts/export_scorecard.py`
+- Per-supplier PDF: evidence + risk flags + financial health + compliance
+- Status: NOT BUILT
+
+**G6 — Validate against Scania ground truth**
+- What: compare the inferred tier-1/2 suppliers with a supplier list confirmed by Scania
+- Done when: precision/recall of inferred links is reported in the book
+- Status: NOT BUILT
+
+## Build history (original execution order)
 
 1. A1 — evidence_store.py ✓
 2. A2 — evidence_map.html ✓
@@ -252,3 +305,47 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 17. E3 — 3D graph live evidence  ← NEXT
 18. E4 — scorecard PDF export
 19. E5 — deploy CT120 (needs VPN)
+
+## Definition of done
+
+SupplyLens is done for the Scania demo when:
+
+1. The Scania graph is seeded and the agent refreshes it weekly without manual steps (G1–G3)
+2. Every inferred supplier carries evidence and a confidence score (A1, B3 — done)
+3. Dashboards and the SupplyLens book show live data, not hard-coded examples (E3, G5)
+4. A supplier scorecard PDF can be handed to Scania (E4)
+5. The dry-run writes `test-results/` JSON and passes, so the coordinator shows UC4 green (R1)
+
+## Risks & blockers
+
+| Risk / blocker | Impact | Mitigation |
+|---|---|---|
+| VPN routing broken (infra D-3) | G1, G2, E5 cannot run on the cluster | Fix on the VPN server (ip_forward, FORWARD chain); until then work on local artefacts |
+| Kotaemon CT120 not provisioned | Evidence RAG and citations stay synthetic | E5 once VPN works |
+| LiteLLM model routing changes (Groq key, embedding model) | Inference step fails silently | Keep dry-run step 5/7 in CI; alias `ollama/nomic-embed-text` |
+| Superset loses DB session (PendingRollbackError) | Dashboards error | `systemctl restart superset`; health check in dry-run |
+| Evidence is synthetic for part of the graph | Demo credibility with Scania | Label synthetic evidence in the UI; replace via Kotaemon ingest |
+
+## Documentation & readiness
+
+**R1 — Dry-run writes JSON results**
+- What: `scripts/dry_run.sh` writes `test-results/dry_run_YYYYMMDD_HHMMSS.json` with `steps: [{name, status}]`
+- Done when: the ResearchReady workbook shows UC4's latest dry-run from the file, not from CLAUDE.md
+- Status: NOT BUILT
+
+**R2 — Colour-coded workflow**
+- What: `docs/workflow.yml` describes every step with its status; rendered into the book and the workbook
+- Status: DONE ✅ (2026-09-28)
+
+**R3 — Complete plan**
+- What: goal, status, definition of done, risks, readiness in this file
+- Status: DONE ✅ (2026-09-28)
+
+**R4 — Keep the book current**
+- What: after each phase, update `reports/06-status.qmd`; CI (`build-book.yml`) publishes it
+- Done when: book status chapter matches this plan
+- Status: PARTIALLY BUILT (CI works; status chapter last updated before Phase 10)
+
+### Next
+
+Work the epics in order: finish Epic 2 (seed + live evidence), then Epic 3. R1 can be done any time.

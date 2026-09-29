@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import Optional
 
 SNAPSHOT_DIR = Path("snapshots")
-NEO4J_URL = "http://10.0.1.114:7474/db/neo4j/tx/commit"
+NEO4J_URL = "http://localhost:7474/db/neo4j/tx/commit"
 
 # ── embedded demo snapshots ───────────────────────────────────────────────────
 

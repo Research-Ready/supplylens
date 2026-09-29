@@ -1,0 +1,175 @@
+---
+title: "Project Status"
+---
+
+# Build Status
+
+## What Is Built
+
+All 10 phases are complete. The 8-step dry-run passes on every service (last verified 2026-08-06).
+
+### Phase summary
+
+| Phase | What was built | Status |
+|-------|---------------|--------|
+| **1** | Neo4j seed + traversal; Browserless scraper; Unstructured/Tika extraction | Complete |
+| **2** | LiteLLM inference; Qdrant embeddings; Neo4j inferred link storage | Complete |
+| **3** | Evidence store (`src/evidence_store.py`); Evidence geo map; EDRM tracker | Complete |
+| **4** | Kotaemon citation extraction; pipeline integration (`src/agent.py`) | Complete |
+| **5** | Cypher v9 — event evidence links; 14 events with `:AFFECTED_BY` | Complete |
+| **6** | Logistics route risk (`src/logistics_risk.py`); Financial monitor | Complete |
+| **7** | Logistics Risk dashboard; Financial Monitor dashboard; Kotaemon Search UI | Complete |
+| **8** | Cypher v10 — Autonomous Truck AI chain (SCANIA-AXL; NVIDIA/TSMC/ASML/JSR) | Complete |
+| **9** | Chain Diff (`src/chain_diff.py`); Supplier Deep Dive dashboard | Complete |
+| **10** | Carbon tracker (`src/carbon_tracker.py`); Dual sourcing optimizer | Complete |
+
+### Execution order (all ticked)
+
+1. A1 — evidence_store.py ✓
+2. A2 — evidence_map.html ✓
+3. A4 — edrm_tracker.html ✓
+4. B2 — Kotaemon citation extraction ✓
+5. B3 — wire citations into pipeline ✓
+6. C1 — cypher v9 event evidence ✓
+7. C2 — logistics route risk ✓
+8. C3 — financial monitor ✓
+9. D1 — logistics risk dashboard ✓
+10. D2 — financial monitor dashboard ✓
+11. D3 — Kotaemon search UI ✓
+12. D4 — cypher v10 AI chain ✓
+13. E1 — chain diff ✓
+14. E2 — supplier deep dive ✓
+15. F1 — carbon tracker + dashboard ✓
+16. F2 — dual sourcing optimizer + dashboard ✓
+
+---
+
+## Remaining Tasks
+
+Three items remain open.
+
+| ID | Task | File | Status |
+|----|------|------|--------|
+| **E3** | 3D graph live evidence — pull from Neo4j via fetch instead of hardcoded JS | `docs/supplylens_3d.html` | Partially built |
+| **E4** | Supplier scorecard PDF export — evidence + risk flags + financial health + compliance | `scripts/export_scorecard.py` | Not built |
+| **E5** | Deploy Kotaemon CT120 + bulk ingest supplier docs | `scripts/provision_ct120.sh` + `scripts/ingest_kotaemon.py` | Pending VPN |
+
+### E3 — 3D Graph Live Evidence
+
+The 3D Three.js graph at `docs/supplylens_3d.html` currently shows a hardcoded evidence panel (5 suppliers, static JS data). The goal is to replace that with a live fetch against the Neo4j HTTP API over the SSH tunnel.
+
+What remains:
+- Add `fetch("http://localhost:17474/db/neo4j/tx/commit", ...)` call on node click
+- Pass query: `MATCH (n {name: $name}) OPTIONAL MATCH (n)-[:EVIDENCE_FOR]-(e:EvidenceClaim) RETURN n, e`
+- Render returned evidence fields (source_url, sha256, confidence, signals) into the side panel
+
+Prerequisite: SSH tunnel to Neo4j must be active (`localhost:17474`).
+
+### E4 — Supplier Scorecard PDF Export
+
+No implementation exists. Scope:
+- Python script: query Neo4j for a single supplier node + evidence claims + financial alerts + risk flags
+- Render to HTML template (reuse patterns from `src/procurement_report.py`)
+- Export to PDF via `weasyprint` or `wkhtmltopdf`
+- Output: one PDF per supplier, named `scorecards/{supplier_name}.pdf`
+
+### E5 — Deploy CT120 (Kotaemon)
+
+CT120 provisioning script exists (`scripts/provision_ct120.sh`) but has not been run against the cluster. Kotaemon dashboard at `docs/kotaemon_search.html` runs in demo mode (offline fallback responses) until CT120 is live.
+
+Steps (requires VPN + cluster access):
+```bash
+bash scripts/provision_ct120.sh
+python3 scripts/ingest_kotaemon.py   # loads 20 synthetic supplier docs
+```
+
+Expected result: `http://10.0.1.120:8501` becomes live; the Kotaemon RAG search UI switches from demo mode to live API calls.
+
+---
+
+## Demo Scenario — Scania AB
+
+The full demo uses the Scania R-series heavy truck supply chain seeded into Neo4j from `example_outputs/sample_graph.cypher` (2,305 lines, v10).
+
+```
+Scania R-series Truck
+  └─► Scania AB (manufacturer, Sweden)
+        ├─► ZF Friedrichshafen (gearboxes, Germany) — Tier 1
+        │     └─► Saarstahl AG (steel billets, Germany) — Tier 2
+        ├─► Bosch (fuel injection, electronics, Germany) — Tier 1
+        │     ├─► Infineon Technologies (semiconductors, Germany) — Tier 2
+        │     └─► Sensata Technologies (sensors, Netherlands) — Tier 2
+        ├─► SSAB (high-strength steel, Sweden) — Tier 1
+        │     └─► LKAB (iron ore, Sweden) — Tier 2
+        ├─► Michelin (tyres, France) — Tier 1
+        ├─► Dana Incorporated (axles, driveshafts, USA) — Tier 1
+        └─► Cummins (engines for some variants, USA) — Tier 1
+```
+
+Cypher v10 adds the autonomous truck AI chain:
+- **SCANIA-AXL** Level 4 truck — NVIDIA, Mobileye, Luminar (DISTRESS), Knorr-Bremse
+- **Tier 2:** TSMC (Taiwan risk), ARM Holdings (SINGLE_SOURCE), ASML (export controls)
+- **Tier 3:** JSR Corporation (EUV photoresist), Cryoin Engineering (Ukraine neon, seized)
+- **17 events** total including NVIDIA export controls 2023, neon shortage 2022
+
+### Load the demo graph
+
+```bash
+NEO4J_PW=$(python3 -c "
+from pykeepass import PyKeePass
+kp = PyKeePass('passwords.kdbx', password='SupplyChainBaby100!')
+print(kp.find_entries(title='Neo4j', first=True).password)
+")
+
+scp -o ProxyJump=root@10.0.0.16 \
+  example_outputs/sample_graph.cypher \
+  root@10.0.1.114:/tmp/
+
+ssh -o ProxyJump=root@10.0.0.16 root@10.0.1.114 \
+  "cypher-shell -u neo4j -p '$NEO4J_PW' --file /tmp/sample_graph.cypher"
+```
+
+---
+
+## Knowledge Graph — Current State
+
+The graphify analysis of the project documentation (2026-07-11):
+
+| Metric | Value |
+|--------|-------|
+| Nodes | 34 |
+| Edges | 68 |
+| Communities | 7 |
+| Extraction quality | 93% extracted · 7% inferred |
+| Inferred edge avg confidence | 0.89 |
+
+**Top cross-cutting nodes** (highest betweenness centrality):
+
+1. `CLAUDE.md` — dry-run runbook, config, fixes (0.270)
+2. `n8n weekly refresh` — Monday 06:00 cron (0.119)
+3. `Architecture doc` — component roles, data flow (0.101)
+
+---
+
+## Dry-Run Status
+
+All 8 steps pass. Last full verification: 2026-08-06.
+
+| Step | Service | Result |
+|------|---------|--------|
+| Pre-flight | Neo4j CT114 | PASS — `systemctl is-active` |
+| Pre-flight | LangGraph CT119 | PASS — 200 on /health |
+| Pre-flight | Browserless CT400 | PASS — 200 on /health (port 3500) |
+| Pre-flight | Unstructured CT117 | PASS — 200 on /health |
+| Pre-flight | Tika CT115 | PASS — 200 |
+| Pre-flight | Qdrant CT102 | PASS — 200 on /healthz |
+| Pre-flight | LiteLLM CT205 | PASS — 200 |
+| Pre-flight | Superset CT206 | PASS — 200 on /health |
+| Step 1 | Neo4j seed | PASS — BTN-001 graph seeded |
+| Step 2 | Neo4j traversal | PASS — 4 paths at correct depths |
+| Step 3 | Browserless scrape | PASS — 559 chars via /scrape |
+| Step 4 | Unstructured extract | PASS — 6 elements (multipart) |
+| Step 5 | LiteLLM inference | PASS — Groq llama-3.3-70b |
+| Step 6 | Neo4j inferred link | PASS — `inferred: true` stored |
+| Step 7 | Qdrant embedding | PASS — 768-dim nomic-embed-text |
+| Step 8 | Superset login | PASS — JWT token issued |

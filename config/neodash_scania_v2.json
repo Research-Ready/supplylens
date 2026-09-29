@@ -1,0 +1,291 @@
+{
+    "title": "Scania Supply Chain Dashboard 🚚",
+    "version": "2.1",
+    "settings": {
+      "pagenumber": 0,
+      "editable": true,
+      "fullscreenEnabled": false,
+      "parameters": {
+        "neodash_supplier_name": "ZF Friedrichshafen"
+      },
+      "extensions": [
+        "core",
+        "actions"
+      ]
+    },
+    "pages": [
+      {
+        "title": "Overview",
+        "reports": [
+          {
+            "title": "The Scania Supply Chain Dashboard",
+            "query": "This dashboard shows the **Scania R-series** supply chain graph seeded into Neo4j.\n- `Product` nodes (e.g. Scania R-500, BEV, Construction truck).\n- `Supplier` nodes with `country` and `tier` properties.\n- `RawMaterial` / `MiningOperation` / `LogisticsHub` nodes.\n- Relationship types: `SUPPLIED_BY`, `SOURCED_FROM`, `ROUTES`.\n\n____\n\nYou will find two pages in this dashboard:\n1. An **Overview** page with general info about the graph.\n2. A **Supplier View** page that lets you drill down on a specific supplier.\n\nTo inspect the Cypher behind each of the visualizations, click the (⋮) button on the top right of a report. This lets you see and edit the query.",
+            "width": 6,
+            "height": 2,
+            "x": 0,
+            "y": 0,
+            "type": "text",
+            "selection": {},
+            "settings": {}
+          },
+          {
+            "title": "The entire graph",
+            "query": "// It's the entire graph!\nMATCH (a)-[r]->(b)\nRETURN *",
+            "width": 6,
+            "height": 3,
+            "x": 6,
+            "y": 1,
+            "type": "graph",
+            "selection": {
+              "Supplier": "name",
+              "Product": "name",
+              "RawMaterial": "name"
+            },
+            "settings": {}
+          },
+          {
+            "title": "Total nodes",
+            "query": "MATCH (n)\nRETURN COUNT(n) as Total",
+            "width": 2,
+            "height": 1,
+            "x": 6,
+            "y": 0,
+            "type": "value",
+            "selection": {},
+            "settings": {}
+          },
+          {
+            "title": "Total suppliers",
+            "query": "MATCH (n:Supplier)\nRETURN COUNT(n)\n\n\n",
+            "width": 2,
+            "height": 1,
+            "x": 8,
+            "y": 0,
+            "type": "value",
+            "selection": {},
+            "settings": {}
+          },
+          {
+            "title": "Relationships",
+            "query": "MATCH ()-[r]->()\nRETURN count(r)\n\n\n",
+            "width": 2,
+            "height": 1,
+            "x": 10,
+            "y": 0,
+            "type": "value",
+            "selection": {},
+            "settings": {}
+          },
+          {
+            "title": "Relationship types",
+            "query": "MATCH ()-[r]->()\nRETURN type(r) as Relationship, COUNT(r) as Total\n\n",
+            "width": 3,
+            "height": 2,
+            "x": 0,
+            "y": 2,
+            "type": "bar",
+            "selection": {
+              "index": "Relationship",
+              "value": "Total",
+              "key": "(none)"
+            },
+            "settings": {
+              "marginBottom": 80
+            }
+          },
+          {
+            "title": "Browse the suppliers",
+            "query": "MATCH (s:Supplier)\nRETURN s.name as Supplier, s.country as Country, s.tier as Tier\nORDER BY s.tier\n\n\n",
+            "width": 3,
+            "height": 2,
+            "x": 6,
+            "y": 4,
+            "type": "table",
+            "selection": {},
+            "settings": {}
+          },
+          {
+            "title": "Suppliers by tier",
+            "query": "MATCH (s:Supplier)\nWHERE s.tier IS NOT NULL\nRETURN toString(s.tier) as Tier, COUNT(s) as Suppliers\nORDER BY Suppliers\nDESC LIMIT 10\n\n\n",
+            "width": 6,
+            "height": 2,
+            "x": 0,
+            "y": 4,
+            "type": "pie",
+            "selection": {
+              "index": "Tier",
+              "value": "Suppliers",
+              "key": "(none)"
+            },
+            "settings": {
+              "marginRight": 60,
+              "marginLeft": 60,
+              "marginTop": 40,
+              "marginBottom": 60
+            }
+          },
+          {
+            "title": "Suppliers by country",
+            "query": "MATCH (s:Supplier)\nWHERE s.country IS NOT NULL\nRETURN s.country as Country, COUNT(s) as Total\nORDER BY Country ASC\n\n\n",
+            "width": 3,
+            "height": 2,
+            "x": 3,
+            "y": 2,
+            "type": "line",
+            "selection": {
+              "x": "Country",
+              "value": [
+                "Total"
+              ]
+            },
+            "settings": {
+              "curve": "cardinal",
+              "marginTop": 50
+            }
+          },
+          {
+            "title": "Risk flags by supplier",
+            "query": "MATCH (s:Supplier)\nWHERE s.risk_flags IS NOT NULL\nUNWIND s.risk_flags as Flag\nRETURN\ns.name as Supplier,\nFlag as Flag,\n1 as Count\n",
+            "width": 3,
+            "height": 2,
+            "x": 9,
+            "y": 4,
+            "type": "bar",
+            "selection": {
+              "index": "Supplier",
+              "value": "Count",
+              "key": "Flag"
+            },
+            "settings": {
+              "showOptionalSelections": true,
+              "legend": true,
+              "marginBottom": 100
+            }
+          }
+        ]
+      },
+      {
+        "title": "Supplier View",
+        "reports": [
+          {
+            "title": "Select a supplier",
+            "query": "MATCH (s:Supplier)\nRETURN s.name as Supplier, s.country as Country\nORDER BY s.name\n\n\n",
+            "width": 4,
+            "height": 2,
+            "x": 2,
+            "y": 0,
+            "type": "table",
+            "selection": {},
+            "settings": {
+              "actionsRules": [
+                {
+                  "condition": "Click",
+                  "field": "Supplier",
+                  "value": "Supplier",
+                  "customization": "set variable",
+                  "customizationValue": "supplier_name"
+                }
+              ]
+            }
+          },
+          {
+            "title": "Graph view for this supplier",
+            "query": "MATCH path=(s:Supplier)--()\nWHERE s.name = $neodash_supplier_name\nRETURN path\n\n",
+            "width": 6,
+            "height": 2,
+            "x": 6,
+            "y": 0,
+            "type": "graph",
+            "selection": {
+              "Supplier": "name",
+              "Product": "name",
+              "RawMaterial": "name"
+            },
+            "settings": {
+              "nodeColorScheme": "paired"
+            }
+          },
+          {
+            "title": "About this page",
+            "query": "On this page, you can select a supplier from a table, and dynamically view other visualizations update.\n\n",
+            "width": 2,
+            "height": 1,
+            "x": 0,
+            "y": 0,
+            "type": "text",
+            "selection": {},
+            "settings": {
+              "replaceGlobalParameters": true
+            }
+          },
+          {
+            "title": "Connected nodes for the selected supplier",
+            "query": "MATCH path=(s)-->(m)\nWHERE s.name = $neodash_supplier_name\nRETURN labels(m)[0] as Type, coalesce(m.name, m.sku) as Name\n\n",
+            "width": 5,
+            "height": 2,
+            "x": 0,
+            "y": 3,
+            "type": "table",
+            "selection": {},
+            "settings": {}
+          },
+          {
+            "title": "Sourcing paths for the selected supplier",
+            "query": "MATCH path=(s:Supplier)-[r:SOURCED_FROM]->(m)\nWHERE s.name = $neodash_supplier_name\nRETURN path\n\n",
+            "width": 7,
+            "height": 2,
+            "x": 5,
+            "y": 2,
+            "type": "graph",
+            "selection": {
+              "Supplier": "name",
+              "RawMaterial": "name"
+            },
+            "settings": {
+              "nodeColorScheme": "paired"
+            }
+          },
+          {
+            "title": "Selected supplier",
+            "query": "RETURN $neodash_supplier_name\n\n\n",
+            "width": 2,
+            "height": 1,
+            "x": 0,
+            "y": 2,
+            "type": "value",
+            "selection": {},
+            "settings": {
+              "fontSize": 26
+            }
+          }
+        ]
+      },
+      {
+        "title": "Locations",
+        "reports": [
+          {
+            "title": "Where in Europe does Scania source from?",
+            "query": "MATCH (n)\nWHERE n.lat IS NOT NULL AND n.long IS NOT NULL\nRETURN n",
+            "width": 12,
+            "height": 4,
+            "x": 0,
+            "y": 0,
+            "type": "map",
+            "selection": {
+              "Supplier": "(no label)",
+              "RawMaterial": "(no label)",
+              "MiningOperation": "(no label)",
+              "LogisticsHub": "(no label)"
+            },
+            "settings": {
+              "defaultRelColor": "rgba(120,120,120,0.5)",
+              "defaultRelWidth": 5,
+              "defaultNodeSize": "medium",
+              "nodeColorScheme": "category10"
+            }
+          }
+        ]
+      }
+    ],
+    "parameters": {}
+  }

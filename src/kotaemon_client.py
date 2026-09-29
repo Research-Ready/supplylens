@@ -460,14 +460,14 @@ def main() -> None:
     qp.add_argument("question", nargs="+")
 
     ip = sub.add_parser("ingest-all", help="Build + ingest all supplier fact sheets from Neo4j")
-    ip.add_argument("--neo4j-url",  default=os.getenv("NEO4J_URL",  "http://10.0.1.114:7474"))
+    ip.add_argument("--neo4j-url",  default=os.getenv("NEO4J_URL",  "http://localhost:7474"))
     ip.add_argument("--neo4j-user", default=os.getenv("NEO4J_USER", "neo4j"))
     ip.add_argument("--neo4j-pass", default=os.getenv("NEO4J_PASSWORD", ""))
     ip.add_argument("--dry-run",    action="store_true")
 
     sp = sub.add_parser("fact-sheet", help="Print fact sheet for one supplier (Neo4j)")
     sp.add_argument("supplier")
-    sp.add_argument("--neo4j-url",  default=os.getenv("NEO4J_URL",  "http://10.0.1.114:7474"))
+    sp.add_argument("--neo4j-url",  default=os.getenv("NEO4J_URL",  "http://localhost:7474"))
     sp.add_argument("--neo4j-user", default=os.getenv("NEO4J_USER", "neo4j"))
     sp.add_argument("--neo4j-pass", default=os.getenv("NEO4J_PASSWORD", ""))
 

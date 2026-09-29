@@ -1,0 +1,79 @@
+---
+title: "Welcome"
+---
+
+# SupplyLens
+
+**AI Supply Chain Intelligence & Regulatory Enforcement**
+
+::: {.cover-box}
+Given a company name, product SKU, or barcode — SupplyLens automatically maps the
+complete supply chain using OSINT, infers hidden Tier 3–5 nodes with AI confidence
+scoring, flags violations, and produces EDRM-compliant evidence for EU regulatory
+enforcement.
+:::
+
+**Industry partner:** Scania AB (ground truth validation)
+**Research goal:** Multi-signal OSINT inference + EDRM evidence chain + EU regulatory output
+**Status:** All 8 dry-run steps PASS (re-verified 2026-08-06). Phases 1–10 built. NeoDash deployed (CT130).
+
+---
+
+## Three Research Use Cases
+
+| Use Case | Description | Output |
+|----------|-------------|--------|
+| **Supply Chain Mapping** | Auto-discover Tier 1–5 suppliers from OSINT | Probabilistic graph with confidence scores |
+| **Material Alternative Research** | Find cheaper/greener alternatives to flagged materials | Cost + CO2 improvement proposal |
+| **Suppressed Evidence & Regulatory Filing** | Prove a company knew about a better alternative and chose not to use it | EDRM-compliant EU enforcement report |
+
+---
+
+## Key Numbers
+
+| Metric | Value |
+|--------|-------|
+| Dry-run steps passing | 17 / 17 |
+| Dashboard tabs | 30 |
+| Neo4j Cypher lines (sample graph) | ~2,305 |
+| Suppliers in demo graph | 45+ |
+| Pipeline phases built | 10 |
+| Confidence signal sources | 5 |
+| Active containers | 15 |
+
+---
+
+## How to Read This Book
+
+| Chapter | What you find |
+|---------|---------------|
+| [The Problem](01-concept.qmd) | Why supply chain visibility is the "holy grail" — and why SupplyLens addresses it |
+| [System Architecture](02-architecture.qmd) | Three-organ pipeline: Mouth → Gut → Presentation; infrastructure map |
+| [Data Model](03-data-model.qmd) | Neo4j knowledge graph schema, MongoDB raw store, PostgreSQL entity table, confidence model |
+| [Services](04-services.qmd) | All 15 containers, IPs, ports, access patterns |
+| [Dashboards](05-dashboards.qmd) | Inventory of all 30 dashboard tabs and standalone views |
+| [Project Status](06-status.qmd) | What's built, what's remaining, execution order |
+
+---
+
+## Quick Access
+
+```bash
+# SSH tunnels (run on laptop before opening any UI)
+ssh -f -L 15005:10.0.1.130:5005 -L 17687:localhost:7687 \
+    -N -o ProxyJump=root@10.0.0.16 root@10.0.1.114
+
+# Open NeoDash
+xdg-open "http://localhost:15005"
+# Connect: bolt://localhost:17687  |  neo4j  |  <password from KeePass>
+
+# Open local dashboard
+xdg-open "docs/dashboard.html"
+
+# Health check all services
+bash scripts/health_check.sh
+```
+
+---
+
+*SupplyLens is developed by Research-Ready in partnership with Scania AB.*

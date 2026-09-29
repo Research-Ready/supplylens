@@ -11,7 +11,7 @@ All 8 dry-run steps pass. See `CLAUDE.md` for dry-run procedure.
 | Property | Value |
 |----------|-------|
 | Container | CT114 (node-1, 10.0.0.16) |
-| IP:Port | 10.0.1.114:7474 (HTTP API) / :7687 (Bolt) |
+| IP:Port | localhost:7474 (HTTP API) / :7687 (Bolt) |
 | User | `neo4j` |
 | Password | KeePass UC4 → Neo4j / CT114 `/root/.credentials/neo4j.txt` |
 | Systemd | `neo4j.service` |
@@ -32,11 +32,11 @@ ssh -o ProxyJump=root@10.0.0.16 root@10.0.1.114 "systemctl is-active neo4j"
 | Property | Value |
 |----------|-------|
 | Container | CT119 (node-1) |
-| IP:Port | 10.0.1.119:8000 |
+| IP:Port | localhost:8000 |
 | Auth | None |
 | Systemd | `langgraph.service` |
 
-Health: `curl -s -o /dev/null -w '%{http_code}' http://10.0.1.119:8000/health`
+Health: `curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/health`
 Expected: `200`
 
 ---
@@ -115,13 +115,13 @@ Expected: `200`
 | Property | Value |
 |----------|-------|
 | Container | CT102 (node-1) |
-| IP:Port | 10.0.1.102:6333 |
+| IP:Port | localhost:6333 |
 | API Key | KeePass UC4 → Qdrant / CT102 `/etc/qdrant/config.yaml` `api_key` |
 | Collection | `supplier_docs` |
 | Embed model | `ollama/nomic-embed-text` (768 dims) via LiteLLM |
 
 API key header: `api-key: <key>`
-Health: `curl -s -o /dev/null -w '%{http_code}' http://10.0.1.102:6333/healthz`
+Health: `curl -s -o /dev/null -w '%{http_code}' http://localhost:6333/healthz`
 Expected: `200`
 
 ---
@@ -131,7 +131,7 @@ Expected: `200`
 | Property | Value |
 |----------|-------|
 | Container | CT205 (node-2, 10.0.0.15) |
-| IP:Port | 10.0.2.205:4000 |
+| IP:Port | localhost:4000 |
 | Master key | KeePass UC4 → LiteLLM |
 | Model for inference | `researcher-llm` → Groq `llama-3.3-70b-versatile` |
 | Model for embeddings | `ollama/nomic-embed-text` (768 dims) |
@@ -177,7 +177,7 @@ curl -s -X POST http://10.0.2.206:8088/api/v1/security/login \
 | Property | Value |
 |----------|-------|
 | Container | CT104 (node-1) |
-| IP:Port | 10.0.1.104:5678 |
+| IP:Port | localhost:5678 |
 | Admin | `chris@research-ready.nl` |
 | Password | KeePass main → Services → n8n |
 | API key | `ssh root@10.0.1.104 "cat /root/.credentials/n8n.txt"` |
@@ -191,7 +191,7 @@ UC4 Cron trigger: every Monday 06:00 → full supply chain refresh.
 | Property | Value |
 |----------|-------|
 | Container | CT100 (node-1) |
-| IP:Port | 10.0.1.100:5432 |
+| IP:Port | localhost:5432 |
 | User | `postgres` |
 | Password | KeePass main vault → `postgres_password` |
 | Database | `knopenkonings` |
@@ -206,7 +206,7 @@ If missing: `ansible-playbook -i inventory/hosts.yml playbooks/05_platform.yml -
 | Property | Value |
 |----------|-------|
 | Container | CT112 (node-1) |
-| IP:Port | 10.0.1.112:3000 |
+| IP:Port | localhost:3100 |
 | Keys | vault: `langfuse_public_key` + `langfuse_api_key` |
 
 Used to trace all LiteLLM calls for cost monitoring and debugging inference failures.

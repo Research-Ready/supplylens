@@ -1,0 +1,56 @@
+project:
+  type: book
+  output-dir: _site
+
+book:
+  title: "SupplyLens"
+  subtitle: "AI Supply Chain Intelligence & Regulatory Enforcement"
+  author: "Research-Ready · Scania AB"
+  date: today
+  date-format: "MMMM YYYY"
+  repo-actions: none
+  chapters:
+    - index.qmd
+    - workflow.qmd
+    - plan.qmd
+    - requirements.qmd
+    - part: "Research Concept"
+      chapters:
+        - 01-concept.qmd
+    - part: "System Architecture"
+      chapters:
+        - 02-architecture.qmd
+        - 03-data-model.qmd
+        - 04-services.qmd
+    - part: "Outputs"
+      chapters:
+        - 05-dashboards.qmd
+    - part: "Project Status"
+      chapters:
+        - 06-status.qmd
+  sidebar:
+    style: docked
+    background: light
+  navbar:
+    background: "#1E3A5F"
+    foreground: white
+    title: "SupplyLens"
+
+bibliography: references.bib
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    toc-title: "On this page"
+    code-fold: false
+    highlight-style: github
+    fig-width: 9
+    fig-height: 5
+    number-sections: false
+    css: styles.css
+
+execute:
+  echo: false
+  warning: false

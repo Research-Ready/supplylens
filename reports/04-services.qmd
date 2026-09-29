@@ -1,0 +1,119 @@
+---
+title: "Services & Access"
+---
+
+## Services
+
+All services run inside LXC containers on a Proxmox cluster. VPN is required for all access. The table below lists the 15 services used by SupplyLens.
+
+| Service | Container | IP:Port | Role |
+|---------|-----------|---------|------|
+| Neo4j | CT114 | localhost:7474 (HTTP) / :7687 (Bolt) | Supply chain knowledge graph |
+| LangGraph | CT119 | localhost:8000 | Agent orchestration |
+| Browserless (prod) | CT400 | 10.0.5.100:3500 | JS scraping — `POST /scrape` |
+| Browserless (acc) | CT306 | 10.0.3.106:3500 | Fallback scraper |
+| Unstructured | CT117 | 10.0.1.117:8000 | HTML/PDF text extraction |
+| Tika | CT115 | 10.0.1.115:9998 | Binary doc parsing (XLS, DOC) |
+| Qdrant | CT102 | localhost:6333 | Vector search (768-dim) |
+| LiteLLM | CT205 | localhost:4000 | LLM proxy + embeddings |
+| Kotaemon | CT120 | 10.0.1.120:8501 | RAG over supplier docs |
+| NeoDash | CT130 | 10.0.1.130:5005 | Analytics dashboard |
+| Superset | CT206 | 10.0.2.206:8088 | SQL dashboards |
+| Metabase | CT202 | 10.0.2.202:3000 | Alternative dashboards |
+| n8n | CT104 | localhost:5678 | Scheduled OSINT refresh |
+| PostgreSQL | CT100 | localhost:5432 | Structured entity table |
+| Langfuse | CT112 | localhost:3100 | LLM tracing + evidence chain |
+
+---
+
+## SSH Access Patterns
+
+Two bastion nodes serve as proxies into the cluster:
+
+- **Node-1 bastion:** `root@10.0.0.16` — reaches containers on `10.0.1.*`
+- **Node-2 bastion:** `root@10.0.0.15` — reaches containers on `10.0.2.*`
+
+Standard SSH access pattern for node-1 containers:
+
+```bash
+ssh -o ProxyJump=root@10.0.0.16 root@10.0.1.114   # Neo4j CT114
+ssh -o ProxyJump=root@10.0.0.16 root@10.0.1.119   # LangGraph CT119
+ssh -o ProxyJump=root@10.0.0.16 root@10.0.1.117   # Unstructured CT117
+```
+
+**CT400 has no SSH keys.** Use `pct exec` on node-4 instead:
+
+```bash
+ssh -i ~/.ssh/proxmox_node3 root@10.0.0.18 "pct exec 400 -- python3 -c 'import urllib.request; ...'"
+```
+
+SSH tunnels for Neo4j and NeoDash (run once per session, then access via localhost):
+
+```bash
+ssh -f \
+    -L 15005:10.0.1.130:5005 \
+    -L 17474:localhost:7474 \
+    -L 17687:localhost:7687 \
+    -N -o ProxyJump=root@10.0.0.16 root@10.0.1.114
+
+# After tunnel is up:
+# Neo4j Browser:  http://localhost:17474
+# NeoDash:        http://localhost:15005
+# Bolt connector: bolt://localhost:17687
+```
+
+---
+
+## Credential Lookup
+
+All credentials are stored in `passwords.kdbx`. Master password: `SupplyChainBaby100!`
+
+```python
+from pykeepass import PyKeePass
+
+kp = PyKeePass('passwords.kdbx', password='SupplyChainBaby100!')
+entry = kp.find_entries(title='Neo4j', first=True)
+print(entry.password)
+```
+
+Bash snippets for the most commonly needed credentials:
+
+```bash
+# Neo4j password
+NEO4J_PW=$(grep neo4j_password ansible/inventory/group_vars/vault.yml \
+    | awk '{print $2}' | tr -d '"')
+
+# PostgreSQL password
+PG_PW=$(grep "^postgres_password" ansible/inventory/group_vars/vault.yml \
+    | awk '{print $2}' | tr -d '"')
+
+# Qdrant API key
+QDRANT_KEY=$(grep qdrant_api_key ansible/inventory/group_vars/vault.yml \
+    | awk '{print $2}' | tr -d '"')
+
+# LiteLLM master key (read from the container)
+LITELLM_KEY=$(ssh root@10.0.2.205 \
+    "grep master_key /etc/litellm/config.yaml | awk '{print \$2}'")
+```
+
+Neo4j password can also be read directly from the container without touching the vault:
+
+```bash
+ssh -o ProxyJump=root@10.0.0.16 root@10.0.1.114 "cat /root/.credentials/neo4j.txt"
+```
+
+---
+
+## Critical Gotchas
+
+These are the most common integration errors, each verified in the dry-run procedure.
+
+| Service | Wrong | Correct |
+|---------|-------|---------|
+| Browserless | `POST /chromium/content` | `POST /scrape` on port 3500 |
+| Unstructured | `Content-Type: text/html` body | `multipart/form-data` with `files` field — plain body returns HTTP 422 |
+| Embeddings | `text-embedding-3-small` | `ollama/nomic-embed-text` (768 dims) — `text-embedding-3-small` is not configured in LiteLLM |
+| Superset | Login returns 401/500 after idle | Run `systemctl restart superset` to clear SQLAlchemy `PendingRollbackError` |
+| LiteLLM / Groq | `429` or `400` errors | Check `/etc/litellm/config.yaml` line ~230 for box-drawing chars (`\xe2\x94\x80`) appended to the `gsk_` key — remove and restart |
+| Qdrant | HTTP 403 | Add `-H "api-key: $QDRANT_KEY"` header to all requests |
+| CT400 | SSH connection refused | CT400 has no SSH keys — use `pct exec 400 --` on node-4 (`root@10.0.0.18`) |

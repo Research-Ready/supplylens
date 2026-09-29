@@ -316,21 +316,21 @@ bash usecases/uc4-supply-chain/scripts/health_check.sh
 
 | Service | Container | IP:Port | Role |
 |---------|-----------|---------|------|
-| Neo4j | CT114 | 10.0.1.114:7474 (HTTP) / :7687 (Bolt) | Supply chain knowledge graph |
-| LangGraph | CT119 | 10.0.1.119:8000 | Agent orchestration |
+| Neo4j | CT114 | localhost:7474 (HTTP) / :7687 (Bolt) | Supply chain knowledge graph |
+| LangGraph | CT119 | localhost:8000 | Agent orchestration |
 | Browserless (prod) | CT400 | 10.0.5.100:3500 | JS scraping — `POST /scrape` |
 | Browserless (acc) | CT306 | 10.0.3.106:3500 | Fallback scraper |
 | Unstructured | CT117 | 10.0.1.117:8000 | HTML/PDF text extraction |
 | Tika | CT115 | 10.0.1.115:9998 | Binary doc parsing (XLS, DOC) |
-| Qdrant | CT102 | 10.0.1.102:6333 | Vector search (768-dim) |
-| LiteLLM | CT205 | 10.0.2.205:4000 | LLM proxy + embeddings |
+| Qdrant | CT102 | localhost:6333 | Vector search (768-dim) |
+| LiteLLM | CT205 | localhost:4000 | LLM proxy + embeddings |
 | Kotaemon | CT120 | 10.0.1.120:8501 | RAG over supplier docs |
 | NeoDash | CT130 | 10.0.1.130:5005 | Analytics dashboard |
 | Superset | CT206 | 10.0.2.206:8088 | SQL dashboards |
 | Metabase | CT202 | 10.0.2.202:3000 | Alternative dashboards |
-| n8n | CT104 | 10.0.1.104:5678 | Scheduled OSINT refresh |
-| PostgreSQL | CT100 | 10.0.1.100:5432 | Structured entity table |
-| Langfuse | CT112 | 10.0.1.112:3000 | LLM tracing + evidence chain |
+| n8n | CT104 | localhost:5678 | Scheduled OSINT refresh |
+| PostgreSQL | CT100 | localhost:5432 | Structured entity table |
+| Langfuse | CT112 | localhost:3100 | LLM tracing + evidence chain |
 
 ---
 

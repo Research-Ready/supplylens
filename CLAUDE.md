@@ -124,19 +124,19 @@ LangGraph (CT119)            ← orchestrates multi-step graph enrichment
 
 | Service | Container | IP:Port | Role in UC4 | Auth method | Credential location |
 |---------|-----------|---------|-------------|-------------|---------------------|
-| Neo4j | CT114 | 10.0.1.114:7474 (HTTP) :7687 (Bolt) | Supply chain graph storage + traversal | Password | vault: `neo4j_password` |
-| LangGraph | CT119 | 10.0.1.119:8000 | Agent workflow orchestration | None | No auth |
+| Neo4j | CT114 | localhost:7474 (HTTP) :7687 (Bolt) | Supply chain graph storage + traversal | Password | vault: `neo4j_password` |
+| LangGraph | CT119 | localhost:8000 | Agent workflow orchestration | None | No auth |
 | Browserless (prod) | CT400 | 10.0.5.100:3500 | JS page scraping | None | No auth (internal) |
 | Browserless (acc) | CT306 | 10.0.3.106:3500 | Fallback scraper | None | No auth (internal) |
 | Unstructured | CT117 | 10.0.1.117:8000 | HTML/PDF text extraction | None | No auth |
 | Tika | CT115 | 10.0.1.115:9998 | Binary doc parsing (XLS, DOC) | None | No auth |
-| Qdrant | CT102 | 10.0.1.102:6333 | Supplier doc vector search | API key | vault: `qdrant_api_key` |
-| LiteLLM | CT205 | 10.0.2.205:4000 | LLM: infer supply chain links | Bearer token | `ssh root@10.0.2.205 "grep master_key /etc/litellm/config.yaml"` |
-| PostgreSQL | CT100 | 10.0.1.100:5432 | Structured entity table | Password | vault: `postgres_password`; DB: `knopenkonings` |
+| Qdrant | CT102 | localhost:6333 | Supplier doc vector search | API key | vault: `qdrant_api_key` |
+| LiteLLM | CT205 | localhost:4000 | LLM: infer supply chain links | Bearer token | `ssh root@10.0.2.205 "grep master_key /etc/litellm/config.yaml"` |
+| PostgreSQL | CT100 | localhost:5432 | Structured entity table | Password | vault: `postgres_password`; DB: `knopenkonings` |
 | Superset | CT206 | 10.0.2.206:8088 | SQL dashboards | Email+Password | KeePass → Services → Superset; admin: `admin@research-ready.nl` |
 | Metabase | CT202 | 10.0.2.202:3000 | Alternative dashboards | Email+Password | KeePass → Services → Metabase |
-| n8n | CT104 | 10.0.1.104:5678 | Scheduled refresh pipeline | API key | `ssh root@10.0.1.104 "cat /root/.credentials/n8n.txt"` |
-| Langfuse | CT112 | 10.0.1.112:3000 | LLM tracing | Public+Secret key | vault: `langfuse_public_key` + `langfuse_api_key` |
+| n8n | CT104 | localhost:5678 | Scheduled refresh pipeline | API key | `ssh root@10.0.1.104 "cat /root/.credentials/n8n.txt"` |
+| Langfuse | CT112 | localhost:3100 | LLM tracing | Public+Secret key | vault: `langfuse_public_key` + `langfuse_api_key` |
 | MongoDB | CT121 | 10.0.1.121:27017 | Document store (raw scraped data) | Password | vault: `mongodb_root_password` |
 | Kotaemon | CT120 | 10.0.1.120:8501 | RAG over supplier docs (PDFs, annual reports) | Password | vault: `kotaemon_password`; admin: `admin@research-ready.nl` |
 
@@ -147,8 +147,8 @@ LangGraph (CT119)            ← orchestrates multi-step graph enrichment
 NEO4J_PW=$(grep neo4j_password ansible/inventory/group_vars/vault.yml | awk '{print $2}' | tr -d '"')
 echo "Neo4j password: $NEO4J_PW"
 # User: neo4j
-# HTTP API: http://10.0.1.114:7474
-# Bolt: bolt://10.0.1.114:7687
+# HTTP API: http://localhost:7474
+# Bolt: bolt://localhost:7687
 # Basic auth: base64(neo4j:PASSWORD)
 
 # PostgreSQL for knopenkonings DB:
@@ -206,14 +206,14 @@ ssh root@10.0.1.100 "curl -s -o /dev/null -w '%{http_code}' --connect-timeout 3 
 
 # 5. Service sweep
 for svc in \
-  "10.0.1.114:7474/ neo4j" \
-  "10.0.1.102:6333/healthz qdrant" \
+  "localhost:7474/ neo4j" \
+  "localhost:6333/healthz qdrant" \
   "10.0.1.120:8501/ kotaemon" \
   "10.0.5.100:3500/ browserless-prod" \
   "10.0.3.106:3500/ browserless-acc" \
   "10.0.1.117:8000/health unstructured" \
   "10.0.1.115:9998/tika tika" \
-  "10.0.1.119:8000/health langgraph" \
+  "localhost:8000/health langgraph" \
   "10.0.2.206:8088/ superset" \
   "10.0.2.202:3000/ metabase"; do
   addr="${svc%% *}"; name="${svc##* }"
@@ -387,7 +387,7 @@ Expected: 6 text elements including supplier name, certifications, materials, ca
 
 ```bash
 LITELLM_KEY=$(ssh root@10.0.2.205 "grep master_key /etc/litellm/config.yaml | awk '{print \$2}'")
-curl -s http://10.0.2.205:4000/v1/chat/completions \
+curl -s http://localhost:4000/v1/chat/completions \
   -H "Authorization: Bearer $LITELLM_KEY" \
   -H 'Content-Type: application/json' \
   -d '{
@@ -452,7 +452,7 @@ LITELLM_KEY = 'sk-0xi1O45reIhzSzwWt90tvdX6'
 
 # Generate embedding via LiteLLM → Ollama nomic-embed-text
 emb_req = urllib.request.Request(
-    'http://10.0.2.205:4000/v1/embeddings',
+    'http://localhost:4000/v1/embeddings',
     data=json.dumps({'model': 'ollama/nomic-embed-text', 'input': 'who supplies raw materials to button manufacturers?'}).encode(),
     headers={'Authorization': 'Bearer ' + LITELLM_KEY, 'Content-Type': 'application/json'},
     method='POST'

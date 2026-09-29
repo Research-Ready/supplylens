@@ -3,8 +3,11 @@
 ## SSH Tunnels (run on laptop before opening any UI)
 
 ```bash
-# Neo4j — HTTP + Bolt (run this first, always)
+# Neo4j — HTTP + Bolt
 ssh -f -L 17474:localhost:7474 -L 17687:localhost:7687 -N -o ProxyJump=root@10.0.0.16 root@10.0.1.114
+
+# NeoDash — plus Neo4j Bolt (NeoDash needs Bolt access)
+ssh -f -L 15005:10.0.1.130:5005 -L 17687:localhost:7687 -N -o ProxyJump=root@10.0.0.16 root@10.0.1.114
 ```
 
 ## Open UIs in browser
@@ -12,6 +15,10 @@ ssh -f -L 17474:localhost:7474 -L 17687:localhost:7687 -N -o ProxyJump=root@10.0
 ```bash
 # Neo4j Browser
 xdg-open "http://localhost:17474/browser/?dbms=bolt://localhost:17687&db=neo4j"
+
+# NeoDash (after tunnel above)
+xdg-open "http://localhost:15005"
+# Connect: bolt://localhost:17687  |  neo4j  |  jGFrfiNAuwW8YPsZXIofcNwb
 
 # Superset
 xdg-open "http://10.0.2.206:8088"
@@ -23,10 +30,10 @@ xdg-open "http://10.0.2.202:3000"
 xdg-open "http://10.0.1.120:8501"
 
 # n8n
-xdg-open "http://10.0.1.104:5678"
+xdg-open "http://localhost:5678"
 
 # LangGraph
-xdg-open "http://10.0.1.119:8000"
+xdg-open "http://localhost:8000"
 
 # SupplyLens dashboard (local)
 xdg-open "/home/chris/Nextcloud/Github/uc4-supply-chain/docs/dashboard.html"
@@ -78,11 +85,11 @@ git add -A && git commit -m "your message" && git push origin main
 
 ```bash
 for svc in \
-  "10.0.1.114:7474/ neo4j" \
-  "10.0.1.102:6333/healthz qdrant" \
+  "localhost:7474/ neo4j" \
+  "localhost:6333/healthz qdrant" \
   "10.0.5.100:3500/ browserless" \
   "10.0.1.117:8000/health unstructured" \
-  "10.0.1.119:8000/health langgraph" \
+  "localhost:8000/health langgraph" \
   "10.0.2.206:8088/ superset" \
   "10.0.2.202:3000/ metabase"; do
   addr="${svc%% *}"; name="${svc##* }"

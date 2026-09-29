@@ -25,7 +25,7 @@ ssh -o ProxyJump=root@10.0.0.16 root@10.0.1.114 "
   cypher-shell -u neo4j -p '$NEO4J_PW' --file /tmp/sample_graph.cypher
 "
 
-# Or paste directly into Neo4j Browser at http://10.0.1.114:7474
+# Or paste directly into Neo4j Browser at http://localhost:7474
 # Credentials: neo4j / (from KeePass UC4 -> Neo4j)
 ```
 

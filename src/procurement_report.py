@@ -31,7 +31,7 @@ import urllib.error
 from datetime import datetime
 
 # ── Config ───────────────────────────────────────────────────────────────────
-NEO4J_URL  = os.environ.get("NEO4J_URL",   "http://10.0.1.114:7474")
+NEO4J_URL  = os.environ.get("NEO4J_URL",   "http://localhost:7474")
 NEO4J_USER = os.environ.get("NEO4J_USER",  "neo4j")
 NEO4J_PASS = os.environ.get("NEO4J_PASS",  "")
 

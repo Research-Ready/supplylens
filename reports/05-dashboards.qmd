@@ -1,0 +1,89 @@
+---
+title: "Dashboards & Outputs"
+---
+
+The SupplyLens dashboard is a single HTML file (`docs/dashboard.html`) with 30 tabs, all reading from the same sample data derived from the Scania supply chain graph. Each tab is either inline in `dashboard.html` or a linked standalone HTML file in the `docs/` directory. One additional standalone file provides a 3D graph view.
+
+Open the dashboard:
+
+```bash
+xdg-open docs/dashboard.html
+# or navigate to the docs/ directory and open dashboard.html in browser
+```
+
+---
+
+## Dashboard Tabs
+
+| Tab | File | What you see |
+|-----|------|--------------|
+| Risk | dashboard.html (inline) | Risk leaderboard, score bars |
+| Graph | dashboard.html (inline) | D3 force graph, 2D |
+| Geo | supply_chain_geo.html | World map, supplier pins |
+| Events | dashboard.html (inline) | Supply chain events timeline |
+| Disruption | disruption_impact.html | Revenue at risk per scenario |
+| Finance | financial_exposure.html | Contract values, exposure |
+| Resilience | resilience_dashboard.html | 6-dim HHI resilience radar |
+| SupplierIntel | supplier_intel.html | Per-supplier detail cards |
+| Report | report_demo.html | Auto-generated procurement report |
+| Compliance | compliance_tracker.html | 7-regulation matrix |
+| SharedSuppliers | shared_suppliers.html | Cross-product concentration |
+| TierDrill | tier_drill.html | Collapsible T0 to T4 tree |
+| CBAM | cbam_dashboard.html | Carbon border tax liability |
+| Scenarios | scenario_dashboard.html | 7 stress test scenarios |
+| Network | network_analytics.html | Centrality, HHI, bottlenecks |
+| Monte Carlo | simulation_dashboard.html | 10k-trial disruption simulation |
+| Fin Health | financial_health.html | Altman Z-scores, leverage |
+| Logistics Risk | logistics_risk.html | 7 chokepoint routes, revenue-at-risk, supplier exposure matrix |
+| Fin Monitor | financial_monitor.html | Altman Z + ND/EBITDA bars, CRITICAL/HIGH/MEDIUM alerts |
+| Kotaemon | kotaemon_search.html | RAG chat over supplier docs, citation display, live CT120 health check |
+| EvidenceMap | evidence_map.html | D3 geo map, 45 supplier pins, great-circle arcs, evidence sidebar |
+| EDRM | edrm_tracker.html | Per-supplier pipeline grid: Scraped / Extracted / RAG-Indexed / Reviewed |
+| ChainDiff | chain_diff.html | Snapshot diff: CRITICAL/HIGH/MEDIUM severity, new nodes / relationships / events |
+| DeepDive | supplier_deep_dive.html | Per-supplier deep dive: 9 suppliers, risk ring, financials, events |
+| Procurement | procurement_actions.html | 13 action cards, exposure summary, CSV export |
+| Heatmap | risk_heatmap.html | D3 country x risk-type matrix, 14 countries x 7 types, 3 modes |
+| Timeline | supplier_timeline.html | D3 swimlane, 18 suppliers x 18 events, Z trend lines, zoom slider |
+| Scorecards | scorecard.html | Printable scorecards, 12 suppliers, risk ring + compliance grid |
+| Carbon | carbon_footprint.html | Scope 1/2/3, CBAM liability, SBTi/CDP alignment, 5 chart modes |
+| DualSrc | dual_sourcing.html | Dual sourcing optimizer, budget slider, priority scatter, 9 suppliers |
+
+---
+
+## Standalone Files
+
+| File | What you see |
+|------|--------------|
+| docs/supplylens_3d.html | 3D Three.js graph — click any node to open its evidence panel |
+
+---
+
+## Source Code
+
+Python modules in `src/` implement the pipeline logic and analytical models. Each module is independently importable and can be run as a CLI tool.
+
+| File | What it does |
+|------|--------------|
+| src/agent.py | LangGraph pipeline: scrape → extract → kotaemon_rag → embed → infer → compliance_check → merge |
+| src/neo4j_client.py | Cypher query wrapper with connection pooling |
+| src/kotaemon_client.py | Kotaemon RAG client with circuit breaker and fact sheet builder |
+| src/risk_scorer.py | Risk flag to score logic |
+| src/cbam_calculator.py | CBAM carbon border tax liability per supplier |
+| src/alternative_sourcing.py | Alternative supplier scorer; outputs SWITCH_NOW / DUAL_SOURCE recommendations |
+| src/disruption_model.py | Disruption scenarios with revenue-at-risk calculation |
+| src/resilience_scorer.py | 6-dimensional HHI resilience scoring |
+| src/scenario_modeler.py | 7 named scenarios with best / base / worst outcomes |
+| src/supply_chain_simulator.py | Monte Carlo simulation — 10,000 trials, P10 / P50 / P90 output |
+| src/graph_analyzer.py | Degree, betweenness, HHI, bottleneck detection, longest-path |
+| src/sanctions_screener.py | Fuzzy name screening against OFAC / EU / UN sanctions lists |
+| src/procurement_report.py | HTML procurement report generator per SKU |
+| src/postgres_sync.py | Syncs Neo4j supplier nodes to PostgreSQL `knopenkonings.suppliers` |
+
+Additional scripts and data files:
+
+| File | What it does |
+|------|--------------|
+| example_outputs/sample_graph.cypher | v10: 2,305 lines; 17 events; Scania autonomous truck AI chain (NVIDIA / TSMC / ASML / JSR) |
+| scripts/ingest_kotaemon.py | Bulk ingest supplier documents into Kotaemon CT120 |
+| scripts/seed_scania.sh | Load Cypher into Neo4j CT114 |
+| config/n8n_workflow.json | 14-node n8n weekly refresh workflow definition |

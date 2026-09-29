@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.7.31">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Project Status – SupplyLens</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./05-dashboards.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-4a990d8dcb58f517c7c86712b8f2ac7c.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap-b4cc82f450ce07761fc9dc81b3fffcff.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="nav-sidebar docked nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">SupplyLens</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./06-status.html">Project Status</a></li><li class="breadcrumb-item"><a href="./06-status.html"><span class="chapter-title">Project Status</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation docked overflow-auto">
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Welcome</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./workflow.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Workflow</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./plan.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Plan</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./requirements.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Requirements</span></a>
+  </div>
+</li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Research Concept</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01-concept.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Research Concept</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">System Architecture</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02-architecture.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">System Architecture</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./03-data-model.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Data Model</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./04-services.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Services &amp; Access</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Outputs</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./05-dashboards.html" class="sidebar-item-text sidebar-link"><span class="chapter-title">Dashboards &amp; Outputs</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true">
+ <span class="menu-text">Project Status</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./06-status.html" class="sidebar-item-text sidebar-link active"><span class="chapter-title">Project Status</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#build-status" id="toc-build-status" class="nav-link active" data-scroll-target="#build-status">Build Status</a>
+  <ul class="collapse">
+  <li><a href="#what-is-built" id="toc-what-is-built" class="nav-link" data-scroll-target="#what-is-built">What Is Built</a>
+  <ul class="collapse">
+  <li><a href="#phase-summary" id="toc-phase-summary" class="nav-link" data-scroll-target="#phase-summary">Phase summary</a></li>
+  <li><a href="#execution-order-all-ticked" id="toc-execution-order-all-ticked" class="nav-link" data-scroll-target="#execution-order-all-ticked">Execution order (all ticked)</a></li>
+  </ul></li>
+  <li><a href="#remaining-tasks" id="toc-remaining-tasks" class="nav-link" data-scroll-target="#remaining-tasks">Remaining Tasks</a>
+  <ul class="collapse">
+  <li><a href="#e3-3d-graph-live-evidence" id="toc-e3-3d-graph-live-evidence" class="nav-link" data-scroll-target="#e3-3d-graph-live-evidence">E3 — 3D Graph Live Evidence</a></li>
+  <li><a href="#e4-supplier-scorecard-pdf-export" id="toc-e4-supplier-scorecard-pdf-export" class="nav-link" data-scroll-target="#e4-supplier-scorecard-pdf-export">E4 — Supplier Scorecard PDF Export</a></li>
+  <li><a href="#e5-deploy-ct120-kotaemon" id="toc-e5-deploy-ct120-kotaemon" class="nav-link" data-scroll-target="#e5-deploy-ct120-kotaemon">E5 — Deploy CT120 (Kotaemon)</a></li>
+  </ul></li>
+  <li><a href="#demo-scenario-scania-ab" id="toc-demo-scenario-scania-ab" class="nav-link" data-scroll-target="#demo-scenario-scania-ab">Demo Scenario — Scania AB</a>
+  <ul class="collapse">
+  <li><a href="#load-the-demo-graph" id="toc-load-the-demo-graph" class="nav-link" data-scroll-target="#load-the-demo-graph">Load the demo graph</a></li>
+  </ul></li>
+  <li><a href="#knowledge-graph-current-state" id="toc-knowledge-graph-current-state" class="nav-link" data-scroll-target="#knowledge-graph-current-state">Knowledge Graph — Current State</a></li>
+  <li><a href="#dry-run-status" id="toc-dry-run-status" class="nav-link" data-scroll-target="#dry-run-status">Dry-Run Status</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./06-status.html">Project Status</a></li><li class="breadcrumb-item"><a href="./06-status.html"><span class="chapter-title">Project Status</span></a></li></ol></nav>
+<div class="quarto-title">
+<h1 class="title"><span class="chapter-title">Project Status</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="build-status" class="level1">
+<h1>Build Status</h1>
+<section id="what-is-built" class="level2">
+<h2 class="anchored" data-anchor-id="what-is-built">What Is Built</h2>
+<p>All 10 phases are complete. The 8-step dry-run passes on every service (last verified 2026-08-06).</p>
+<section id="phase-summary" class="level3">
+<h3 class="anchored" data-anchor-id="phase-summary">Phase summary</h3>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 23%">
+<col style="width: 50%">
+<col style="width: 26%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Phase</th>
+<th>What was built</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>1</strong></td>
+<td>Neo4j seed + traversal; Browserless scraper; Unstructured/Tika extraction</td>
+<td>Complete</td>
+</tr>
+<tr class="even">
+<td><strong>2</strong></td>
+<td>LiteLLM inference; Qdrant embeddings; Neo4j inferred link storage</td>
+<td>Complete</td>
+</tr>
+<tr class="odd">
+<td><strong>3</strong></td>
+<td>Evidence store (<code>src/evidence_store.py</code>); Evidence geo map; EDRM tracker</td>
+<td>Complete</td>
+</tr>
+<tr class="even">
+<td><strong>4</strong></td>
+<td>Kotaemon citation extraction; pipeline integration (<code>src/agent.py</code>)</td>
+<td>Complete</td>
+</tr>
+<tr class="odd">
+<td><strong>5</strong></td>
+<td>Cypher v9 — event evidence links; 14 events with <code>:AFFECTED_BY</code></td>
+<td>Complete</td>
+</tr>
+<tr class="even">
+<td><strong>6</strong></td>
+<td>Logistics route risk (<code>src/logistics_risk.py</code>); Financial monitor</td>
+<td>Complete</td>
+</tr>
+<tr class="odd">
+<td><strong>7</strong></td>
+<td>Logistics Risk dashboard; Financial Monitor dashboard; Kotaemon Search UI</td>
+<td>Complete</td>
+</tr>
+<tr class="even">
+<td><strong>8</strong></td>
+<td>Cypher v10 — Autonomous Truck AI chain (SCANIA-AXL; NVIDIA/TSMC/ASML/JSR)</td>
+<td>Complete</td>
+</tr>
+<tr class="odd">
+<td><strong>9</strong></td>
+<td>Chain Diff (<code>src/chain_diff.py</code>); Supplier Deep Dive dashboard</td>
+<td>Complete</td>
+</tr>
+<tr class="even">
+<td><strong>10</strong></td>
+<td>Carbon tracker (<code>src/carbon_tracker.py</code>); Dual sourcing optimizer</td>
+<td>Complete</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="execution-order-all-ticked" class="level3">
+<h3 class="anchored" data-anchor-id="execution-order-all-ticked">Execution order (all ticked)</h3>
+<ol type="1">
+<li>A1 — evidence_store.py ✓</li>
+<li>A2 — evidence_map.html ✓</li>
+<li>A4 — edrm_tracker.html ✓</li>
+<li>B2 — Kotaemon citation extraction ✓</li>
+<li>B3 — wire citations into pipeline ✓</li>
+<li>C1 — cypher v9 event evidence ✓</li>
+<li>C2 — logistics route risk ✓</li>
+<li>C3 — financial monitor ✓</li>
+<li>D1 — logistics risk dashboard ✓</li>
+<li>D2 — financial monitor dashboard ✓</li>
+<li>D3 — Kotaemon search UI ✓</li>
+<li>D4 — cypher v10 AI chain ✓</li>
+<li>E1 — chain diff ✓</li>
+<li>E2 — supplier deep dive ✓</li>
+<li>F1 — carbon tracker + dashboard ✓</li>
+<li>F2 — dual sourcing optimizer + dashboard ✓</li>
+</ol>
+<hr>
+</section>
+</section>
+<section id="remaining-tasks" class="level2">
+<h2 class="anchored" data-anchor-id="remaining-tasks">Remaining Tasks</h2>
+<p>Three items remain open.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 16%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>ID</th>
+<th>Task</th>
+<th>File</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>E3</strong></td>
+<td>3D graph live evidence — pull from Neo4j via fetch instead of hardcoded JS</td>
+<td><code>docs/supplylens_3d.html</code></td>
+<td>Partially built</td>
+</tr>
+<tr class="even">
+<td><strong>E4</strong></td>
+<td>Supplier scorecard PDF export — evidence + risk flags + financial health + compliance</td>
+<td><code>scripts/export_scorecard.py</code></td>
+<td>Not built</td>
+</tr>
+<tr class="odd">
+<td><strong>E5</strong></td>
+<td>Deploy Kotaemon CT120 + bulk ingest supplier docs</td>
+<td><code>scripts/provision_ct120.sh</code> + <code>scripts/ingest_kotaemon.py</code></td>
+<td>Pending VPN</td>
+</tr>
+</tbody>
+</table>
+<section id="e3-3d-graph-live-evidence" class="level3">
+<h3 class="anchored" data-anchor-id="e3-3d-graph-live-evidence">E3 — 3D Graph Live Evidence</h3>
+<p>The 3D Three.js graph at <code>docs/supplylens_3d.html</code> currently shows a hardcoded evidence panel (5 suppliers, static JS data). The goal is to replace that with a live fetch against the Neo4j HTTP API over the SSH tunnel.</p>
+<p>What remains: - Add <code>fetch("http://localhost:17474/db/neo4j/tx/commit", ...)</code> call on node click - Pass query: <code>MATCH (n {name: $name}) OPTIONAL MATCH (n)-[:EVIDENCE_FOR]-(e:EvidenceClaim) RETURN n, e</code> - Render returned evidence fields (source_url, sha256, confidence, signals) into the side panel</p>
+<p>Prerequisite: SSH tunnel to Neo4j must be active (<code>localhost:17474</code>).</p>
+</section>
+<section id="e4-supplier-scorecard-pdf-export" class="level3">
+<h3 class="anchored" data-anchor-id="e4-supplier-scorecard-pdf-export">E4 — Supplier Scorecard PDF Export</h3>
+<p>No implementation exists. Scope: - Python script: query Neo4j for a single supplier node + evidence claims + financial alerts + risk flags - Render to HTML template (reuse patterns from <code>src/procurement_report.py</code>) - Export to PDF via <code>weasyprint</code> or <code>wkhtmltopdf</code> - Output: one PDF per supplier, named <code>scorecards/{supplier_name}.pdf</code></p>
+</section>
+<section id="e5-deploy-ct120-kotaemon" class="level3">
+<h3 class="anchored" data-anchor-id="e5-deploy-ct120-kotaemon">E5 — Deploy CT120 (Kotaemon)</h3>
+<p>CT120 provisioning script exists (<code>scripts/provision_ct120.sh</code>) but has not been run against the cluster. Kotaemon dashboard at <code>docs/kotaemon_search.html</code> runs in demo mode (offline fallback responses) until CT120 is live.</p>
+<p>Steps (requires VPN + cluster access):</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">bash</span> scripts/provision_ct120.sh</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/ingest_kotaemon.py   <span class="co"># loads 20 synthetic supplier docs</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Expected result: <code>http://10.0.1.120:8501</code> becomes live; the Kotaemon RAG search UI switches from demo mode to live API calls.</p>
+<hr>
+</section>
+</section>
+<section id="demo-scenario-scania-ab" class="level2">
+<h2 class="anchored" data-anchor-id="demo-scenario-scania-ab">Demo Scenario — Scania AB</h2>
+<p>The full demo uses the Scania R-series heavy truck supply chain seeded into Neo4j from <code>example_outputs/sample_graph.cypher</code> (2,305 lines, v10).</p>
+<pre><code>Scania R-series Truck
+  └─► Scania AB (manufacturer, Sweden)
+        ├─► ZF Friedrichshafen (gearboxes, Germany) — Tier 1
+        │     └─► Saarstahl AG (steel billets, Germany) — Tier 2
+        ├─► Bosch (fuel injection, electronics, Germany) — Tier 1
+        │     ├─► Infineon Technologies (semiconductors, Germany) — Tier 2
+        │     └─► Sensata Technologies (sensors, Netherlands) — Tier 2
+        ├─► SSAB (high-strength steel, Sweden) — Tier 1
+        │     └─► LKAB (iron ore, Sweden) — Tier 2
+        ├─► Michelin (tyres, France) — Tier 1
+        ├─► Dana Incorporated (axles, driveshafts, USA) — Tier 1
+        └─► Cummins (engines for some variants, USA) — Tier 1</code></pre>
+<p>Cypher v10 adds the autonomous truck AI chain: - <strong>SCANIA-AXL</strong> Level 4 truck — NVIDIA, Mobileye, Luminar (DISTRESS), Knorr-Bremse - <strong>Tier 2:</strong> TSMC (Taiwan risk), ARM Holdings (SINGLE_SOURCE), ASML (export controls) - <strong>Tier 3:</strong> JSR Corporation (EUV photoresist), Cryoin Engineering (Ukraine neon, seized) - <strong>17 events</strong> total including NVIDIA export controls 2023, neon shortage 2022</p>
+<section id="load-the-demo-graph" class="level3">
+<h3 class="anchored" data-anchor-id="load-the-demo-graph">Load the demo graph</h3>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="va">NEO4J_PW</span><span class="op">=</span><span class="va">$(</span><span class="ex">python3</span> <span class="at">-c</span> <span class="st">"</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="st">from pykeepass import PyKeePass</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="st">kp = PyKeePass('passwords.kdbx', password='SupplyChainBaby100!')</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="st">print(kp.find_entries(title='Neo4j', first=True).password)</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="st">"</span><span class="va">)</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="fu">scp</span> <span class="at">-o</span> ProxyJump=root@10.0.0.16 <span class="dt">\</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  example_outputs/sample_graph.cypher <span class="dt">\</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  root@10.0.1.114:/tmp/</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ssh</span> <span class="at">-o</span> ProxyJump=root@10.0.0.16 root@10.0.1.114 <span class="dt">\</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">"cypher-shell -u neo4j -p '</span><span class="va">$NEO4J_PW</span><span class="st">' --file /tmp/sample_graph.cypher"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<hr>
+</section>
+</section>
+<section id="knowledge-graph-current-state" class="level2">
+<h2 class="anchored" data-anchor-id="knowledge-graph-current-state">Knowledge Graph — Current State</h2>
+<p>The graphify analysis of the project documentation (2026-07-11):</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Metric</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Nodes</td>
+<td>34</td>
+</tr>
+<tr class="even">
+<td>Edges</td>
+<td>68</td>
+</tr>
+<tr class="odd">
+<td>Communities</td>
+<td>7</td>
+</tr>
+<tr class="even">
+<td>Extraction quality</td>
+<td>93% extracted · 7% inferred</td>
+</tr>
+<tr class="odd">
+<td>Inferred edge avg confidence</td>
+<td>0.89</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Top cross-cutting nodes</strong> (highest betweenness centrality):</p>
+<ol type="1">
+<li><code>CLAUDE.md</code> — dry-run runbook, config, fixes (0.270)</li>
+<li><code>n8n weekly refresh</code> — Monday 06:00 cron (0.119)</li>
+<li><code>Architecture doc</code> — component roles, data flow (0.101)</li>
+</ol>
+<hr>
+</section>
+<section id="dry-run-status" class="level2">
+<h2 class="anchored" data-anchor-id="dry-run-status">Dry-Run Status</h2>
+<p>All 8 steps pass. Last full verification: 2026-08-06.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Step</th>
+<th>Service</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Pre-flight</td>
+<td>Neo4j CT114</td>
+<td>PASS — <code>systemctl is-active</code></td>
+</tr>
+<tr class="even">
+<td>Pre-flight</td>
+<td>LangGraph CT119</td>
+<td>PASS — 200 on /health</td>
+</tr>
+<tr class="odd">
+<td>Pre-flight</td>
+<td>Browserless CT400</td>
+<td>PASS — 200 on /health (port 3500)</td>
+</tr>
+<tr class="even">
+<td>Pre-flight</td>
+<td>Unstructured CT117</td>
+<td>PASS — 200 on /health</td>
+</tr>
+<tr class="odd">
+<td>Pre-flight</td>
+<td>Tika CT115</td>
+<td>PASS — 200</td>
+</tr>
+<tr class="even">
+<td>Pre-flight</td>
+<td>Qdrant CT102</td>
+<td>PASS — 200 on /healthz</td>
+</tr>
+<tr class="odd">
+<td>Pre-flight</td>
+<td>LiteLLM CT205</td>
+<td>PASS — 200</td>
+</tr>
+<tr class="even">
+<td>Pre-flight</td>
+<td>Superset CT206</td>
+<td>PASS — 200 on /health</td>
+</tr>
+<tr class="odd">
+<td>Step 1</td>
+<td>Neo4j seed</td>
+<td>PASS — BTN-001 graph seeded</td>
+</tr>
+<tr class="even">
+<td>Step 2</td>
+<td>Neo4j traversal</td>
+<td>PASS — 4 paths at correct depths</td>
+</tr>
+<tr class="odd">
+<td>Step 3</td>
+<td>Browserless scrape</td>
+<td>PASS — 559 chars via /scrape</td>
+</tr>
+<tr class="even">
+<td>Step 4</td>
+<td>Unstructured extract</td>
+<td>PASS — 6 elements (multipart)</td>
+</tr>
+<tr class="odd">
+<td>Step 5</td>
+<td>LiteLLM inference</td>
+<td>PASS — Groq llama-3.3-70b</td>
+</tr>
+<tr class="even">
+<td>Step 6</td>
+<td>Neo4j inferred link</td>
+<td>PASS — <code>inferred: true</code> stored</td>
+</tr>
+<tr class="odd">
+<td>Step 7</td>
+<td>Qdrant embedding</td>
+<td>PASS — 768-dim nomic-embed-text</td>
+</tr>
+<tr class="even">
+<td>Step 8</td>
+<td>Superset login</td>
+<td>PASS — JWT token issued</td>
+</tr>
+</tbody>
+</table>
+
+
+</section>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+        const codeEl = trigger.previousElementSibling.cloneNode(true);
+        for (const childEl of codeEl.children) {
+          if (isCodeAnnotation(childEl)) {
+            childEl.remove();
+          }
+        }
+        return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./05-dashboards.html" class="pagination-link" aria-label="Dashboards &amp; Outputs">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-title">Dashboards &amp; Outputs</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

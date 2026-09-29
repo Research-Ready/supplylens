@@ -24,10 +24,10 @@ echo "UC4 Supply Chain — Health Check $(date '+%Y-%m-%d %H:%M:%S')"
 echo "================================================================="
 
 # Neo4j: HTTP browser on 7474 returns 200
-check "Neo4j CT114 HTTP"              "http://10.0.1.114:7474/"             "200"
+check "Neo4j CT114 HTTP"              "http://localhost:7474/"             "200"
 
 # LangGraph
-check "LangGraph CT119"               "http://10.0.1.119:8000/health"       "200"
+check "LangGraph CT119"               "http://localhost:8000/health"       "200"
 
 # Browserless: root returns 404, /health returns 200
 check "Browserless CT400 /health"     "http://10.0.5.100:3500/health"       "200"
@@ -40,10 +40,10 @@ check "Unstructured CT117"            "http://10.0.1.117:8000/health"       "200
 check "Tika CT115"                    "http://10.0.1.115:9998/tika"         "200"
 
 # Qdrant
-check "Qdrant CT102"                  "http://10.0.1.102:6333/healthz"      "200"
+check "Qdrant CT102"                  "http://localhost:6333/healthz"      "200"
 
 # LiteLLM — /health requires auth; /health/liveliness is unauthenticated
-check "LiteLLM CT205"                 "http://10.0.2.205:4000/health/liveliness" "200"
+check "LiteLLM CT205"                 "http://localhost:4000/health/liveliness" "200"
 
 # Superset
 check "Superset CT206"                "http://10.0.2.206:8088/health"       "200"
@@ -52,10 +52,10 @@ check "Superset CT206"                "http://10.0.2.206:8088/health"       "200
 check "Metabase CT202"                "http://10.0.2.202:3000/api/health"   "200"
 
 # n8n
-check "n8n CT104"                     "http://10.0.1.104:5678/healthz"      "200"
+check "n8n CT104"                     "http://localhost:5678/healthz"      "200"
 
 # Langfuse
-check "Langfuse CT112"                "http://10.0.1.112:3000/api/public/health" "200"
+check "Langfuse CT112"                "http://localhost:3100/api/public/health" "200"
 
 echo "================================================================="
 echo "Result: $PASS OK, $FAIL FAILED"
