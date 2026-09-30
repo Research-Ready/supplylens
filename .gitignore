@@ -1,4 +1,31 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.kdbx
+*.kdbx.bak
+
+# Python
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Node
+node_modules/
+.npm/
+
+# Logs and temp
+*.log
+*.tmp
+running_logs/
+test-results/
+
+# OS
 .DS_Store
+Thumbs.db

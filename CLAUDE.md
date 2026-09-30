@@ -1,5 +1,36 @@
 # UC4 — Supply Chain Visualization (Knopenkoning)
 
+<!-- local-stack:start -->
+## Current environment (2026-09-30): server down, local stack
+
+The Proxmox server is down. Every `10.0.x.x` address, SSH jump host, the VPN and
+`*.research-ready.nl` (including Gitea) in this file are unreachable until it is back.
+Do not file infra issues for that; it is known.
+
+**What runs locally** (Docker Compose, `InstallLocalAiPackage/docker/localstack/`):
+
+| Service | Local address |
+|---------|---------------|
+| neo4j | `http://localhost:7474`, bolt `localhost:7687` (empty database) |
+| qdrant | `http://localhost:6333` |
+| litellm | `http://localhost:4000` (routes to local Ollama models) |
+| langgraph | `http://localhost:8000` |
+| n8n | `http://localhost:5678` (fresh instance: workflows must be imported) |
+| postgres | `localhost:5432` (empty databases) |
+| gitea | `http://localhost:3080` (fresh, empty instance) |
+
+**Not available until the server is back:** browserless, unstructured, tika, kotaemon, superset, metabase.
+Steps that need these stay blocked; mark them in `PLAN.md` instead of working around them.
+
+**Where things go:**
+- Repo folder: Nextcloud (`~/Documents/NextCloud/Github/uc4-supply-chain` on the laptop,
+  `~/Nextcloud/Github/uc4-supply-chain` on the Fedora workstation). Use the one that exists on this machine.
+- Output (reports, documents, exports that would go to Gitea, MinIO or BookStack):
+  `output/` in this repo; Nextcloud syncs it.
+- Git: Gitea is unreachable; push to GitHub `https://github.com/Research-Ready/uc4-supply-chain` (private).
+  Nextcloud does not sync `.git`; the Fedora workstation is the one machine that commits.
+<!-- local-stack:end -->
+
 ## Dry-run status (2026-08-06)
 
 **17/17 PASS** (re-verified 2026-08-06 session-17). CT306 Browserless-acc not provisioned — removed from pre-flight check; CT400 (prod) handles all scraping.
