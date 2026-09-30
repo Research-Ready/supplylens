@@ -199,9 +199,12 @@ _Epics are ordered from very simple to advanced; each one ends in **working soft
 - Currently: evidence panel has hardcoded JS data
 - Status: PARTIALLY BUILT (hardcoded evidence only)
 
-**E3 — A3 live evidence in 3D graph** (update `docs/supplylens_3d.html`)
-- Pull evidence from Neo4j via fetch instead of hardcoded JS
-- Status: PARTIALLY BUILT (hardcoded evidence only)
+**E3 — A3 live evidence in 3D graph** `docs/supplylens_3d.html`
+- Three.js + 3d-force-graph, full Scania+autonomous-truck dataset embedded
+- Fetches live from Neo4j localhost:7474 on load; falls back to embedded if offline
+- Click node → evidence panel (risk badges, financials, upstream path)
+- Filter by tier/type/risk; auto-rotate; dashed inferred links
+- Status: BUILT
 
 ## Epic 3: Automated mapping agent
 
@@ -302,8 +305,8 @@ _Epics are ordered from very simple to advanced; each one ends in **working soft
 14. E2 — supplier deep dive ✓
 15. F1 — carbon tracker + dashboard ✓
 16. F2 — dual sourcing optimizer + dashboard ✓
-17. E3 — 3D graph live evidence  ← NEXT
-18. E4 — scorecard PDF export
+17. E3 — 3D graph live evidence ✓
+18. E4 — scorecard PDF export  ← NEXT
 19. E5 — deploy CT120 (needs VPN)
 
 ## Definition of done

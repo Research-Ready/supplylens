@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SupplyLens — 3D Supply Chain Graph</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0f172a; font-family: 'Inter', system-ui, sans-serif; color: #e2e8f0; }
+
+  #app { display: flex; width: 100vw; height: 100vh; }
+
+  #canvas-container { flex: 1; min-width: 0; position: relative; }
+
+  #sidebar {
+    width: 320px;
+    min-width: 280px;
+    max-width: 320px;
+    background: #1e293b;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-left: 1px solid #334155;
+    z-index: 10;
+  }
+
+  #top-bar {
+    padding: 14px 16px 12px;
+    border-bottom: 1px solid #334155;
+    background: #0f172a;
+    flex-shrink: 0;
+  }
+
+  #title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  #title-row h1 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #f8fafc;
+    letter-spacing: -0.02em;
+  }
+
+  #title-row h1 span { color: #3b82f6; }
+
+  #status-badge {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  #status-badge.live { background: #14532d; color: #4ade80; border: 1px solid #166534; }
+  #status-badge.embedded { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+
+  #reconnect-btn {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #1e293b;
+    color: #94a3b8;
+    cursor: pointer;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  #reconnect-btn:hover { background: #334155; color: #e2e8f0; }
+
+  .controls-section { padding: 12px 16px; border-bottom: 1px solid #334155; flex-shrink: 0; }
+  .controls-section label { font-size: 0.75rem; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px; }
+
+  .tier-row, .type-row { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .cb-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    color: #cbd5e1;
+    cursor: pointer;
+    user-select: none;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #0f172a;
+  }
+  .cb-label:hover { border-color: #475569; }
+  .cb-label input { cursor: pointer; accent-color: #3b82f6; }
+
+  .risk-filter-row { margin-top: 8px; }
+  .risk-filter-row .cb-label { border-color: #7f1d1d; background: #1a0a0a; color: #fca5a5; }
+
+  #sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+  }
+  #sidebar-scroll::-webkit-scrollbar { width: 5px; }
+  #sidebar-scroll::-webkit-scrollbar-track { background: #1e293b; }
+  #sidebar-scroll::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+  #evidence-panel { padding: 16px; }
+
+  #evidence-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    color: #475569;
+  }
+  #evidence-empty .icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.5; }
+  #evidence-empty p { font-size: 0.85rem; line-height: 1.5; }
+
+  #evidence-content { display: none; }
+
+  #ev-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #f8fafc;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  #ev-type-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+
+  .type-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .tier-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #1e293b;
+    border: 1px solid #334155;
+    color: #94a3b8;
+  }
+
+  .ev-section { margin-bottom: 14px; }
+  .ev-section h3 { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 6px; }
+
+  .ev-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #1e293b; font-size: 0.8rem; }
+  .ev-row .label { color: #64748b; }
+  .ev-row .val { color: #e2e8f0; font-weight: 500; text-align: right; max-width: 55%; word-break: break-word; }
+
+  .ev-link { color: #60a5fa; font-size: 0.8rem; text-decoration: none; }
+  .ev-link:hover { text-decoration: underline; }
+
+  .risk-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .risk-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .path-chain { font-size: 0.78rem; color: #94a3b8; line-height: 1.8; }
+  .path-chain .path-node { color: #cbd5e1; }
+  .path-chain .path-arrow { color: #3b82f6; margin: 0 4px; }
+
+  .source-label { font-size: 0.7rem; color: #475569; margin-top: 12px; font-style: italic; }
+
+  #legend {
+    padding: 14px 16px;
+    border-top: 1px solid #334155;
+    flex-shrink: 0;
+  }
+  #legend h3 { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 8px; }
+  .legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 8px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.72rem; color: #94a3b8; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  #stats-bar {
+    padding: 6px 16px;
+    background: #0f172a;
+    border-top: 1px solid #334155;
+    font-size: 0.7rem;
+    color: #475569;
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  #stats-bar span { color: #94a3b8; }
+  #stats-bar strong { color: #cbd5e1; }
+
+  /* Tooltip override */
+  .graph-tooltip {
+    background: rgba(15,23,42,0.95) !important;
+    border: 1px solid #334155 !important;
+    color: #e2e8f0 !important;
+    border-radius: 6px !important;
+    font-size: 0.8rem !important;
+    padding: 6px 10px !important;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="canvas-container"></div>
+  <div id="sidebar">
+    <div id="top-bar">
+      <div id="title-row">
+        <h1>Supply<span>Lens</span></h1>
+        <span id="status-badge" class="embedded">&#9679; Embedded data</span>
+        <button id="reconnect-btn" title="Re-try Neo4j connection">&#128279; Reconnect</button>
+      </div>
+
+      <div class="controls-section" style="padding:0;border:none;">
+        <label>Tiers</label>
+        <div class="tier-row">
+          <label class="cb-label"><input type="checkbox" data-tier="1" checked> T1</label>
+          <label class="cb-label"><input type="checkbox" data-tier="2" checked> T2</label>
+          <label class="cb-label"><input type="checkbox" data-tier="3" checked> T3</label>
+          <label class="cb-label"><input type="checkbox" data-tier="4" checked> T4</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="controls-section">
+      <label>Node types</label>
+      <div class="type-row">
+        <label class="cb-label"><input type="checkbox" data-nodetype="Product" checked> Products</label>
+        <label class="cb-label"><input type="checkbox" data-nodetype="RawMaterial" checked> Materials</label>
+        <label class="cb-label"><input type="checkbox" data-nodetype="Certificate" checked> Certs</label>
+        <label class="cb-label"><input type="checkbox" data-nodetype="Event" checked> Events</label>
+        <label class="cb-label"><input type="checkbox" data-nodetype="Company" checked> Companies</label>
+      </div>
+      <div class="risk-filter-row">
+        <label class="cb-label" style="width:100%;margin-top:4px;"><input type="checkbox" id="risk-only"> Risk nodes only</label>
+      </div>
+    </div>
+
+    <div id="sidebar-scroll">
+      <div id="evidence-panel">
+        <div id="evidence-empty">
+          <div class="icon">&#x1F9ED;</div>
+          <p>Click a node to explore its supply chain</p>
+        </div>
+        <div id="evidence-content"></div>
+      </div>
+    </div>
+
+    <div id="legend">
+      <h3>Legend</h3>
+      <div class="legend-grid">
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>Product</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div>Supplier T1</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div>Supplier T2</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div>Supplier T3</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div>Supplier T4</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div>Raw Material</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#22c55e"></div>Certificate</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ec4899"></div>Event</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#94a3b8"></div>Company</div>
+      </div>
+    </div>
+
+    <div id="stats-bar">
+      <div><strong id="stat-nodes">0</strong> nodes</div>
+      <div><strong id="stat-links">0</strong> links</div>
+      <div><strong id="stat-risk">0</strong> risks</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+<script src="https://unpkg.com/3d-force-graph@1.73.1/dist/3d-force-graph.min.js"></script>
+<script>
+'use strict';
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+
+function countryFlag(code) {
+  const flags = {
+    SE:'🇸🇪', DE:'🇩🇪', US:'🇺🇸', FR:'🇫🇷', NL:'🇳🇱', GB:'🇬🇧', CN:'🇨🇳', JP:'🇯🇵',
+    TW:'🇹🇼', KR:'🇰🇷', AU:'🇦🇺', BR:'🇧🇷', CL:'🇨🇱', CD:'🇨🇩', RU:'🇷🇺', IN:'🇮🇳',
+    TH:'🇹🇭', CH:'🇨🇭', BE:'🇧🇪', FI:'🇫🇮', NO:'🇳🇴', AT:'🇦🇹', IL:'🇮🇱', UA:'🇺🇦'
+  };
+  return flags[code] || '🌐';
+}
+
+function fmtRevenue(v) {
+  if (!v) return null;
+  const b = v / 1e9;
+  return '€' + b.toFixed(1) + 'B';
+}
+
+function fmtEmployees(v) {
+  if (!v) return null;
+  if (v >= 1000) return (v/1000).toFixed(0) + 'k';
+  return String(v);
+}
+
+// ─── Node colour + size ──────────────────────────────────────────────────────
+
+function nodeColor(node) {
+  if (node.type === 'Product')     return '#f59e0b';
+  if (node.type === 'RawMaterial') return '#8b5cf6';
+  if (node.type === 'Certificate') return '#22c55e';
+  if (node.type === 'Company')     return '#94a3b8';
+  if (node.type === 'Event')       return '#ec4899';
+  // Supplier by tier
+  const t = node.tier;
+  if (t === 1) return '#3b82f6';
+  if (t === 2) return '#10b981';
+  if (t === 3) return '#f97316';
+  if (t === 4) return '#ef4444';
+  return '#94a3b8';
+}
+
+function nodeBaseSize(node) {
+  if (node.type === 'Product') return 8;
+  if (node.type === 'Event')   return 5;
+  if (node.type === 'Supplier') {
+    const t = node.tier;
+    if (t === 1) return 6;
+    if (t === 2) return 5;
+    if (t === 3) return 4;
+    if (t === 4) return 3;
+  }
+  if (node.type === 'RawMaterial')  return 4;
+  if (node.type === 'Certificate')  return 3;
+  if (node.type === 'Company')      return 4;
+  return 4;
+}
+
+function nodeVal(node) {
+  const base = nodeBaseSize(node);
+  const hasRisk = node.risk_flags && node.risk_flags.length > 0;
+  return hasRisk ? base * 1.5 : base;
+}
+
+// ─── Link colour ─────────────────────────────────────────────────────────────
+
+function linkColor(link) {
+  const rel = link.rel || '';
+  if (rel === 'SUPPLIED_BY')   return '#3b82f6';
+  if (rel === 'SOURCED_FROM')  return '#94a3b8';
+  if (rel === 'CERTIFIED_BY')  return '#22c55e';
+  if (rel === 'OWNED_BY')      return '#e2e8f0';
+  if (rel === 'AFFECTED_BY')   return '#ef4444';
+  return '#475569';
+}
+
+// ─── Risk badge colours ──────────────────────────────────────────────────────
+
+const RISK_STYLES = {
+  SINGLE_SOURCE:     { bg: '#7f1d1d', color: '#fca5a5' },
+  GEOPOLITICAL_RISK: { bg: '#7c2d12', color: '#fdba74' },
+  CONFLICT_MINERAL:  { bg: '#713f12', color: '#fde047' },
+  ESG_RISK:          { bg: '#1e3a5f', color: '#93c5fd' },
+  SANCTIONS_RISK:    { bg: '#7f1d1d', color: '#fca5a5' },
+  DISTRESS:          { bg: '#4a044e', color: '#e879f9' },
+  EXPORT_CONTROLS:   { bg: '#7c2d12', color: '#fdba74' },
+  FORCED_LABOUR_RISK:{ bg: '#7f1d1d', color: '#fca5a5' },
+  CLIMATE_RISK:      { bg: '#14532d', color: '#86efac' },
+  DEFORESTATION_RISK:{ bg: '#14532d', color: '#86efac' },
+  CHILD_LABOUR_RISK: { bg: '#7f1d1d', color: '#fca5a5' },
+  ENERGY_RISK:       { bg: '#78350f', color: '#fde68a' }
+};
+
+function riskBadgeHtml(flag) {
+  const style = RISK_STYLES[flag] || { bg: '#374151', color: '#9ca3af' };
+  return `<span class="risk-badge" style="background:${style.bg};color:${style.color}">${flag.replace(/_/g,' ')}</span>`;
+}
+
+// ─── Embedded data ───────────────────────────────────────────────────────────
+
+const EMBEDDED_NODES = [
+  // Products
+  {id:"p-scania-r500", name:"Scania R-series Heavy Truck",   type:"Product", country:"SE"},
+  {id:"p-scania-t500", name:"Scania T-series Truck",         type:"Product", country:"SE"},
+  {id:"p-scania-bus",  name:"Scania Citywide Bus",           type:"Product", country:"SE"},
+  {id:"p-scania-dc13", name:"Scania DC13 Engine",            type:"Product", country:"SE"},
+  {id:"p-scania-axl",  name:"Scania AXL Autonomous Truck",   type:"Product", country:"SE"},
+  {id:"p-btn001",      name:"Button 12mm",                   type:"Product", country:"NL"},
+
+  // Tier 1 Suppliers
+  {id:"s-zf",          name:"ZF Friedrichshafen",   type:"Supplier", tier:1, country:"DE", website:"https://www.zf.com",          risk_flags:["SINGLE_SOURCE"], annual_revenue_eur:46600000000, employee_count:165000, founded_year:1915, headquarters:"Friedrichshafen, DE"},
+  {id:"s-bosch",       name:"Bosch",                type:"Supplier", tier:1, country:"DE", website:"https://www.bosch.com",        annual_revenue_eur:91600000000, employee_count:421000, founded_year:1886, headquarters:"Stuttgart, DE"},
+  {id:"s-ssab",        name:"SSAB",                 type:"Supplier", tier:1, country:"SE", website:"https://www.ssab.com",         annual_revenue_eur:9800000000,  employee_count:16800,  founded_year:1978, headquarters:"Stockholm, SE"},
+  {id:"s-michelin",    name:"Michelin",             type:"Supplier", tier:1, country:"FR", website:"https://www.michelin.com",     annual_revenue_eur:28600000000, employee_count:132000, founded_year:1889, headquarters:"Clermont-Ferrand, FR"},
+  {id:"s-dana",        name:"Dana Incorporated",    type:"Supplier", tier:1, country:"US", website:"https://www.dana.com",         risk_flags:["SINGLE_SOURCE"], annual_revenue_eur:9700000000, employee_count:37000, founded_year:1904, headquarters:"Maumee, OH, US"},
+  {id:"s-cummins",     name:"Cummins Inc",          type:"Supplier", tier:1, country:"US", website:"https://www.cummins.com",      risk_flags:["SINGLE_SOURCE"]},
+  {id:"s-continental", name:"Continental AG",       type:"Supplier", tier:1, country:"DE", website:"https://www.continental.com"},
+  {id:"s-knorr",       name:"Knorr-Bremse AG",      type:"Supplier", tier:1, country:"DE", website:"https://www.knorr-bremse.com", annual_revenue_eur:7200000000, employee_count:31000, founded_year:1905, headquarters:"Munich, DE"},
+  {id:"s-voith",       name:"Voith GmbH",           type:"Supplier", tier:1, country:"DE", annual_revenue_eur:4700000000, employee_count:20000, founded_year:1867},
+  {id:"s-skf",         name:"SKF Group",            type:"Supplier", tier:1, country:"SE", website:"https://www.skf.com",          annual_revenue_eur:9400000000, employee_count:40000, founded_year:1907},
+  {id:"s-timken",      name:"Timken Company",       type:"Supplier", tier:1, country:"US", risk_flags:["SINGLE_SOURCE"]},
+  {id:"s-ams-btn",     name:"AMS Buttons BV",       type:"Supplier", tier:1, country:"NL", website:"https://www.amsbuttons.nl",    annual_revenue_eur:12000000, employee_count:45, founded_year:1987, headquarters:"Almere, NL"},
+  {id:"s-nvidia",      name:"NVIDIA Corporation",   type:"Supplier", tier:1, country:"US", website:"https://www.nvidia.com",       risk_flags:["EXPORT_CONTROLS"], annual_revenue_eur:60900000000, employee_count:32000},
+  {id:"s-mobileye",    name:"Mobileye Global",      type:"Supplier", tier:1, country:"IL", risk_flags:["SINGLE_SOURCE"]},
+  {id:"s-luminar",     name:"Luminar Technologies", type:"Supplier", tier:1, country:"US", risk_flags:["DISTRESS"]},
+  {id:"s-here",        name:"HERE Technologies",    type:"Supplier", tier:1, country:"NL"},
+  {id:"s-parker",      name:"Parker Hannifin",      type:"Supplier", tier:1, country:"US", website:"https://www.parker.com",       annual_revenue_eur:19800000000, employee_count:57900, founded_year:1917, headquarters:"Cleveland, OH, US"},
+
+  // Tier 2 Suppliers
+  {id:"s-saarstahl",   name:"Saarstahl AG",           type:"Supplier", tier:2, country:"DE", annual_revenue_eur:2800000000,  employee_count:6700,  founded_year:1881, headquarters:"Völklingen, DE"},
+  {id:"s-infineon",    name:"Infineon Technologies",  type:"Supplier", tier:2, country:"DE", annual_revenue_eur:16300000000, employee_count:58000, founded_year:1999, headquarters:"Neubiberg, DE"},
+  {id:"s-sensata",     name:"Sensata Technologies",   type:"Supplier", tier:2, country:"NL"},
+  {id:"s-lkab",        name:"LKAB",                   type:"Supplier", tier:2, country:"SE", annual_revenue_eur:4200000000,  employee_count:5000,  founded_year:1890, headquarters:"Luleå, SE"},
+  {id:"s-shenzhen",    name:"Shenzhen Metal Co",      type:"Supplier", tier:2, country:"CN"},
+  {id:"s-outokumpu",   name:"Outokumpu Oyj",          type:"Supplier", tier:2, country:"FI"},
+  {id:"s-ams-osram",   name:"ams-OSRAM",              type:"Supplier", tier:2, country:"AT"},
+  {id:"s-gkn",         name:"GKN Automotive",         type:"Supplier", tier:2, country:"GB"},
+  {id:"s-norsk",       name:"Norsk Hydro",            type:"Supplier", tier:2, country:"NO", annual_revenue_eur:22300000000, employee_count:33000, founded_year:1905},
+  {id:"s-riotinto",    name:"Rio Tinto",              type:"Supplier", tier:2, country:"AU", risk_flags:["ESG_RISK"]},
+  {id:"s-timkensteel", name:"TimkenSteel Corporation",type:"Supplier", tier:2, country:"US", risk_flags:["SINGLE_SOURCE"], annual_revenue_eur:1700000000, employee_count:4500},
+  {id:"s-eaton",       name:"Eaton Corporation",      type:"Supplier", tier:2, country:"US", annual_revenue_eur:20400000000, employee_count:96000, founded_year:1911},
+  {id:"s-garrett",     name:"Garrett Motion",         type:"Supplier", tier:2, country:"US", risk_flags:["SINGLE_SOURCE"], annual_revenue_eur:3200000000, employee_count:6200},
+  {id:"s-borgwarner",  name:"BorgWarner",             type:"Supplier", tier:2, country:"US", annual_revenue_eur:14200000000, employee_count:50000, founded_year:1928},
+  {id:"s-tsmc",        name:"TSMC",                   type:"Supplier", tier:2, country:"TW", website:"https://www.tsmc.com",  risk_flags:["GEOPOLITICAL_RISK","SINGLE_SOURCE"]},
+  {id:"s-arm",         name:"ARM Holdings",           type:"Supplier", tier:2, country:"GB", risk_flags:["SINGLE_SOURCE"]},
+  {id:"s-asml",        name:"ASML",                   type:"Supplier", tier:2, country:"NL", website:"https://www.asml.com",  risk_flags:["EXPORT_CONTROLS","SINGLE_SOURCE"]},
+  {id:"s-synopsys",    name:"Synopsys",               type:"Supplier", tier:2, country:"US"},
+  {id:"s-cadence",     name:"Cadence Design Systems", type:"Supplier", tier:2, country:"US"},
+
+  // Tier 3 Suppliers
+  {id:"s-lkab-kiruna", name:"LKAB Kiruna Mine",          type:"Supplier", tier:3, country:"SE", risk_flags:["CLIMATE_RISK"]},
+  {id:"s-vale",        name:"Vale SA",                   type:"Supplier", tier:3, country:"BR", annual_revenue_eur:38500000000, employee_count:96000, risk_flags:["ESG_RISK"]},
+  {id:"s-codelco",     name:"Codelco",                   type:"Supplier", tier:3, country:"CL"},
+  {id:"s-avx",         name:"AVX Tantalum",              type:"Supplier", tier:3, country:"US", risk_flags:["CONFLICT_MINERAL"], annual_revenue_eur:1600000000},
+  {id:"s-creg",        name:"China Rare Earth Group",    type:"Supplier", tier:3, country:"CN", risk_flags:["GEOPOLITICAL_RISK","SINGLE_SOURCE","SANCTIONS_RISK"], annual_revenue_eur:8900000000, employee_count:140000, founded_year:2021, headquarters:"Nanchang, CN"},
+  {id:"s-basf",        name:"BASF SE",                   type:"Supplier", tier:3, country:"DE", website:"https://www.basf.com"},
+  {id:"s-sritrang",    name:"Sri Trang Agro-Industry",   type:"Supplier", tier:3, country:"TH", risk_flags:["DEFORESTATION_RISK"]},
+  {id:"s-cabot",       name:"Cabot Corporation",         type:"Supplier", tier:3, country:"US"},
+  {id:"s-shinEtsu",    name:"Shin-Etsu Chemical",        type:"Supplier", tier:3, country:"JP"},
+  {id:"s-jsr",         name:"JSR Corporation",           type:"Supplier", tier:3, country:"JP", risk_flags:["SINGLE_SOURCE"]},
+  {id:"s-cryoin",      name:"Cryoin Engineering",        type:"Supplier", tier:3, country:"UA", risk_flags:["GEOPOLITICAL_RISK"]},
+  {id:"s-orano",       name:"Orano",                     type:"Supplier", tier:3, country:"FR"},
+
+  // Tier 4 Suppliers
+  {id:"s-lkab-shaft",   name:"LKAB Kiirunavaara Shaft",  type:"Supplier", tier:4, country:"SE", risk_flags:["CLIMATE_RISK"]},
+  {id:"s-glencore",     name:"Glencore",                 type:"Supplier", tier:4, country:"CH", risk_flags:["ESG_RISK","CONFLICT_MINERAL","SANCTIONS_RISK"], annual_revenue_eur:255000000000, employee_count:135000, founded_year:1974, headquarters:"Baar, CH"},
+  {id:"s-freeport",     name:"Freeport-McMoRan",         type:"Supplier", tier:4, country:"US", risk_flags:["ESG_RISK"]},
+  {id:"s-basf-ludwigs", name:"BASF Ludwigshafen Complex",type:"Supplier", tier:4, country:"DE", risk_flags:["CLIMATE_RISK","ENERGY_RISK"]},
+  {id:"s-xinjiang",     name:"Xinjiang Polysilicon Co",  type:"Supplier", tier:4, country:"CN", risk_flags:["GEOPOLITICAL_RISK","SANCTIONS_RISK","FORCED_LABOUR_RISK"]},
+  {id:"s-siltronic",    name:"Siltronic AG",             type:"Supplier", tier:4, country:"DE", annual_revenue_eur:1850000000, employee_count:4800, founded_year:1968},
+  {id:"s-umicore",      name:"Umicore SA",               type:"Supplier", tier:4, country:"BE"},
+
+  // Raw Materials
+  {id:"r-steelbillet",    name:"Steel Billets",             type:"RawMaterial", country:"DE"},
+  {id:"r-ironore",        name:"Iron Ore Pellets",          type:"RawMaterial", country:"SE"},
+  {id:"r-silicon",        name:"Raw Silicon",               type:"RawMaterial", country:"CN", risk_flags:["GEOPOLITICAL_RISK"]},
+  {id:"r-plastic",        name:"Plastic Pellets",           type:"RawMaterial", country:"DE"},
+  {id:"r-metalpins",      name:"Metal Pins",                type:"RawMaterial", country:"CN"},
+  {id:"r-dye",            name:"Textile Dye",               type:"RawMaterial", country:"IN", inferred:true},
+  {id:"r-rubber",         name:"Natural Rubber",            type:"RawMaterial", country:"TH"},
+  {id:"r-carbonblack",    name:"Carbon Black",              type:"RawMaterial", country:"RU", risk_flags:["GEOPOLITICAL_RISK"]},
+  {id:"r-tantalum",       name:"Tantalum Ore",              type:"RawMaterial", country:"CD", risk_flags:["CONFLICT_MINERAL"]},
+  {id:"r-cobalt",         name:"Cobalt Hydroxide",          type:"RawMaterial", country:"CD", risk_flags:["CONFLICT_MINERAL","CHILD_LABOUR_RISK"]},
+  {id:"r-rareearth",      name:"Rare Earth Elements",       type:"RawMaterial", country:"CN", risk_flags:["GEOPOLITICAL_RISK","SINGLE_SOURCE"]},
+  {id:"r-copper",         name:"Copper Cathode",            type:"RawMaterial", country:"CL"},
+  {id:"r-bauxite",        name:"Bauxite",                   type:"RawMaterial", country:"AU", risk_flags:["ESG_RISK"]},
+  {id:"r-abs",            name:"ABS Plastic Resin",         type:"RawMaterial", country:"DE"},
+  {id:"r-graphite",       name:"Synthetic Graphite",        type:"RawMaterial", country:"CN", risk_flags:["GEOPOLITICAL_RISK"]},
+  {id:"r-natgas",         name:"Natural Gas (feedstock)",   type:"RawMaterial", country:"RU", risk_flags:["GEOPOLITICAL_RISK","ENERGY_RISK","SANCTIONS_RISK"]},
+  {id:"r-quartz",         name:"High-Purity Quartz",        type:"RawMaterial", country:"NO"},
+  {id:"r-siliconwafer",   name:"Silicon Wafers",            type:"RawMaterial", country:"TW", risk_flags:["GEOPOLITICAL_RISK"]},
+  {id:"r-euvphotoresist", name:"EUV Photoresist",           type:"RawMaterial", country:"JP", risk_flags:["SINGLE_SOURCE"]},
+  {id:"r-neon",           name:"Neon Gas",                  type:"RawMaterial", country:"UA", risk_flags:["GEOPOLITICAL_RISK"]},
+  {id:"r-hafnium",        name:"Hafnium",                   type:"RawMaterial", country:"FR"},
+  {id:"r-germanium",      name:"Germanium",                 type:"RawMaterial", country:"CN", risk_flags:["GEOPOLITICAL_RISK","EXPORT_CONTROLS"]},
+
+  // Certificates
+  {id:"c-iso9001",  name:"ISO 9001:2015",                       type:"Certificate"},
+  {id:"c-iatf",     name:"IATF 16949:2016",                     type:"Certificate"},
+  {id:"c-reach",    name:"REACH Compliance",                    type:"Certificate"},
+  {id:"c-iso14001", name:"ISO 14001:2015",                      type:"Certificate"},
+  {id:"c-cfsi",     name:"Conflict Minerals Free (CFSI)",       type:"Certificate"},
+  {id:"c-rba",      name:"RBA Code of Conduct",                 type:"Certificate"},
+  {id:"c-iso45001", name:"ISO 45001:2018",                      type:"Certificate"},
+  {id:"c-sedex",    name:"SEDEX SMETA Audit",                   type:"Certificate"},
+  {id:"c-lksg",     name:"LkSG Compliance (German Supply Chain Act)", type:"Certificate"},
+
+  // Events
+  {id:"e-china-rare",    name:"China Rare Earth Export Controls 2023",    type:"Event", country:"CN"},
+  {id:"e-russia-gas",    name:"Russia–Ukraine War: Gas Supply Disruption", type:"Event", country:"RU"},
+  {id:"e-drc-cobalt",    name:"DRC Child Labour in Cobalt Mining 2022",   type:"Event", country:"CD"},
+  {id:"e-eu-crma",       name:"EU Critical Raw Materials Act 2024",       type:"Event"},
+  {id:"e-asml-china",    name:"ASML China Export Controls 2023",          type:"Event"},
+  {id:"e-nvidia-export", name:"NVIDIA Export Controls 2023",              type:"Event"},
+  {id:"e-neon-shortage", name:"Ukraine Neon Shortage 2022",               type:"Event", country:"UA"}
+];
+
+const EMBEDDED_LINKS = [
+  // Product → T1
+  {source:"p-scania-r500", target:"s-zf",          rel:"SUPPLIED_BY", component:"TraXon gearbox",              contract_value_eur:1200000000, lead_time_days:90},
+  {source:"p-scania-r500", target:"s-bosch",        rel:"SUPPLIED_BY", component:"Fuel injection system",       contract_value_eur:800000000,  lead_time_days:60},
+  {source:"p-scania-r500", target:"s-ssab",         rel:"SUPPLIED_BY", component:"High-strength chassis steel", contract_value_eur:320000000,  lead_time_days:30},
+  {source:"p-scania-r500", target:"s-michelin",     rel:"SUPPLIED_BY", component:"X Line Energy tyres",         contract_value_eur:180000000,  lead_time_days:21},
+  {source:"p-scania-r500", target:"s-dana",         rel:"SUPPLIED_BY", component:"Driveshafts and axles",       contract_value_eur:420000000,  lead_time_days:75},
+  {source:"p-scania-r500", target:"s-knorr",        rel:"SUPPLIED_BY", component:"EBS braking system",          contract_value_eur:210000000,  lead_time_days:45},
+  {source:"p-scania-r500", target:"s-cummins",      rel:"SUPPLIED_BY", component:"Euro6 engine variants"},
+  {source:"p-scania-r500", target:"s-continental",  rel:"SUPPLIED_BY", component:"ADAS sensors and braking"},
+  // T-series
+  {source:"p-scania-t500", target:"s-zf",           rel:"SUPPLIED_BY", component:"OptiCruise gearbox"},
+  {source:"p-scania-t500", target:"s-ssab",         rel:"SUPPLIED_BY", component:"Chassis steel"},
+  {source:"p-scania-t500", target:"s-michelin",     rel:"SUPPLIED_BY", component:"X MultiWay tyres"},
+  // Bus
+  {source:"p-scania-bus",  target:"s-voith",        rel:"SUPPLIED_BY", component:"DIWA transmission"},
+  {source:"p-scania-bus",  target:"s-cummins",      rel:"SUPPLIED_BY", component:"Euro6 CNG engine"},
+  {source:"p-scania-bus",  target:"s-continental",  rel:"SUPPLIED_BY", component:"iBUS + ADAS"},
+  {source:"p-scania-bus",  target:"s-knorr",        rel:"SUPPLIED_BY", component:"Air disc brakes"},
+  // DC13 Engine
+  {source:"p-scania-dc13", target:"s-bosch",        rel:"SUPPLIED_BY", component:"XPI fuel injection"},
+  {source:"p-scania-dc13", target:"s-skf",          rel:"SUPPLIED_BY", component:"Crankshaft bearings"},
+  {source:"p-scania-dc13", target:"s-timken",       rel:"SUPPLIED_BY", component:"Roller bearings"},
+  // Button
+  {source:"p-btn001",      target:"s-ams-btn",      rel:"SUPPLIED_BY", component:"12mm buttons", contract_value_eur:850000},
+  // Autonomous truck
+  {source:"p-scania-axl",  target:"s-nvidia",       rel:"SUPPLIED_BY", component:"DRIVE Orin SoC"},
+  {source:"p-scania-axl",  target:"s-mobileye",     rel:"SUPPLIED_BY", component:"EyeQ5 perception chip"},
+  {source:"p-scania-axl",  target:"s-luminar",      rel:"SUPPLIED_BY", component:"Iris LiDAR sensor"},
+  {source:"p-scania-axl",  target:"s-knorr",        rel:"SUPPLIED_BY", component:"Autonomous braking system"},
+  {source:"p-scania-axl",  target:"s-here",         rel:"SUPPLIED_BY", component:"HD maps + positioning"},
+  {source:"p-scania-axl",  target:"s-parker",       rel:"SUPPLIED_BY", component:"Electrohydraulic steering"},
+  // T1 → T2
+  {source:"s-zf",          target:"s-saarstahl",    rel:"SOURCED_FROM", component:"Steel billets for gear shafts", contract_value_eur:85000000},
+  {source:"s-zf",          target:"s-outokumpu",    rel:"SOURCED_FROM", component:"Stainless steel for housings"},
+  {source:"s-bosch",       target:"s-infineon",     rel:"SOURCED_FROM", component:"Semiconductors for ECU", contract_value_eur:340000000},
+  {source:"s-bosch",       target:"s-sensata",      rel:"SOURCED_FROM", component:"Pressure and temp sensors"},
+  {source:"s-ssab",        target:"s-lkab",         rel:"SOURCED_FROM", component:"Iron ore pellets", contract_value_eur:960000000},
+  {source:"s-michelin",    target:"s-sritrang",     rel:"SOURCED_FROM", component:"Natural rubber sheets"},
+  {source:"s-michelin",    target:"s-cabot",        rel:"SOURCED_FROM", component:"Carbon black"},
+  {source:"s-dana",        target:"s-timkensteel",  rel:"SOURCED_FROM", component:"SBQ steel bars for axles", contract_value_eur:68000000},
+  {source:"s-dana",        target:"s-eaton",        rel:"SOURCED_FROM", component:"Locking differential assemblies"},
+  {source:"s-dana",        target:"s-parker",       rel:"SOURCED_FROM", component:"Hydraulic seals"},
+  {source:"s-cummins",     target:"s-garrett",      rel:"SOURCED_FROM", component:"Turbochargers"},
+  {source:"s-cummins",     target:"s-borgwarner",   rel:"SOURCED_FROM", component:"EGR system"},
+  {source:"s-continental", target:"s-ams-osram",    rel:"SOURCED_FROM", component:"Optical sensors for LiDAR"},
+  {source:"s-voith",       target:"s-gkn",          rel:"SOURCED_FROM", component:"Clutch packs"},
+  {source:"s-skf",         target:"s-norsk",        rel:"SOURCED_FROM", component:"Aluminium alloy for housings"},
+  {source:"s-nvidia",      target:"s-tsmc",         rel:"SOURCED_FROM", component:"4nm/5nm chip fabrication"},
+  {source:"s-nvidia",      target:"s-arm",          rel:"SOURCED_FROM", component:"CPU IP license"},
+  {source:"s-mobileye",    target:"s-tsmc",         rel:"SOURCED_FROM", component:"EyeQ5 fabrication"},
+  {source:"s-luminar",     target:"s-synopsys",     rel:"SOURCED_FROM", component:"ASIC design tools"},
+  {source:"s-luminar",     target:"s-cadence",      rel:"SOURCED_FROM", component:"Verification IP"},
+  {source:"s-tsmc",        target:"s-asml",         rel:"SOURCED_FROM", component:"EUV lithography machines"},
+  // T2 → T3
+  {source:"s-lkab",        target:"s-lkab-kiruna",  rel:"SOURCED_FROM", component:"Iron ore extraction"},
+  {source:"s-lkab",        target:"s-vale",         rel:"SOURCED_FROM", component:"Supplemental iron ore"},
+  {source:"s-infineon",    target:"s-creg",         rel:"SOURCED_FROM", component:"Rare earths for magnets"},
+  {source:"s-infineon",    target:"s-avx",          rel:"SOURCED_FROM", component:"Tantalum capacitors"},
+  {source:"s-infineon",    target:"s-siltronic",    rel:"SOURCED_FROM", component:"300mm silicon wafers"},
+  {source:"s-infineon",    target:"s-umicore",      rel:"SOURCED_FROM", component:"Sputtering targets"},
+  {source:"s-ams-btn",     target:"s-basf",         rel:"SOURCED_FROM", component:"ABS resin for button bodies"},
+  {source:"s-ams-btn",     target:"s-shenzhen",     rel:"SOURCED_FROM", component:"Metal pins"},
+  {source:"s-norsk",       target:"s-riotinto",     rel:"SOURCED_FROM", component:"Bauxite → alumina"},
+  {source:"s-tsmc",        target:"s-shinEtsu",     rel:"SOURCED_FROM", component:"Silicon wafer supply"},
+  {source:"s-tsmc",        target:"s-jsr",          rel:"SOURCED_FROM", component:"EUV photoresist"},
+  {source:"s-tsmc",        target:"s-cryoin",       rel:"SOURCED_FROM", component:"Ultra-pure neon gas"},
+  {source:"s-asml",        target:"s-jsr",          rel:"SOURCED_FROM", component:"Photoresist chemistry"},
+  {source:"s-asml",        target:"s-shinEtsu",     rel:"SOURCED_FROM", component:"Optical coatings"},
+  {source:"s-cummins",     target:"s-orano",        rel:"SOURCED_FROM", component:"Hafnium for catalysts"},
+  // T3 → T4
+  {source:"s-lkab-kiruna", target:"s-lkab-shaft",  rel:"SOURCED_FROM", component:"Iron ore from sublevel caving"},
+  {source:"s-avx",         target:"s-glencore",    rel:"SOURCED_FROM", component:"Tantalum-bearing ore"},
+  {source:"s-creg",        target:"s-xinjiang",    rel:"SOURCED_FROM", component:"Process chemicals", risk_flags:["FORCED_LABOUR_RISK"]},
+  {source:"s-basf",        target:"s-basf-ludwigs",rel:"SOURCED_FROM", component:"ABS resin polymerisation"},
+  // T2/T4 → Raw Materials
+  {source:"s-saarstahl",   target:"r-ironore",       rel:"SOURCED_FROM"},
+  {source:"s-saarstahl",   target:"r-steelbillet",   rel:"SOURCED_FROM"},
+  {source:"s-lkab-shaft",  target:"r-ironore",       rel:"SOURCED_FROM"},
+  {source:"s-infineon",    target:"r-silicon",       rel:"SOURCED_FROM"},
+  {source:"s-siltronic",   target:"r-quartz",        rel:"SOURCED_FROM"},
+  {source:"s-shenzhen",    target:"r-metalpins",     rel:"SOURCED_FROM"},
+  {source:"s-ams-btn",     target:"r-plastic",       rel:"SOURCED_FROM"},
+  {source:"s-ams-btn",     target:"r-dye",           rel:"SOURCED_FROM", inferred:true, confidence:0.7},
+  {source:"s-michelin",    target:"r-rubber",        rel:"SOURCED_FROM"},
+  {source:"s-michelin",    target:"r-carbonblack",   rel:"SOURCED_FROM"},
+  {source:"s-avx",         target:"r-tantalum",      rel:"SOURCED_FROM"},
+  {source:"s-creg",        target:"r-rareearth",     rel:"SOURCED_FROM"},
+  {source:"s-glencore",    target:"r-cobalt",        rel:"SOURCED_FROM"},
+  {source:"s-riotinto",    target:"r-bauxite",       rel:"SOURCED_FROM"},
+  {source:"s-basf-ludwigs",target:"r-natgas",        rel:"SOURCED_FROM"},
+  {source:"s-freeport",    target:"r-copper",        rel:"SOURCED_FROM"},
+  {source:"s-tsmc",        target:"r-siliconwafer",  rel:"SOURCED_FROM"},
+  {source:"s-jsr",         target:"r-euvphotoresist",rel:"SOURCED_FROM"},
+  {source:"s-cryoin",      target:"r-neon",          rel:"SOURCED_FROM"},
+  {source:"s-orano",       target:"r-hafnium",       rel:"SOURCED_FROM"},
+  {source:"s-creg",        target:"r-germanium",     rel:"SOURCED_FROM"},
+  {source:"s-xinjiang",    target:"r-silicon",       rel:"SOURCED_FROM"},
+  // Certifications
+  {source:"s-zf",          target:"c-iatf",      rel:"CERTIFIED_BY"},
+  {source:"s-zf",          target:"c-lksg",      rel:"CERTIFIED_BY"},
+  {source:"s-ssab",        target:"c-iso9001",   rel:"CERTIFIED_BY"},
+  {source:"s-ssab",        target:"c-iso14001",  rel:"CERTIFIED_BY"},
+  {source:"s-ams-btn",     target:"c-reach",     rel:"CERTIFIED_BY"},
+  {source:"s-bosch",       target:"c-lksg",      rel:"CERTIFIED_BY"},
+  {source:"s-infineon",    target:"c-rba",       rel:"CERTIFIED_BY"},
+  {source:"s-avx",         target:"c-cfsi",      rel:"CERTIFIED_BY"},
+  {source:"s-sritrang",    target:"c-sedex",     rel:"CERTIFIED_BY"},
+  {source:"s-vale",        target:"c-iso45001",  rel:"CERTIFIED_BY"},
+  {source:"s-glencore",    target:"c-iso14001",  rel:"CERTIFIED_BY"},
+  {source:"s-michelin",    target:"c-iso14001",  rel:"CERTIFIED_BY"},
+  // Events (AFFECTED_BY)
+  {source:"r-rareearth",   target:"e-china-rare",    rel:"AFFECTED_BY"},
+  {source:"r-natgas",      target:"e-russia-gas",    rel:"AFFECTED_BY"},
+  {source:"r-cobalt",      target:"e-drc-cobalt",    rel:"AFFECTED_BY"},
+  {source:"s-tsmc",        target:"e-asml-china",    rel:"AFFECTED_BY"},
+  {source:"s-nvidia",      target:"e-nvidia-export", rel:"AFFECTED_BY"},
+  {source:"r-neon",        target:"e-neon-shortage", rel:"AFFECTED_BY"},
+  {source:"r-germanium",   target:"e-china-rare",    rel:"AFFECTED_BY"}
+];
+
+// ─── Build node/link maps ─────────────────────────────────────────────────────
+
+let graphData = { nodes: [], links: [] };
+let dataSource = 'embedded'; // 'live' | 'embedded'
+let autoRotate = true;
+let autoRotateReq = null;
+
+// ─── Filter state ─────────────────────────────────────────────────────────────
+
+const filterState = {
+  tiers: new Set([1,2,3,4]),
+  types: new Set(['Product','RawMaterial','Certificate','Event','Company']),
+  riskOnly: false
+};
+
+function filteredData() {
+  const visibleNodeIds = new Set();
+  const nodes = graphData.nodes.filter(n => {
+    if (n.type === 'Supplier') {
+      if (!filterState.tiers.has(n.tier)) return false;
+    } else {
+      if (!filterState.types.has(n.type)) return false;
+    }
+    if (filterState.riskOnly && !(n.risk_flags && n.risk_flags.length)) return false;
+    visibleNodeIds.add(n.id);
+    return true;
+  });
+  const links = graphData.links.filter(l => {
+    const sid = typeof l.source === 'object' ? l.source.id : l.source;
+    const tid = typeof l.target === 'object' ? l.target.id : l.target;
+    return visibleNodeIds.has(sid) && visibleNodeIds.has(tid);
+  });
+  return { nodes, links };
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+
+function updateStats(data) {
+  const riskCount = data.nodes.filter(n => n.risk_flags && n.risk_flags.length).length;
+  document.getElementById('stat-nodes').textContent = data.nodes.length;
+  document.getElementById('stat-links').textContent = data.links.length;
+  document.getElementById('stat-risk').textContent = riskCount;
+}
+
+// ─── Graph init ───────────────────────────────────────────────────────────────
+
+const Graph = ForceGraph3D({ controlType: 'orbit' })(document.getElementById('canvas-container'))
+  .backgroundColor('#0f172a')
+  .nodeColor(nodeColor)
+  .nodeVal(nodeVal)
+  .nodeLabel(n => `<div class="graph-tooltip"><strong>${n.name}</strong><br>${n.type}${n.tier ? ' T'+n.tier : ''}</div>`)
+  .linkColor(linkColor)
+  .linkWidth(l => l.inferred ? 0.5 : 1)
+  .linkLineDash(l => l.inferred ? [2, 2] : null)
+  .linkDirectionalArrowLength(4)
+  .linkDirectionalArrowRelPos(1)
+  .linkDirectionalParticles(l => l.rel === 'AFFECTED_BY' ? 2 : 0)
+  .linkDirectionalParticleColor(() => '#ef4444')
+  .linkDirectionalParticleSpeed(0.006)
+  .onNodeClick(handleNodeClick)
+  .onBackgroundClick(() => {
+    autoRotate = true;
+    startAutoRotate();
+    clearEvidence();
+  });
+
+// Auto-rotate
+function startAutoRotate() {
+  if (autoRotateReq) cancelAnimationFrame(autoRotateReq);
+  let angle = 0;
+  function tick() {
+    if (!autoRotate) return;
+    angle += 0.002;
+    const dist = 600;
+    Graph.cameraPosition({
+      x: dist * Math.sin(angle),
+      y: 0,
+      z: dist * Math.cos(angle)
+    });
+    autoRotateReq = requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+// Stop rotation on orbit control interaction
+document.getElementById('canvas-container').addEventListener('pointerdown', () => {
+  autoRotate = false;
+  if (autoRotateReq) { cancelAnimationFrame(autoRotateReq); autoRotateReq = null; }
+});
+
+// ─── Evidence panel ───────────────────────────────────────────────────────────
+
+function getTypeBadgeStyle(node) {
+  const color = nodeColor(node);
+  return `background:${color}22;color:${color};border:1px solid ${color}44`;
+}
+
+function buildUpstreamPath(nodeId, allLinks) {
+  // Walk links in reverse (find links where target === nodeId → get source)
+  const path = [nodeId];
+  let current = nodeId;
+  const visited = new Set([nodeId]);
+  for (let depth = 0; depth < 10; depth++) {
+    const link = allLinks.find(l => {
+      const tid = typeof l.target === 'object' ? l.target.id : l.target;
+      return tid === current && (l.rel === 'SUPPLIED_BY' || l.rel === 'SOURCED_FROM');
+    });
+    if (!link) break;
+    const sid = typeof link.source === 'object' ? link.source.id : link.source;
+    if (visited.has(sid)) break;
+    path.unshift(sid);
+    visited.add(sid);
+    current = sid;
+  }
+  return path;
+}
+
+function nodeById(id) {
+  return graphData.nodes.find(n => n.id === id);
+}
+
+function handleNodeClick(node) {
+  autoRotate = false;
+  if (autoRotateReq) { cancelAnimationFrame(autoRotateReq); autoRotateReq = null; }
+
+  // Fly camera to node
+  const dist = 120;
+  const coords = { x: node.x, y: node.y, z: node.z };
+  Graph.cameraPosition(
+    { x: coords.x + dist, y: coords.y + dist * 0.3, z: coords.z + dist },
+    coords,
+    1200
+  );
+
+  renderEvidence(node);
+}
+
+function clearEvidence() {
+  document.getElementById('evidence-empty').style.display = '';
+  document.getElementById('evidence-content').style.display = 'none';
+  document.getElementById('evidence-content').innerHTML = '';
+}
+
+function renderEvidence(node) {
+  document.getElementById('evidence-empty').style.display = 'none';
+  const el = document.getElementById('evidence-content');
+  el.style.display = '';
+
+  const flag = node.country ? countryFlag(node.country) : '';
+  const typeBadgeStyle = getTypeBadgeStyle(node);
+  const tierLabel = node.tier ? ` T${node.tier}` : '';
+
+  // Upstream path
+  const pathIds = buildUpstreamPath(node.id, graphData.links);
+  const pathHtml = pathIds.length > 1
+    ? pathIds.map((pid, i) => {
+        const n = nodeById(pid);
+        const nm = n ? n.name : pid;
+        return `<span class="path-node">${nm}</span>${i < pathIds.length - 1 ? '<span class="path-arrow">→</span>' : ''}`;
+      }).join('')
+    : '<em style="color:#475569">No upstream path</em>';
+
+  // Risk badges
+  const riskHtml = (node.risk_flags && node.risk_flags.length)
+    ? `<div class="risk-badges">${node.risk_flags.map(riskBadgeHtml).join('')}</div>`
+    : '<span style="color:#475569;font-size:0.8rem">None</span>';
+
+  // Financial rows
+  const finRows = [];
+  if (node.annual_revenue_eur) finRows.push(['Revenue', fmtRevenue(node.annual_revenue_eur)]);
+  if (node.employee_count)     finRows.push(['Employees', fmtEmployees(node.employee_count)]);
+  if (node.founded_year)       finRows.push(['Founded', node.founded_year]);
+  if (node.headquarters)       finRows.push(['HQ', node.headquarters]);
+  if (node.inferred)           finRows.push(['Inferred', 'Yes (LLM)']);
+
+  const finHtml = finRows.length
+    ? finRows.map(([k,v]) => `<div class="ev-row"><span class="label">${k}</span><span class="val">${v}</span></div>`).join('')
+    : '';
+
+  el.innerHTML = `
+    <div id="ev-name">${node.name}</div>
+    <div id="ev-type-row">
+      <span class="type-badge" style="${typeBadgeStyle}">${node.type}${tierLabel}</span>
+      ${node.country ? `<span>${flag} ${node.country}</span>` : ''}
+      ${node.inferred ? '<span style="color:#f59e0b;font-size:0.75rem">~ inferred</span>' : ''}
+    </div>
+
+    ${node.website ? `<div class="ev-section"><a class="ev-link" href="${node.website}" target="_blank">&#x1F517; ${node.website.replace('https://','')}</a></div>` : ''}
+
+    <div class="ev-section">
+      <h3>Risk Flags</h3>
+      ${riskHtml}
+    </div>
+
+    ${finHtml ? `<div class="ev-section"><h3>Financials</h3>${finHtml}</div>` : ''}
+
+    <div class="ev-section">
+      <h3>Supply Chain Path</h3>
+      <div class="path-chain">${pathHtml}</div>
+    </div>
+
+    <div class="source-label">Source: ${dataSource === 'live' ? 'Live Neo4j' : 'Embedded demo data'}</div>
+  `;
+}
+
+// ─── Neo4j live fetch ─────────────────────────────────────────────────────────
+
+const NEO4J_URL  = 'http://localhost:7474/db/neo4j/tx/commit';
+let   neoPassword = 'changeme';
+
+function parseNeo4jGraph(results) {
+  const nodeMap = {};
+  const linkSet = [];
+
+  if (!results || !results[0] || !results[0].data) return null;
+
+  for (const row of results[0].data) {
+    const g = row.graph;
+    if (!g) continue;
+    for (const n of (g.nodes || [])) {
+      if (!nodeMap[n.id]) {
+        const p = n.properties || {};
+        const labels = n.labels || [];
+        const type = labels.includes('Product') ? 'Product'
+          : labels.includes('Supplier')    ? 'Supplier'
+          : labels.includes('RawMaterial') ? 'RawMaterial'
+          : labels.includes('Certificate') ? 'Certificate'
+          : labels.includes('Event')       ? 'Event'
+          : labels.includes('Company')     ? 'Company'
+          : 'Supplier';
+
+        nodeMap[n.id] = {
+          id: n.id,
+          name:              p.name || p.sku || n.id,
+          type,
+          tier:              p.tier ? Number(p.tier) : undefined,
+          country:           p.country,
+          website:           p.website,
+          risk_flags:        p.risk_flags || [],
+          annual_revenue_eur:p.annual_revenue_eur ? Number(p.annual_revenue_eur) : undefined,
+          employee_count:    p.employee_count     ? Number(p.employee_count) : undefined,
+          founded_year:      p.founded_year       ? Number(p.founded_year) : undefined,
+          headquarters:      p.headquarters,
+          inferred:          p.inferred === true || p.inferred === 'true'
+        };
+      }
+    }
+    for (const r of (g.relationships || [])) {
+      linkSet.push({
+        source:    r.startNode,
+        target:    r.endNode,
+        rel:       r.type,
+        component: (r.properties || {}).component,
+        inferred:  (r.properties || {}).inferred === true,
+        confidence:(r.properties || {}).confidence
+      });
+    }
+  }
+
+  const nodes = Object.values(nodeMap);
+  if (!nodes.length) return null;
+  return { nodes, links: linkSet };
+}
+
+async function fetchNeo4j(password) {
+  const pw = password || neoPassword;
+  const resp = await fetch(NEO4J_URL, {
+    method:  'POST',
+    headers: {
+      'Authorization':  'Basic ' + btoa('neo4j:' + pw),
+      'Content-Type':   'application/json',
+      'Accept':         'application/json'
+    },
+    body: JSON.stringify({
+      statements: [{
+        statement: 'MATCH (n)-[r]->(m) RETURN n, r, m LIMIT 800',
+        resultDataContents: ['graph']
+      }]
+    })
+  });
+  if (!resp.ok) throw new Error('HTTP ' + resp.status);
+  const json = await resp.json();
+  if (json.errors && json.errors.length) throw new Error(json.errors[0].message);
+  return parseNeo4jGraph(json.results);
+}
+
+function setBadge(mode) {
+  const badge = document.getElementById('status-badge');
+  if (mode === 'live') {
+    badge.className = 'live';
+    badge.textContent = '● Live Neo4j';
+  } else {
+    badge.className = 'embedded';
+    badge.textContent = '● Embedded data';
+  }
+}
+
+function loadGraph(data, source) {
+  graphData = data;
+  dataSource = source;
+  setBadge(source);
+  applyFilters();
+}
+
+function useEmbedded() {
+  loadGraph({ nodes: EMBEDDED_NODES, links: EMBEDDED_LINKS }, 'embedded');
+}
+
+async function tryNeo4j(pw) {
+  try {
+    const data = await fetchNeo4j(pw);
+    if (data) {
+      loadGraph(data, 'live');
+      return true;
+    }
+  } catch (e) {
+    // silent fall-through
+  }
+  return false;
+}
+
+// ─── Filter application ───────────────────────────────────────────────────────
+
+function applyFilters() {
+  const data = filteredData();
+  Graph.graphData(data);
+  updateStats(data);
+}
+
+// ─── Filter controls wiring ───────────────────────────────────────────────────
+
+document.querySelectorAll('[data-tier]').forEach(cb => {
+  cb.addEventListener('change', () => {
+    const tier = Number(cb.dataset.tier);
+    if (cb.checked) filterState.tiers.add(tier);
+    else            filterState.tiers.delete(tier);
+    applyFilters();
+  });
+});
+
+document.querySelectorAll('[data-nodetype]').forEach(cb => {
+  cb.addEventListener('change', () => {
+    const t = cb.dataset.nodetype;
+    if (cb.checked) filterState.types.add(t);
+    else            filterState.types.delete(t);
+    applyFilters();
+  });
+});
+
+document.getElementById('risk-only').addEventListener('change', e => {
+  filterState.riskOnly = e.target.checked;
+  applyFilters();
+});
+
+// ─── Reconnect button ─────────────────────────────────────────────────────────
+
+document.getElementById('reconnect-btn').addEventListener('click', async () => {
+  const pw = prompt('Neo4j password:', neoPassword) || neoPassword;
+  neoPassword = pw;
+  const ok = await tryNeo4j(pw);
+  if (!ok) {
+    alert('Could not connect to Neo4j — using embedded data.');
+  }
+});
+
+// ─── Responsive resize ────────────────────────────────────────────────────────
+
+function handleResize() {
+  const container = document.getElementById('canvas-container');
+  Graph.width(container.offsetWidth).height(container.offsetHeight);
+}
+window.addEventListener('resize', handleResize);
+handleResize();
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+
+(async () => {
+  // Try Neo4j; if it fails fall back to embedded
+  const live = await tryNeo4j();
+  if (!live) {
+    useEmbedded();
+  }
+  startAutoRotate();
+})();
+</script>
+</body>
+</html>
