@@ -828,7 +828,7 @@ function renderEvidence(node) {
 // ─── Neo4j live fetch ─────────────────────────────────────────────────────────
 
 const NEO4J_URL  = 'http://localhost:7474/db/neo4j/tx/commit';
-let   neoPassword = 'bmtKQuCO9vOzyBwyVvt2LrFU';
+let   neoPassword = window.UC4_CONFIG?.NEO4J_PASS || 'changeme';
 
 function parseNeo4jGraph(results) {
   const nodeMap = {};

@@ -515,7 +515,7 @@ ssh -o ProxyJump=root@10.0.0.16 root@10.0.1.100 "python3 << 'PYEOF'
 import urllib.request, json, urllib.error
 
 QDRANT_KEY = 'KEY_FROM_VAULT'  # grep qdrant_api_key ansible/inventory/group_vars/vault.yml
-LITELLM_KEY = 'sk-0xi1O45reIhzSzwWt90tvdX6'
+LITELLM_KEY = 'sk-...'  # from ~/localstack/.env LITELLM_MASTER_KEY
 
 # Generate embedding via LiteLLM → Ollama nomic-embed-text
 emb_req = urllib.request.Request(
@@ -611,7 +611,7 @@ HTML visualization: `graphify-out/graph.html` — open in browser.
 
 ```bash
 # Seed Scania graph now:
-NEO4J_PW=$(python3 -c "from pykeepass import PyKeePass; kp=PyKeePass('passwords.kdbx',password='SupplyChainBaby100!'); e=kp.find_entries(title='Neo4j',first=True); print(e.password)")
+NEO4J_PW=$(python3 -c "from pykeepass import PyKeePass; kp=PyKeePass('passwords.kdbx',password=os.environ['KEEPASS_MASTER_PASSWORD']); e=kp.find_entries(title='Neo4j',first=True); print(e.password)")
 ssh -J root@10.0.0.16 root@10.0.1.114 "cypher-shell -u neo4j -p $NEO4J_PW" < example_outputs/sample_graph.cypher
 ```
 

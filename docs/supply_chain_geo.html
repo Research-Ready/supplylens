@@ -194,7 +194,7 @@
 <script>
 const NEO4J_HTTP = "http://localhost:7474";
 const NEO4J_USER = "neo4j";
-let NEO4J_PASS = "bmtKQuCO9vOzyBwyVvt2LrFU";
+let NEO4J_PASS = window.UC4_CONFIG?.NEO4J_PASS || "changeme";
 
 // Country ISO2 → approximate lon/lat centroid (for pin placement)
 const COUNTRY_COORDS = {

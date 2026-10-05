@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-10-05T14:05:39.328Z",
+  "distillationEnabled": true,
+  "patternsConsolidated": 8,
+  "memoryCleaned": 8,
+  "duplicatesRemoved": 0,
+  "episodes": 8,
+  "episodeEmbeddings": 8,
+  "patternEmbeddings": 8,
+  "causalEdges": 5,
+  "promoted": 0,
+  "byProvenance": {
+    "proxy:structural": 8
+  },
+  "namespaces": [
+    "commands",
+    "feedback",
+    "patterns",
+    "session",
+    "cost-tracking"
+  ],
+  "dryRun": false,
+  "corrupt": false
+}

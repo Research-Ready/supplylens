@@ -235,7 +235,7 @@
 const NEO4J_HTTP = "http://localhost:7474";
 const NEO4J_USER = "neo4j";
 // Password via prompt if not set — avoids hardcoding
-let NEO4J_PASS = "bmtKQuCO9vOzyBwyVvt2LrFU";
+let NEO4J_PASS = window.UC4_CONFIG?.NEO4J_PASS || "changeme";
 
 document.getElementById("neo4j-url-display").textContent = NEO4J_HTTP;
 
