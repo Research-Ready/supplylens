@@ -1,79 +1,101 @@
 ---
-title: "Welcome"
+title: "SupplyLens"
 ---
-
-# SupplyLens
-
-**AI Supply Chain Intelligence & Regulatory Enforcement**
 
 ::: {.cover-box}
-Given a company name, product SKU, or barcode — SupplyLens automatically maps the
-complete supply chain using OSINT, infers hidden Tier 3–5 nodes with AI confidence
-scoring, flags violations, and produces EDRM-compliant evidence for EU regulatory
-enforcement.
+**Given a company name, product SKU, or barcode — SupplyLens maps the complete supply chain automatically.**
+It scrapes supplier websites, extracts from procurement documents, infers hidden Tier 3–5 nodes with AI confidence scoring, and produces forensically traceable evidence for EU regulatory enforcement (CSDD, LkSG, UK Modern Slavery Act).
 :::
 
-**Industry partner:** Scania AB (ground truth validation)
-**Research goal:** Multi-signal OSINT inference + EDRM evidence chain + EU regulatory output
-**Status:** All 8 dry-run steps PASS (re-verified 2026-08-06). Phases 1–10 built. NeoDash deployed (CT130).
+**Research-Ready** · Industry partner: **Scania AB** · EU-hosted, self-contained, vendor-independent
 
 ---
 
-## Three Research Use Cases
+## The Problem
 
-| Use Case | Description | Output |
-|----------|-------------|--------|
-| **Supply Chain Mapping** | Auto-discover Tier 1–5 suppliers from OSINT | Probabilistic graph with confidence scores |
-| **Material Alternative Research** | Find cheaper/greener alternatives to flagged materials | Cost + CO2 improvement proposal |
-| **Suppressed Evidence & Regulatory Filing** | Prove a company knew about a better alternative and chose not to use it | EDRM-compliant EU enforcement report |
+Companies know their supply chain 2–3 tiers deep. Beyond that: opacity, undocumented relationships, deliberately obscured sourcing. Scania — a sophisticated manufacturer — has no reliable picture of who supplies their suppliers' suppliers.
+
+This blindness has direct regulatory consequence. EU CSDD (Corporate Sustainability Due Diligence Directive), LkSG, and the UK Modern Slavery Act require companies to demonstrate visibility and remediation. Without tooling, compliance is a document exercise, not a verifiable fact.
+
+**SupplyLens makes supply chain visibility reproducible, traceable, and enforceable.**
 
 ---
 
-## Key Numbers
+## What It Produces
+
+| Output | Description |
+|--------|-------------|
+| **Supply chain graph** | Neo4j knowledge graph: Tier 1–5 suppliers, raw materials, certifications, logistics hubs, risk events |
+| **Confidence-scored inferences** | LLM-inferred Tier 3–5 links with source attribution and confidence 0–1 |
+| **Risk flags** | `SINGLE_SOURCE`, `GEOPOLITICAL_RISK`, `LABOR_VIOLATION`, `SANCTIONS_HIT` per node |
+| **EDRM evidence chain** | Every node carries: scraped source, extraction method, RAG citation, timestamp |
+| **Supplier scorecards** | Printable A4 PDFs per supplier: risk ring, compliance matrix, financials, evidence |
+| **Regulatory report** | EDRM-compliant enforcement filing showing suppressed alternatives and known violations |
+
+---
+
+## Demo: Scania AB
+
+Input: `company = "Scania AB"`, `depth = 3`
+
+```
+Scania R-series Truck
+  └─► Scania AB (SE)
+        ├─► ZF Friedrichshafen (DE) — Tier 1  ⚠ SINGLE_SOURCE
+        │     └─► Saarstahl AG (DE) — Tier 2
+        ├─► Bosch (DE) — Tier 1
+        │     ├─► Infineon Technologies (DE) — Tier 2
+        │     └─► Sensata Technologies (NL) — Tier 2
+        ├─► SSAB (SE) — Tier 1
+        │     └─► LKAB (SE) — Tier 2  (iron ore)
+        └─► Dana Incorporated (US) — Tier 1  ⚠ SINGLE_SOURCE
+```
+
+Current graph: **251 nodes** — 111 suppliers, 48 raw materials, 23 events, 15 certifications, 10 products across 20+ countries.
+
+---
+
+## Key Metrics
 
 | Metric | Value |
 |--------|-------|
-| Dry-run steps passing | 17 / 17 |
-| Dashboard tabs | 30 |
-| Neo4j Cypher lines (sample graph) | ~2,305 |
-| Suppliers in demo graph | 45+ |
-| Pipeline phases built | 10 |
+| Nodes in demo graph | 251 |
+| Supplier nodes | 111 |
+| Countries covered | 20+ |
+| Pipeline steps verified | 8 / 8 |
 | Confidence signal sources | 5 |
-| Active containers | 15 |
+| Regulatory frameworks covered | EU CSDD · LkSG · UK MSA · REACH · CBAM |
+| Visualization modes | Geo map · 3D force graph · Supply chain map |
 
 ---
 
-## How to Read This Book
+## Stack
 
-| Chapter | What you find |
-|---------|---------------|
-| [The Problem](01-concept.qmd) | Why supply chain visibility is the "holy grail" — and why SupplyLens addresses it |
-| [System Architecture](02-architecture.qmd) | Three-organ pipeline: Mouth → Gut → Presentation; infrastructure map |
-| [Data Model](03-data-model.qmd) | Neo4j knowledge graph schema, MongoDB raw store, PostgreSQL entity table, confidence model |
-| [Services](04-services.qmd) | All 15 containers, IPs, ports, access patterns |
-| [Dashboards](05-dashboards.qmd) | Inventory of all 30 dashboard tabs and standalone views |
-| [Project Status](06-status.qmd) | What's built, what's remaining, execution order |
+All components self-hosted. No SaaS dependencies. Runs on local Docker Compose or a Proxmox cluster.
 
----
-
-## Quick Access
-
-```bash
-# SSH tunnels (run on laptop before opening any UI)
-ssh -f -L 15005:10.0.1.130:5005 -L 17687:localhost:7687 \
-    -N -o ProxyJump=root@10.0.0.16 root@10.0.1.114
-
-# Open NeoDash
-xdg-open "http://localhost:15005"
-# Connect: bolt://localhost:17687  |  neo4j  |  <password from KeePass>
-
-# Open local dashboard
-xdg-open "docs/dashboard.html"
-
-# Health check all services
-bash scripts/health_check.sh
-```
+| Component | Role |
+|-----------|------|
+| **Neo4j** | Supply chain knowledge graph |
+| **LangGraph** | Multi-step enrichment agent (scrape → extract → infer → merge) |
+| **LiteLLM + Ollama** | LLM inference, local models (qwen3:8b) |
+| **Qdrant** | Semantic search over supplier documents |
+| **n8n** | Scheduled weekly refresh |
+| **Browserless** | JS-rendered supplier website scraping |
 
 ---
 
-*SupplyLens is developed by Research-Ready in partnership with Scania AB.*
+## This Book
+
+| Chapter | Content |
+|---------|---------|
+| [Research Vision](vision.qmd) | The problem, the hypothesis, the regulatory opportunity |
+| [Concept](01-concept.qmd) | Why supply chain visibility is the "holy grail" |
+| [Architecture](02-architecture.qmd) | Three-organ pipeline: Mouth → Gut → Presentation |
+| [Data Model](03-data-model.qmd) | Neo4j schema, confidence model, evidence structure |
+| [Services](04-services.qmd) | All containers, ports, access patterns |
+| [Dashboards](05-dashboards.qmd) | Visualization inventory |
+| [Project Status](06-status.qmd) | Build state, remaining work, risks |
+
+---
+
+*SupplyLens is developed by [Research-Ready](https://www.research-ready.nl) in partnership with Scania AB. All processing EU-hosted. Chain of custody maintained from raw OSINT source to regulatory output.*
