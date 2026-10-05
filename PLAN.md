@@ -71,13 +71,27 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 
 ---
 
-## Epic 6: OSIRIS-Inspired SupplyLens Intelligence Dashboard
+## Epic 6: OSIRIS + Manara — SupplyLens Intelligence Dashboard
 
-> Inspiration: https://github.com/simplifaisoul/osiris — open-source Palantir alternative.
-> Goal: replace flat D3 maps with a GPU-accelerated WebGL globe, OSIRIS-style HUD layer system, and a portable env-config so the stack switches between localhost and server with one variable.
-> Copy freely from OSIRIS: MapLibre GL setup, CSS design tokens, Docker/nginx pattern, layer toggle HUD, `.env.example` structure.
+> **Aesthetic:** https://github.com/simplifaisoul/osiris — MapLibre GL globe, HUD layer toggles, dark military UI, CSS design tokens, Docker/nginx pattern.
+> **Structure:** https://github.com/PritrakSecurity/manara — 7-pillar sidebar navigation, Command Center executive overview, compliance framework mapping (GDPR/HIPAA → translate to CSDD/LkSG/UK MSA), real-time event explorer, tier-gated features.
+>
+> **Synthesis:** OSIRIS supplies the _look_ (globe, dark HUD, animated arcs). Manara supplies the _structure_ (7-pillar nav, Command Center, compliance audit pillar). Combined = a supply chain intelligence platform that looks like Palantir and operates like a DSPM.
+> Copy freely from OSIRIS: MapLibre GL setup, CSS tokens, layer toggle HUD. Copy from Manara: sidebar layout, pillar routing, command center scorecard pattern.
 
-**Working software:** A unified SupplyLens dashboard — OSIRIS aesthetic, live Neo4j data, runs on localhost and server from the same Docker image.
+**Working software:** A unified SupplyLens dashboard — OSIRIS aesthetic + Manara navigation, live Neo4j data, runs on localhost and server from the same Docker image.
+
+### SupplyLens 7-Pillar Navigation (Manara-derived)
+
+| Pillar | SupplyLens equivalent | Key views |
+|---|---|---|
+| **Command Center** | Executive supply chain overview | Risk scorecard, compliance snapshot, graph stats, news ticker |
+| **Supply Graph** | Interactive globe + chain explorer | MapLibre globe (OSIRIS), 3D force graph, tier drill-down |
+| **Risk & Events** | Detection & investigation | Risk queue, `SINGLE_SOURCE` / `GEOPOLITICAL_RISK` flags, event timeline |
+| **Compliance** | Regulatory framework mapping | EU CSDD / LkSG / UK MSA / REACH / CBAM evidence matrix |
+| **Data Sources** | OSINT coverage & integrations | 12 source status, scrape freshness, embedding index health |
+| **Evidence** | Chain-of-custody audit | EDRM evidence viewer, confidence scores, RAG citations |
+| **Administration** | Config & stack health | config.js editor, service status, API keys |
 
 ### E1 — Environment Config Layer *(prerequisite — do this first)*
 - **E1.1** `docs/config.js` → `window.UC4_CONFIG = { NEO4J_HOST, NEO4J_PASS, NEO4J_DB }` — single source of truth
@@ -115,6 +129,15 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 - **E5.2** Live service status dots (Neo4j, LiteLLM, Qdrant) checked on load
 - **E5.3** "Last graph update" from Neo4j node count query
 - Status: 🟡 IN PROGRESS (basic card launcher exists; needs HUD redesign)
+
+### E7 — Manara-Style Navigation Shell *(new — prerequisite for Command Center)*
+- **E7.1** `docs/supplylens.html` — single-page app shell with 7-pillar dark sidebar (Manara layout, OSIRIS CSS tokens)
+- **E7.2** Command Center pillar: risk scorecard (% suppliers flagged), compliance snapshot (CSDD/LkSG/UK MSA pass/fail), graph stats (node count, last updated)
+- **E7.3** Compliance pillar: framework matrix — each framework row, each supplier column, green/amber/red cell from Neo4j `Certificate` + `Event` nodes
+- **E7.4** Risk & Events pillar: live incident queue — pull `Event` nodes from Neo4j, show `LABOR_VIOLATION` / `SANCTIONS_HIT` / `GEOPOLITICAL_RISK` cards with evidence links
+- **E7.5** Embed existing views (globe, 3D, geo map) as iframe panels inside Supply Graph pillar — no rewrite needed
+- **E7.6** Link `docs/index.html` launcher card to `supplylens.html` as "SupplyLens HQ" (primary entry point)
+- Status: ⛔ NOT BUILT
 
 ### E6 — Docker Portable Package
 - **E6.1** nginx container serving `docs/` on port 8090; env var `UC4_NEO4J_HOST` injected into `config.js` at startup
