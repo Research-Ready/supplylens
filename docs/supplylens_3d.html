@@ -96,6 +96,7 @@
 
   #sidebar-scroll {
     flex: 1;
+    min-height: 180px;
     overflow-y: auto;
     padding: 0;
   }
@@ -216,6 +217,7 @@
     <div id="top-bar">
       <div id="title-row">
         <h1>Supply<span>Lens</span></h1>
+        <div style="font-size:0.7rem;color:#64748b;margin-top:2px;letter-spacing:0.05em">SCANIA AB · Tier 1–4</div>
         <span id="status-badge" class="embedded">&#9679; Embedded data</span>
         <button id="reconnect-btn" title="Re-try Neo4j connection">&#128279; Reconnect</button>
       </div>
@@ -672,7 +674,6 @@ const Graph = ForceGraph3D({ controlType: 'orbit' })(document.getElementById('ca
   .nodeLabel(n => `<div class="graph-tooltip"><strong>${n.name}</strong><br>${n.type}${n.tier ? ' T'+n.tier : ''}</div>`)
   .linkColor(linkColor)
   .linkWidth(l => l.inferred ? 0.5 : 1)
-  .linkLineDash(l => l.inferred ? [2, 2] : null)
   .linkDirectionalArrowLength(4)
   .linkDirectionalArrowRelPos(1)
   .linkDirectionalParticles(l => l.rel === 'AFFECTED_BY' ? 2 : 0)
@@ -827,7 +828,7 @@ function renderEvidence(node) {
 // ─── Neo4j live fetch ─────────────────────────────────────────────────────────
 
 const NEO4J_URL  = 'http://localhost:7474/db/neo4j/tx/commit';
-let   neoPassword = 'changeme';
+let   neoPassword = 'bmtKQuCO9vOzyBwyVvt2LrFU';
 
 function parseNeo4jGraph(results) {
   const nodeMap = {};

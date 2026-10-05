@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UC4 — Supply Chain Demo Launcher</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; min-height: 100vh; background: #0f172a; font-family: 'Inter', system-ui, sans-serif; color: #e2e8f0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; }
+  h1 { font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; }
+  h1 span { color: #3b82f6; }
+  .subtitle { font-size: 0.85rem; color: #64748b; margin-bottom: 48px; letter-spacing: 0.05em; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; max-width: 900px; width: 100%; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 28px 24px; text-decoration: none; color: inherit; transition: border-color 0.15s, transform 0.15s; display: flex; flex-direction: column; gap: 10px; }
+  .card:hover { border-color: #3b82f6; transform: translateY(-2px); }
+  .card-icon { font-size: 2rem; }
+  .card-title { font-size: 1rem; font-weight: 600; }
+  .card-desc { font-size: 0.8rem; color: #94a3b8; line-height: 1.5; }
+  .card-badge { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.06em; color: #34d399; background: rgba(52,211,153,0.1); border-radius: 4px; padding: 2px 8px; align-self: flex-start; }
+  .card-badge.static { color: #94a3b8; background: rgba(148,163,184,0.1); }
+  .footer { margin-top: 48px; font-size: 0.75rem; color: #334155; text-align: center; line-height: 1.8; }
+  .footer span { color: #475569; }
+</style>
+</head>
+<body>
+
+<h1>UC4 — <span>Supply Chain</span> Visualizations</h1>
+<div class="subtitle">SCANIA AB · KNOPENKONING · LOCAL STACK · NEO4J localhost:7474</div>
+
+<div class="grid">
+
+  <a class="card" href="supply_chain_geo.html">
+    <div class="card-icon">🗺️</div>
+    <div class="card-title">Geo Map</div>
+    <div class="card-badge">LIVE NEO4J</div>
+    <div class="card-desc">D3 world map with supplier pins by country. Color-coded by risk score. Click pins to inspect nodes.</div>
+  </a>
+
+  <a class="card" href="supply_chain_map.html">
+    <div class="card-icon">🌐</div>
+    <div class="card-title">Supply Chain Map</div>
+    <div class="card-badge">LIVE NEO4J</div>
+    <div class="card-desc">Interactive supplier relationship map with tier drill-down and risk overlays.</div>
+  </a>
+
+  <a class="card" href="supplylens_3d.html">
+    <div class="card-icon">🔮</div>
+    <div class="card-title">SupplyLens 3D</div>
+    <div class="card-badge">LIVE NEO4J</div>
+    <div class="card-desc">Three.js 3D force graph. 251 nodes across suppliers, raw materials, certs, events. Orbit and zoom. Click node for details.</div>
+  </a>
+
+  <a class="card" href="../graphify-out/graph.html">
+    <div class="card-icon">🧠</div>
+    <div class="card-title">Codebase Graph</div>
+    <div class="card-badge static">EMBEDDED</div>
+    <div class="card-desc">Graphify knowledge graph of the UC4 codebase. 34 nodes, 68 edges, 7 communities. Standalone — no backend needed.</div>
+  </a>
+
+  <a class="card" href="../reports/_site/index.html">
+    <div class="card-icon">📋</div>
+    <div class="card-title">Reports Site</div>
+    <div class="card-badge static">STATIC</div>
+    <div class="card-desc">Architecture, data model, services, dashboards, status pages. Full Quarto-generated docs site.</div>
+  </a>
+
+</div>
+
+<div class="footer">
+  Served from <span>http://localhost:8765</span> · Neo4j on <span>localhost:7474</span><br>
+  Start: <span>cd ~/Nextcloud/Github/uc4-supply-chain/docs &amp;&amp; python3 -m http.server 8765</span>
+</div>
+
+</body>
+</html>
