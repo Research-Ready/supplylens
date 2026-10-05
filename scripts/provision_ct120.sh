@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# UC4 Supply Chain — Provision CT120 (Kotaemon RAG UI)
+# UC4 Supply Chain — Provision CT129 (Kotaemon RAG UI)
 #
-# Creates LXC container CT120 on Proxmox node-1 (10.0.0.16),
+# Creates LXC container CT129 on Proxmox node-1 (10.0.0.16),
 # installs Docker, deploys Kotaemon via Docker.
 #
 # Usage:
@@ -13,7 +13,7 @@
 #   - Debian 12 template available on node-1 local storage
 #   - VPN active
 #
-# CT120 specs:
+# CT129 specs:
 #   - Node:     node-1 (10.0.0.16)
 #   - IP:       10.0.1.120/24, gw 10.0.1.1
 #   - RAM:      4096 MB  (Kotaemon + LLM inference heavy)
@@ -89,7 +89,7 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 3: Install Docker inside CT120
+# Step 3: Install Docker inside CT129
 # ---------------------------------------------------------------------------
 echo
 echo "[2/5] Installing Docker in CT${CT_ID}..."

@@ -6,7 +6,7 @@ title: "Project Status"
 
 ## What Is Built
 
-All 10 phases are complete. The 8-step dry-run passes on every service (last verified 2026-08-06).
+18 items built across 10 phases. Proxmox cluster unreachable since 2026-09-30 (server down); local Docker Compose stack running. Remote 8-step dry-run last verified 2026-08-06. Local dry-run **10/10 PASS** verified 2026-09-30.
 
 ### Phase summary
 
@@ -23,7 +23,7 @@ All 10 phases are complete. The 8-step dry-run passes on every service (last ver
 | **9** | Chain Diff (`src/chain_diff.py`); Supplier Deep Dive dashboard | Complete |
 | **10** | Carbon tracker (`src/carbon_tracker.py`); Dual sourcing optimizer | Complete |
 
-### Execution order (all ticked)
+### Execution order
 
 1. A1 — evidence_store.py ✓
 2. A2 — evidence_map.html ✓
@@ -41,49 +41,38 @@ All 10 phases are complete. The 8-step dry-run passes on every service (last ver
 14. E2 — supplier deep dive ✓
 15. F1 — carbon tracker + dashboard ✓
 16. F2 — dual sourcing optimizer + dashboard ✓
+17. E3 — 3D graph live evidence ✓ (`docs/supplylens_3d.html`)
+18. E4 — supplier scorecard PDF export ✓ (`scripts/export_scorecard.py`)
 
 ---
 
 ## Remaining Tasks
 
-Three items remain open.
+Two items remain blocked (server required); three additional items completed locally.
 
 | ID | Task | File | Status |
 |----|------|------|--------|
-| **E3** | 3D graph live evidence — pull from Neo4j via fetch instead of hardcoded JS | `docs/supplylens_3d.html` | Partially built |
-| **E4** | Supplier scorecard PDF export — evidence + risk flags + financial health + compliance | `scripts/export_scorecard.py` | Not built |
-| **E5** | Deploy Kotaemon CT120 + bulk ingest supplier docs | `scripts/provision_ct120.sh` + `scripts/ingest_kotaemon.py` | Pending VPN |
+| **E5** | Deploy Kotaemon CT129 + bulk ingest supplier docs | `scripts/provision_ct120.sh` + `scripts/ingest_kotaemon.py` | URL update done (CT129:7860); doc ingest blocked — needs VPN |
+| **R1** | Dry-run writes JSON results (remote 8-step) | `scripts/dry_run.sh` | Blocked — needs VPN; **local variant 10/10 PASS** (2026-09-30) |
+| **G1-local** | Scania v10 graph seeded into local Neo4j | `example_outputs/sample_graph.cypher` | Done — 120 suppliers, 48 raw materials, 23 events |
+| **G4-local** | PostgreSQL supplier sync tested locally | `src/postgres_sync.py` | Done — 120 rows → `knopenkonings.suppliers` (2026-09-30) |
 
-### E3 — 3D Graph Live Evidence
+### E5 — Deploy CT129 (Kotaemon)
 
-The 3D Three.js graph at `docs/supplylens_3d.html` currently shows a hardcoded evidence panel (5 suppliers, static JS data). The goal is to replace that with a live fetch against the Neo4j HTTP API over the SSH tunnel.
+Kotaemon runs on CT129:7860 per inventory (not CT120 as originally planned). Steps (requires VPN):
 
-What remains:
-- Add `fetch("http://localhost:17474/db/neo4j/tx/commit", ...)` call on node click
-- Pass query: `MATCH (n {name: $name}) OPTIONAL MATCH (n)-[:EVIDENCE_FOR]-(e:EvidenceClaim) RETURN n, e`
-- Render returned evidence fields (source_url, sha256, confidence, signals) into the side panel
-
-Prerequisite: SSH tunnel to Neo4j must be active (`localhost:17474`).
-
-### E4 — Supplier Scorecard PDF Export
-
-No implementation exists. Scope:
-- Python script: query Neo4j for a single supplier node + evidence claims + financial alerts + risk flags
-- Render to HTML template (reuse patterns from `src/procurement_report.py`)
-- Export to PDF via `weasyprint` or `wkhtmltopdf`
-- Output: one PDF per supplier, named `scorecards/{supplier_name}.pdf`
-
-### E5 — Deploy CT120 (Kotaemon)
-
-CT120 provisioning script exists (`scripts/provision_ct120.sh`) but has not been run against the cluster. Kotaemon dashboard at `docs/kotaemon_search.html` runs in demo mode (offline fallback responses) until CT120 is live.
-
-Steps (requires VPN + cluster access):
 ```bash
-bash scripts/provision_ct120.sh
-python3 scripts/ingest_kotaemon.py   # loads 20 synthetic supplier docs
+bash scripts/provision_ct120.sh      # update IP to CT129 first
+python3 scripts/ingest_kotaemon.py   # loads synthetic supplier docs
 ```
 
-Expected result: `http://10.0.1.120:8501` becomes live; the Kotaemon RAG search UI switches from demo mode to live API calls.
+### R1 — Dry-run JSON Output
+
+`scripts/dry_run.sh` now writes `test-results/dry_run_YYYYMMDD_HHMMSS.json` on every run. Cannot execute while Proxmox cluster is unreachable. Local variant available:
+
+```bash
+python3 scripts/dry_run_local.py     # tests Neo4j + LiteLLM + Qdrant on localhost
+```
 
 ---
 

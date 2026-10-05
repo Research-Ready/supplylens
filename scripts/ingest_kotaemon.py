@@ -1,4 +1,4 @@
-"""Kotaemon Document Ingestor — UC4 Supply Chain (CT120 :8501)
+"""Kotaemon Document Ingestor — UC4 Supply Chain (CT129 :8501)
 
 Bulk-uploads supplier documents into Kotaemon so the RAG layer
 has real content to query during LangGraph enrichment runs.
@@ -14,7 +14,7 @@ Usage:
     python3 scripts/ingest_kotaemon.py --skip-scrape   # only ingest local files
     python3 scripts/ingest_kotaemon.py --dry-run       # list what would be ingested
 
-Kotaemon API (Gradio app on CT120:8501):
+Kotaemon API (Gradio app on CT129:8501):
     POST /upload   multipart — upload file to session
     POST /api/index — trigger indexing of uploaded file
     The Gradio queue API is used for indexing.
@@ -31,7 +31,7 @@ import urllib.error
 import urllib.parse
 
 REPO_ROOT    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-KOTAEMON_URL = os.getenv("KOTAEMON_URL",         "http://10.0.1.120:8501")
+KOTAEMON_URL = os.getenv("KOTAEMON_URL",         "http://10.0.1.129:7860")
 BROWSERLESS  = os.getenv("BROWSERLESS_PROD_URL", "http://10.0.5.100:3500")
 LITELLM      = os.getenv("LITELLM_URL",          "http://localhost:4000")
 LITELLM_KEY  = os.getenv("LITELLM_KEY",          "")

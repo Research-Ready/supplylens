@@ -7,17 +7,33 @@ The Proxmox server is down. Every `10.0.x.x` address, SSH jump host, the VPN and
 `*.research-ready.nl` (including Gitea) in this file are unreachable until it is back.
 Do not file infra issues for that; it is known.
 
-**What runs locally** (Docker Compose, `InstallLocalAiPackage/docker/localstack/`):
+**What runs locally** (Docker Compose at `~/localstack/docker-compose.yml`):
 
-| Service | Local address |
-|---------|---------------|
-| neo4j | `http://localhost:7474`, bolt `localhost:7687` (empty database) |
-| qdrant | `http://localhost:6333` |
-| litellm | `http://localhost:4000` (routes to local Ollama models) |
-| langgraph | `http://localhost:8000` |
-| n8n | `http://localhost:5678` (fresh instance: workflows must be imported) |
-| postgres | `localhost:5432` (empty databases) |
-| gitea | `http://localhost:3080` (fresh, empty instance) |
+| Service | Local address | Credential |
+|---------|---------------|-----------|
+| neo4j | `http://localhost:7474`, bolt `localhost:7687` | user `neo4j`, pw from `~/localstack/.env` `NEO4J_PASSWORD` |
+| qdrant | `http://localhost:6333` | no auth |
+| litellm | `http://localhost:4000` (routes to local Ollama models) | key from `~/localstack/.env` `LITELLM_MASTER_KEY` |
+| langgraph | `http://localhost:8000` | no auth |
+| n8n | `http://localhost:5678` (fresh instance: workflows must be imported) | no auth |
+| postgres | `localhost:5432` (empty databases) | from `.env` |
+| gitea | `http://localhost:3080` (fresh, empty instance) | no auth |
+
+**Start local stack:** `cd ~/localstack && docker compose up -d neo4j qdrant litellm langgraph n8n`
+**Local dry-run (10/10 PASS, 2026-09-30):** `python3 scripts/dry_run_local.py`
+— uses `gpt-4o-mini` (→ Ollama qwen3:8b) and `nomic-embed-text` (768-dim); Steps 3,4,8 skipped.
+
+**Self-contained repo stack** (portable, no external localstack needed):
+```bash
+cd docker && cp .env.example .env   # set NEO4J_PASSWORD + LITELLM_KEY
+docker compose up -d                # starts neo4j + qdrant + litellm + uc4-agent + n8n
+# neo4j-seed loads sample_graph.cypher automatically on first boot
+curl http://localhost:8090/health
+curl -X POST http://localhost:8090/runs \
+     -H 'Content-Type: application/json' \
+     -d '{"company":"Scania AB","depth":2}'
+```
+Requires Ollama on host: `ollama pull qwen3:8b && ollama pull nomic-embed-text`
 
 **Not available until the server is back:** browserless, unstructured, tika, kotaemon, superset, metabase.
 Steps that need these stay blocked; mark them in `PLAN.md` instead of working around them.
@@ -27,9 +43,29 @@ Steps that need these stay blocked; mark them in `PLAN.md` instead of working ar
   `~/Nextcloud/Github/uc4-supply-chain` on the Fedora workstation). Use the one that exists on this machine.
 - Output (reports, documents, exports that would go to Gitea, MinIO or BookStack):
   `output/` in this repo; Nextcloud syncs it.
-- Git: Gitea is unreachable; push to GitHub `https://github.com/Research-Ready/uc4-supply-chain` (private).
-  Nextcloud does not sync `.git`; the Fedora workstation is the one machine that commits.
+- Git: no commits while the stack is fully local. Leave changes as working files; Nextcloud syncs them.
 <!-- local-stack:end -->
+
+<!-- coordinator:start -->
+## Reporting to the coordinator
+
+Progress for all use cases is tracked in `ResearchReady/workbook/` (the coordinator). It **reads** this repo
+and never edits it, so the workbook is only as correct as the files below. Keep them true at the end of every
+session. Do not edit files in the workbook yourself.
+
+| Report | Where, in which form |
+|---|---|
+| Task progress | `PLAN.md`: `### T1 — title ✅ DONE`, `🟡 IN PROGRESS` or `⛔ BLOCKED` in the heading, plus a `**Status (YYYY-MM-DD):**` line saying what was verified |
+| Current state | `PLAN.md` → `## Current status`: short, dated bullets. Name the machine (Ubuntu laptop / Fedora laptop) when it matters |
+| Test evidence | `test-results/dry_run_YYYYMMDD_HHMMSS.json`: `{"timestamp": "...", "steps": [{"name": "...", "status": "PASS" / "FAIL" / "SKIP", "detail": "..."}]}`. Without this file the workbook shows "no evidence" or an old run |
+| Dry-run headline | Optional: `## Dry-run status (YYYY-MM-DD)` in this file with `**N/M PASS**`. Update or delete it; an old headline is read as the latest result |
+| Blockers | A `**Active blocker**: ...` line in this file, or a `BLOCKED.md` naming the infra issue ID (e.g. `D-3`). **Delete the line or the file as soon as it is no longer true**; stale blockers keep this use case amber |
+| Workflow diagram | `docs/workflow.yml`: steps with `id`, `label`, `lane`, `status: working / partial / broken / planned` |
+| Needs from the platform | Write `InstallLocalAiPackage/REQUEST-uc4-<topic>.md` (Report, Request, Done when). Do not edit infra issues or the stack yourself |
+
+Rules: everything is local (no GitHub; the server may be down, see above). Uncommitted changes show as a
+warning in the workbook; commit locally when the user asks.
+<!-- coordinator:end -->
 
 ## Dry-run status (2026-08-06)
 
@@ -542,6 +578,9 @@ echo "Superset token: ${SUPERSET_TOKEN:0:20}..."
 | Embedding model not found | `text-embedding-3-small` not in LiteLLM | Use `ollama/nomic-embed-text` (768 dims) — that's what's configured |
 | Superset admin wrong password | KeePass `superset_ui_password` | Password: KeePass `superset_ui_password` (NOT `superset_secret_key`) |
 | Neo4j OOM | Graph traversal too deep | Limit depth: `[:SUPPLIED_BY|SOURCED_FROM*1..3]` not `*1..5` |
+| Local Neo4j `Invalid NEO4J_AUTH` | Container started without `.env` | `cd ~/localstack && docker compose up -d neo4j` (must run from that dir) |
+| Local LiteLLM 400 `researcher-llm` | Model not in local config | Use `gpt-4o-mini` locally (→ qwen3:8b) |
+| Local embedding 400 | Wrong model prefix | Use `nomic-embed-text` not `ollama/nomic-embed-text` locally |
 | knopenkonings DB missing | Role not run | `ansible-playbook -i inventory/hosts.yml playbooks/05_platform.yml --tags postgres` |
 
 ## n8n scheduled refresh

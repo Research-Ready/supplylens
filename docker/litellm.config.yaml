@@ -1,0 +1,27 @@
+general_settings:
+  master_key: ${LITELLM_KEY}
+
+model_list:
+  # Fast chat model — Ollama on host (qwen3:8b ~5GB)
+  - model_name: gpt-4o-mini
+    litellm_params:
+      model: ollama/qwen3:8b
+      api_base: http://host.docker.internal:11434
+
+  # Capable chat model — Ollama on host
+  - model_name: gpt-4o
+    litellm_params:
+      model: ollama/qwen3:14b
+      api_base: http://host.docker.internal:11434
+
+  # Embeddings — nomic-embed-text (768-dim)
+  - model_name: nomic-embed-text
+    litellm_params:
+      model: ollama/nomic-embed-text:latest
+      api_base: http://host.docker.internal:11434
+
+  # OpenAI passthrough — only active if OPENAI_API_KEY is set
+  - model_name: openai/gpt-4o-mini
+    litellm_params:
+      model: gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY

@@ -1,4 +1,4 @@
-"""Kotaemon RAG Client — UC4 Supply Chain (CT120, port 8501)
+"""Kotaemon RAG Client — UC4 Supply Chain (CT129, port 7860)
 
 Wraps Kotaemon's Gradio queue API for:
   - Document ingestion (POST /upload → /file)
@@ -8,11 +8,11 @@ Wraps Kotaemon's Gradio queue API for:
 
 Kotaemon is Gradio-based; it doesn't expose a clean REST API.
 We use the undocumented Gradio queue and file upload APIs.
-Falls back gracefully when CT120 is unreachable.
+Falls back gracefully when CT129 is unreachable.
 
 Usage:
     from kotaemon_client import KotaemonClient
-    kc = KotaemonClient("http://10.0.1.120:8501")
+    kc = KotaemonClient("http://10.0.1.129:7860")
     if kc.health():
         answer = kc.query("Who supplies steel to Scania?")
         kc.ingest_text("ZF Friedrichshafen", "ZF is a Tier-1 gearbox supplier...")
@@ -31,7 +31,7 @@ from typing import Optional
 
 log = logging.getLogger(__name__)
 
-KOTAEMON_URL     = os.getenv("KOTAEMON_URL",      "http://10.0.1.120:8501")
+KOTAEMON_URL     = os.getenv("KOTAEMON_URL",      "http://10.0.1.129:7860")
 KOTAEMON_USER    = os.getenv("KOTAEMON_USER",     "admin@research-ready.nl")
 KOTAEMON_PASS    = os.getenv("KOTAEMON_PASSWORD", "")
 
@@ -40,7 +40,7 @@ KOTAEMON_PASS    = os.getenv("KOTAEMON_PASSWORD", "")
 FN_CHAT   = 0   # chat submit (fn_index in Gradio 3)
 FN_UPLOAD = 1   # file upload (fn_index in Gradio 3)
 
-# Circuit breaker: stop hammering if CT120 is down
+# Circuit breaker: stop hammering if CT129 is down
 _CIRCUIT_OPEN  = False
 _CIRCUIT_RESET = 0.0   # unix timestamp when to retry
 CIRCUIT_TIMEOUT = 120  # seconds before retry after open
@@ -117,7 +117,7 @@ class KotaemonClient:
         if _CIRCUIT_OPEN:
             if time.time() >= _CIRCUIT_RESET:
                 _CIRCUIT_OPEN = False
-                log.info("kotaemon: circuit breaker reset — retrying CT120")
+                log.info("kotaemon: circuit breaker reset — retrying CT129")
             else:
                 return False
         return True
@@ -126,7 +126,7 @@ class KotaemonClient:
         global _CIRCUIT_OPEN, _CIRCUIT_RESET
         _CIRCUIT_OPEN  = True
         _CIRCUIT_RESET = time.time() + CIRCUIT_TIMEOUT
-        log.warning("kotaemon: circuit breaker OPEN — CT120 unreachable, retry in %ds", CIRCUIT_TIMEOUT)
+        log.warning("kotaemon: circuit breaker OPEN — CT129 unreachable, retry in %ds", CIRCUIT_TIMEOUT)
 
     # ─── Public API ──────────────────────────────────────────────────────────
 
@@ -454,7 +454,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Kotaemon client CLI")
     sub = p.add_subparsers(dest="cmd")
 
-    sub.add_parser("health", help="Check CT120 reachability")
+    sub.add_parser("health", help="Check CT129 reachability")
 
     qp = sub.add_parser("query", help="RAG query")
     qp.add_argument("question", nargs="+")

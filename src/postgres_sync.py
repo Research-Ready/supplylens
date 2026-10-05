@@ -81,7 +81,7 @@ def neo4j_fetch() -> list[dict]:
         s.inferred   AS inferred,
         rel.confidence AS confidence,
         rel.source     AS source
-    ORDER BY s.tier NULLS LAST, s.name
+    ORDER BY s.tier, s.name
     """
     payload = {"statements": [{"statement": query}]}
     req = urllib.request.Request(

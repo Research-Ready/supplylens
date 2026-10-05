@@ -9,10 +9,11 @@ UC4_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PASS=0
 FAIL=0
 ERRORS=()
+RESULTS_TMP=$(mktemp)
 
 log()  { echo "[$(date '+%H:%M:%S')] $*"; }
-ok()   { log "PASS: $1"; PASS=$((PASS+1)); }
-fail() { log "FAIL: $1"; FAIL=$((FAIL+1)); ERRORS+=("$1"); }
+ok()   { log "PASS: $1"; PASS=$((PASS+1)); printf '{"name":"%s","status":"PASS"}\n' "$1" >> "$RESULTS_TMP"; }
+fail() { log "FAIL: $1"; FAIL=$((FAIL+1)); ERRORS+=("$1"); printf '{"name":"%s","status":"FAIL"}\n' "$1" >> "$RESULTS_TMP"; }
 
 # ---------------------------------------------------------------------------
 # Credentials from UC4 passwords.kdbx (master: SupplyChainBaby100!)
@@ -337,6 +338,50 @@ echo "============================================"
 if [[ ${#ERRORS[@]} -gt 0 ]]; then
     echo "FAILURES:"
     for e in "${ERRORS[@]}"; do echo "  - $e"; done
-    exit 1
 fi
+
+# ---------------------------------------------------------------------------
+# Write JSON results
+# ---------------------------------------------------------------------------
+TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
+JSON_FILE="$UC4_DIR/test-results/dry_run_${TIMESTAMP}.json"
+mkdir -p "$UC4_DIR/test-results"
+
+python3 - <<PYEOF
+import json, sys
+from datetime import datetime, timezone
+
+results_file = "$RESULTS_TMP"
+out_file = "$JSON_FILE"
+passed = $PASS
+failed = $FAIL
+
+steps = []
+try:
+    with open(results_file) as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                steps.append(json.loads(line))
+except Exception:
+    pass
+
+payload = {
+    "timestamp": datetime.now(timezone.utc).isoformat(),
+    "stack": "remote",
+    "passed": passed,
+    "failed": failed,
+    "status": "PASS" if failed == 0 else "FAIL",
+    "steps": steps
+}
+
+with open(out_file, 'w') as f:
+    json.dump(payload, f, indent=2)
+
+print(f"Results written: {out_file}")
+PYEOF
+
+rm -f "$RESULTS_TMP"
+
+if [[ $FAIL -gt 0 ]]; then exit 1; fi
 echo "All steps passed."
