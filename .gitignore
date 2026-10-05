@@ -29,3 +29,13 @@ test-results/
 # OS
 .DS_Store
 Thumbs.db
+
+# Tool runtime artifacts
+.swarm/
+.claude-flow/daemon-state.json
+.claude-flow/daemon.pid
+.claude-flow/metrics/
+.claude-flow/neural/patterns.json
+ruvector.db
+=4.0
+output/scorecards/
