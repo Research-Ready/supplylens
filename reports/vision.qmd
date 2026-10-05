@@ -1,0 +1,8 @@
+---
+title: "Research Vision"
+---
+
+```{r, echo=FALSE, results='asis'}
+vision <- readLines("../VISION.md")
+cat(paste(vision, collapse="\n"))
+```

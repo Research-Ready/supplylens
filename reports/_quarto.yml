@@ -16,6 +16,7 @@ book:
     - requirements.qmd
     - part: "Research Concept"
       chapters:
+        - vision.qmd
         - 01-concept.qmd
     - part: "System Architecture"
       chapters:
