@@ -13,61 +13,38 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 
 ## What exists now
 
-### Live services (VPN required)
+> **Infrastructure note (2026-10-05):** Proxmox server (10.0.x.x) is DOWN. All services run on local Docker Compose (`~/localstack/docker-compose.yml`). Start: `cd ~/localstack && docker compose up -d neo4j qdrant litellm langgraph n8n`
 
-| Service | URL | Role |
+### Local stack services
+
+| Service | URL | Status |
 |---|---|---|
-| Neo4j Browser | http://localhost:7474 | Query supply chain graph |
-| LangGraph Agent | http://localhost:8000 | Enrichment pipeline |
-| Kotaemon RAG | http://10.0.1.120:8501 | Chat with supplier docs |
-| Superset | http://10.0.2.206:8088 | SQL dashboards |
-| Metabase | http://10.0.2.202:3000 | Alt dashboards |
-| n8n | http://localhost:5678 | Scheduled refresh |
-| LiteLLM | http://localhost:4000 | LLM + embeddings |
-| Qdrant | http://localhost:6333 | Vector search |
+| Neo4j | http://localhost:7474 (bolt :7687) | ✅ Running (251 nodes seeded) |
+| LangGraph Agent | http://localhost:8000 | ✅ Running |
+| LiteLLM | http://localhost:4000 | ✅ Running (→ Ollama qwen3:8b) |
+| Qdrant | http://localhost:6333 | ✅ Running |
+| n8n | http://localhost:5678 | ✅ Running (workflows not imported) |
+| Kotaemon | http://10.0.1.120:8501 | ⛔ Server down |
+| Superset | http://10.0.2.206:8088 | ⛔ Server down |
+| Metabase | http://10.0.2.202:3000 | ⛔ Server down |
 
-### Dashboard (open docs/dashboard.html in browser)
+### Visualizations (served at http://localhost:8765)
 
-30 tabs:
+> Start: `cd ~/Nextcloud/Github/uc4-supply-chain/docs && python3 -m http.server 8765`
+> Launcher: http://localhost:8765/index.html
 
-| Tab | File | What you see |
+| File | What you see | Backend |
 |---|---|---|
-| Risk | dashboard.html (inline) | Risk leaderboard, score bars |
-| Graph | dashboard.html (inline) | D3 force graph, 2D |
-| Geo | supply_chain_geo.html | World map, supplier pins |
-| Events | dashboard.html (inline) | Supply chain events timeline |
-| Disruption | disruption_impact.html | Revenue at risk per scenario |
-| Finance | financial_exposure.html | Contract values, exposure |
-| Resilience | resilience_dashboard.html | 6-dim HHI resilience radar |
-| SupplierIntel | supplier_intel.html | Per-supplier detail cards |
-| Report | report_demo.html | Auto-generated procurement report |
-| Compliance | compliance_tracker.html | 7-regulation matrix |
-| SharedSuppliers | shared_suppliers.html | Cross-product concentration |
-| TierDrill | tier_drill.html | Collapsible T0→T4 tree |
-| CBAM | cbam_dashboard.html | Carbon border tax liability |
-| Scenarios | scenario_dashboard.html | 7 stress test scenarios |
-| Network | network_analytics.html | Centrality, HHI, bottlenecks |
-| Monte Carlo | simulation_dashboard.html | 10k-trial disruption sim |
-| Fin Health | financial_health.html | Altman Z-scores, leverage |
-| Logistics Risk | logistics_risk.html | 7 chokepoint routes, €456M rev-at-risk, supplier exposure matrix |
-| Fin Monitor | financial_monitor.html | Altman Z + ND/EBITDA bars, CRITICAL/HIGH/MEDIUM alerts |
-| Kotaemon | kotaemon_search.html | RAG chat over supplier docs, citation display, live CT120 health |
-| EvidenceMap | evidence_map.html | D3 geo map, 45 supplier pins, great-circle arcs, evidence sidebar |
-| EDRM | edrm_tracker.html | Per-supplier pipeline grid: Scraped/Extracted/RAG-Indexed/Reviewed |
-| ChainDiff | chain_diff.html | Snapshot diff: CRITICAL/HIGH/MEDIUM severity, new nodes/rels/events |
-| DeepDive | supplier_deep_dive.html | Per-supplier deep dive: 9 suppliers, risk ring, financials, events |
-| Procurement | procurement_actions.html | 13 action cards, €1.7B exposure, CSV export |
-| Heatmap | risk_heatmap.html | D3 country×risk-type matrix, 14 countries × 7 types, 3 modes |
-| Timeline | supplier_timeline.html | D3 swimlane, 18 suppliers × 18 events, Z trend lines, zoom slider |
-| Scorecards | scorecard.html | Printable scorecards, 12 suppliers, risk ring + compliance grid |
-| Carbon | carbon_footprint.html | Scope 1/2/3, CBAM liability, SBTi/CDP alignment, 5 chart modes |
-| DualSrc | dual_sourcing.html | Dual sourcing optimizer, budget slider, priority scatter, 9 suppliers |
+| docs/index.html | Launcher — links to all 5 views, service status | Static |
+| docs/supply_chain_geo.html | D3 world map, supplier pins by country, risk choropleth | Live Neo4j |
+| docs/supply_chain_map.html | Supply chain relationship map, tier drill-down | Live Neo4j |
+| docs/supplylens_3d.html | Three.js 3D force graph, 251 nodes, orbit+zoom, click for evidence | Live Neo4j |
+| graphify-out/graph.html | Codebase knowledge graph, 34 nodes, 7 communities | Embedded |
+| reports/_site/index.html | Quarto docs site: architecture, data model, services, status | Static |
 
-### Standalone
+> **Note:** 29 custom D3 dashboards were deleted in commit 87813fe (2026-08-15) and replaced by NeoDash (server-side). NeoDash is unavailable until server returns. The three files above are the working local replacements.
 
-| File | What you see |
-|---|---|
-| docs/supplylens_3d.html | 3D Three.js graph — click node for evidence panel |
+### Other assets
 
 ### Code
 
@@ -91,6 +68,83 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 | scripts/ingest_kotaemon.py | Bulk ingest supplier docs into Kotaemon |
 | scripts/seed_scania.sh | Load cypher into Neo4j CT114 |
 | config/n8n_workflow.json | 14-node n8n weekly refresh workflow |
+
+---
+
+## Epic 6: OSIRIS-Inspired SupplyLens Intelligence Dashboard
+
+> Inspiration: https://github.com/simplifaisoul/osiris — open-source Palantir alternative.
+> Goal: replace flat D3 maps with a GPU-accelerated WebGL globe, OSIRIS-style HUD layer system, and a portable env-config so the stack switches between localhost and server with one variable.
+> Copy freely from OSIRIS: MapLibre GL setup, CSS design tokens, Docker/nginx pattern, layer toggle HUD, `.env.example` structure.
+
+**Working software:** A unified SupplyLens dashboard — OSIRIS aesthetic, live Neo4j data, runs on localhost and server from the same Docker image.
+
+### E1 — Environment Config Layer *(prerequisite — do this first)*
+- **E1.1** `docs/config.js` → `window.UC4_CONFIG = { NEO4J_HOST, NEO4J_PASS, NEO4J_DB }` — single source of truth
+- **E1.2** Auto-detect: try `localhost:7474` on load, fall back to server IP on fail; show badge which is active
+- **E1.3** Replace all hardcoded IPs/passwords in `supply_chain_geo.html`, `supply_chain_map.html`, `supplylens_3d.html` with `window.UC4_CONFIG`
+- **E1.4** `scripts/serve.sh [local|server]` — writes correct `config.js` and starts HTTP server
+- Status: ⛔ NOT BUILT
+
+### E2 — MapLibre GL Globe *(replaces D3 flat map — copy OSIRIS map init)*
+- **E2.1** Port `supply_chain_geo.html` to MapLibre GL JS — same Neo4j query, WebGL globe renderer
+- **E2.2** Great-circle arcs between supplier nodes (animated flow lines, copy OSIRIS arc pattern)
+- **E2.3** Animated pulse rings on risk-flagged nodes (`SINGLE_SOURCE`, `GEOPOLITICAL_RISK`)
+- **E2.4** Country choropleth fill by supplier risk concentration
+- **E2.5** Zoom-to-fit Scania supply chain on load (Sweden centroid → world)
+- Status: ⛔ NOT BUILT
+
+### E3 — OSIRIS-Style HUD Layer System
+- **E3.1** HUD panel (top-left) — 8 toggleable layers with icons (copy OSIRIS CSS + toggle pattern):
+  Tier 1 · Tier 2 · Tier 3+ · Raw Materials · Certificates · Risk Events · Logistics Hubs · Inferred Links
+- **E3.2** Layer state persisted to `localStorage`
+- **E3.3** "Risk only" mode — dim all non-risk nodes
+- **E3.4** Live node count badge per layer
+- Status: ⛔ NOT BUILT
+
+### E4 — HUD Interface (OSIRIS aesthetic)
+- **E4.1** Top-right stats panel: node count, link count, risk count, data source badge
+- **E4.2** Bottom news ticker: recent `Event` nodes from Neo4j scrolling left
+- **E4.3** Globe search bar — type supplier name → globe flies to pin
+- **E4.4** Sidebar evidence panel from `supplylens_3d.html` ported into globe view
+- **E4.5** CSS transitions on all panel open/close (copy OSIRIS Framer Motion → CSS equivalent)
+- Status: ⛔ NOT BUILT
+
+### E5 — Unified Launcher (OSIRIS home screen)
+- **E5.1** Redesign `docs/index.html` as dark HUD — OSIRIS aesthetic, not card grid
+- **E5.2** Live service status dots (Neo4j, LiteLLM, Qdrant) checked on load
+- **E5.3** "Last graph update" from Neo4j node count query
+- Status: 🟡 IN PROGRESS (basic card launcher exists; needs HUD redesign)
+
+### E6 — Docker Portable Package
+- **E6.1** nginx container serving `docs/` on port 8090; env var `UC4_NEO4J_HOST` injected into `config.js` at startup
+- **E6.2** Merge into existing `docker/docker-compose.yml`; add `uc4-viz` service
+- **E6.3** One-liner: `NEO4J_HOST=localhost docker compose up` — works both local and server
+- **E6.4** Copy OSIRIS `.env.example` pattern — document every variable
+- Status: ⛔ NOT BUILT
+
+---
+
+### OSINT Data Sources to Add (OSIRIS-inspired)
+
+OSIRIS aggregates 16 free intel layers. UC4 supply chain equivalents:
+
+| Source | What it adds | API / method |
+|---|---|---|
+| OpenCorporates | Company registration, ownership, subsidiaries | REST, keyless |
+| OpenSanctions | OFAC/EU sanctions hits on supplier names | REST, keyless |
+| GLEIF | Legal entity identifiers (LEI) — ownership chains | REST, keyless |
+| TradeMap (ITC) | Trade flows by HS code — verify sourcing claims | Scrape |
+| Panjiva / ImportYeti | US import records — who ships what from where | Scrape |
+| OpenStreetMap Overpass | Factory/warehouse locations by tag | REST, keyless |
+| USGS Minerals | Mine locations for raw materials (cobalt, lithium, rare earths) | REST, keyless |
+| MarineTraffic / AIS | Vessel positions — detect logistics disruption | REST, free tier |
+| GDACS | Natural disaster alerts near supplier locations | RSS, keyless |
+| ACLED | Armed conflict events near supplier regions | REST, free tier |
+| Companies House (UK) | Director/ownership data for EU subsidiaries | REST, keyless |
+| Orbis via OpenCorporates | Cross-border corporate graph enrichment | via OpenCorporates |
+
+All can be wired into the LangGraph enrichment agent (`src/agent.py`) as new nodes.
 
 ---
 
@@ -237,13 +291,13 @@ _Epics are ordered from very simple to advanced; each one ends in **working soft
 **E5 — Point SupplyLens at Kotaemon on CT129**
 - Kotaemon runs on CT129:7860 (inventory), not CT120 (that is monitoring); update `scripts/provision_ct120.sh`, `src/kotaemon_client.py` and the D3 search UI health check (10.0.1.120:8501)
 - Then: `python3 scripts/ingest_kotaemon.py` loads the synthetic docs
-- Status: NOT BUILT
+- Status: URL UPDATE DONE (2026-09-30 — all CT120:8501 refs changed to CT129:7860); doc ingest still blocked (needs VPN)
 
 **G2 — Deploy the SupplyLens agent on CT119**
 - What: serve `src/agent.py` as LangGraph `POST /runs` (scrape → extract → embed → infer → merge)
 - Done when: `POST /runs {"company": "Scania AB"}` adds or updates suppliers in Neo4j with evidence
 - Depends on: G1
-- Status: NOT BUILT
+- Status: BUILT locally — `src/agent_server.py` (FastAPI) + `docker/docker-compose.yml`; remote CT119 deploy still blocked (needs VPN)
 
 ## Epic 4: Self-refreshing intelligence
 
@@ -262,7 +316,7 @@ _Epics are ordered from very simple to advanced; each one ends in **working soft
 **G4 — Schedule the PostgreSQL supplier sync**
 - What: run `src/postgres_sync.py` after each refresh so Superset/Metabase can read `knopenkonings.suppliers`
 - Done when: supplier rows match Neo4j after a G3 run
-- Status: PARTIALLY BUILT (script exists, not scheduled)
+- Status: PARTIALLY BUILT (local test PASS 2026-09-30: 120 rows → knopenkonings.suppliers; not scheduled; PG_USER=localstack on local stack)
 
 **G5 — Provision Superset dashboards**
 - What: supplier count by country, tier pie, risk heatmap on CT206 (`scripts/setup_superset.py`)
@@ -279,8 +333,10 @@ _Epics are ordered from very simple to advanced; each one ends in **working soft
 **Requires:** gitea (book CI) · Scania ground truth
 
 **E4 — Supplier scorecard PDF export** `scripts/export_scorecard.py`
-- Per-supplier PDF: evidence + risk flags + financial health + compliance
-- Status: NOT BUILT
+- Per-supplier A4 PDF: risk ring, flag pills, financials, certs, evidence, upstream path
+- CLI: `--supplier NAME`, `--product SKU`, `--dry-run`, `--output-dir`
+- Output: `output/scorecards/{slug}.pdf`; falls back to embedded data if Neo4j offline
+- Status: BUILT
 
 **G6 — Validate against Scania ground truth**
 - What: compare the inferred tier-1/2 suppliers with a supplier list confirmed by Scania
@@ -306,8 +362,10 @@ _Epics are ordered from very simple to advanced; each one ends in **working soft
 15. F1 — carbon tracker + dashboard ✓
 16. F2 — dual sourcing optimizer + dashboard ✓
 17. E3 — 3D graph live evidence ✓
-18. E4 — scorecard PDF export  ← NEXT
-19. E5 — deploy CT120 (needs VPN)
+18. E4 — scorecard PDF export ✓
+19. E5 — CT129 URL update ✓ (doc ingest VPN-blocked)
+20. R1 — local dry-run 10/10 PASS ✓ (remote blocked, JSON output wired)
+21. G4-local — postgres sync tested ✓ (120 rows, local stack)
 
 ## Definition of done
 
@@ -333,8 +391,9 @@ SupplyLens is done for the Scania demo when:
 
 **R1 — Dry-run writes JSON results**
 - What: `scripts/dry_run.sh` writes `test-results/dry_run_YYYYMMDD_HHMMSS.json` with `steps: [{name, status}]`
+- Local variant: `scripts/dry_run_local.py` tests localhost stack (steps 3/4/8 skipped)
 - Done when: the ResearchReady workbook shows UC4's latest dry-run from the file, not from CLAUDE.md
-- Status: NOT BUILT
+- Status: BUILT (JSON output wired; remote run blocked until cluster returns)
 
 **R2 — Colour-coded workflow**
 - What: `docs/workflow.yml` describes every step with its status; rendered into the book and the workbook
