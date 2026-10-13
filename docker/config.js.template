@@ -1,0 +1,11 @@
+// SupplyLens — runtime config (server template)
+// Generated at container startup by: envsubst < config.js.template > /srv/docs/config.js
+// Set these env vars in docker-compose.yml or pass via -e flags.
+
+window.UC4_CONFIG = {
+  NEO4J_HOST: "${NEO4J_HOST}",   // e.g. http://10.0.1.114:7474
+  NEO4J_USER: "${NEO4J_USER}",   // default: neo4j
+  NEO4J_PASS: "${NEO4J_PASS}",   // from vault / .env
+  NEO4J_DB:   "${NEO4J_DB}",     // default: neo4j
+  APP_ENV:    "${APP_ENV}"       // "local" | "server"
+};

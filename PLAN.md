@@ -71,34 +71,33 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 
 ---
 
-## Epic 6: OSIRIS + Manara — SupplyLens Intelligence Dashboard
+## Epic 6: OSIRIS-Led Supply Chain Intelligence Platform (Flagship)
 
-> **Aesthetic:** https://github.com/simplifaisoul/osiris — MapLibre GL globe, HUD layer toggles, dark military UI, CSS design tokens, Docker/nginx pattern.
-> **Structure:** https://github.com/PritrakSecurity/manara — 7-pillar sidebar navigation, Command Center executive overview, compliance framework mapping (GDPR/HIPAA → translate to CSDD/LkSG/UK MSA), real-time event explorer, tier-gated features.
+> **Core Platform Lead:** https://github.com/simplifaisoul/osiris — Full-screen WebGL geospatial intelligence command center, dark military HUD, layer toggles, real-time alert ticker, entity dossiers, CSS design tokens.
+> **Integrated Compliance Decks:** https://github.com/PritrakSecurity/manara — Compliance framework mapping (CSDD/LkSG/UK MSA/REACH/CBAM), audit trail, and executive scorecard, integrated as on-demand slide-up HUD decks.
 >
-> **Synthesis:** OSIRIS supplies the _look_ (globe, dark HUD, animated arcs). Manara supplies the _structure_ (7-pillar nav, Command Center, compliance audit pillar). Combined = a supply chain intelligence platform that looks like Palantir and operates like a DSPM.
-> Copy freely from OSIRIS: MapLibre GL setup, CSS tokens, layer toggle HUD. Copy from Manara: sidebar layout, pillar routing, command center scorecard pattern.
+> **Synthesis (OSIRIS Leading):** OSIRIS is the **primary front-and-center application**. The user immediately lands on a continuous, full-screen global intelligence canvas with animated supply flow arcs converging on Sweden, pulsing risk markers, telemetry, and live incident feeds. Manara functions as the deep-dive compliance and audit deck that docks onto the OSIRIS canvas.
 
-**Working software:** A unified SupplyLens dashboard — OSIRIS aesthetic + Manara navigation, live Neo4j data, runs on localhost and server from the same Docker image.
+**Working software:** `docs/index.html` (OSIRIS Command Center) — Live Neo4j data, animated great-circle arcs, floating HUD layer toggles, real-time incident ticker, entity dossier flyout, and dockable 3D/Chain/Compliance views.
 
-### SupplyLens 7-Pillar Navigation (Manara-derived)
+### Flagship OSIRIS HUD Architecture
 
-| Pillar | SupplyLens equivalent | Key views |
+| Component | OSIRIS Equivalent | Role in SupplyLens |
 |---|---|---|
-| **Command Center** | Executive supply chain overview | Risk scorecard, compliance snapshot, graph stats, news ticker |
-| **Supply Graph** | Interactive globe + chain explorer | MapLibre globe (OSIRIS), 3D force graph, tier drill-down |
-| **Risk & Events** | Detection & investigation | Risk queue, `SINGLE_SOURCE` / `GEOPOLITICAL_RISK` flags, event timeline |
-| **Compliance** | Regulatory framework mapping | EU CSDD / LkSG / UK MSA / REACH / CBAM evidence matrix |
-| **Data Sources** | OSINT coverage & integrations | 12 source status, scrape freshness, embedding index health |
-| **Evidence** | Chain-of-custody audit | EDRM evidence viewer, confidence scores, RAG citations |
-| **Administration** | Config & stack health | config.js editor, service status, API keys |
+| **Global Canvas** | `OsirisMap` | Continuous interactive map with animated supply arcs & risk beacons |
+| **Global Status Bar** | `GlobalStatusBar` | Telemetry HUD: Scania target, live Neo4j node/edge count, UTC clock, fly-to search |
+| **Layer Controller** | `LayerPanel` | Floating HUD: toggle Tier 1, Tier 2+, Mines, Sanctions, Arcs, and Inferred links |
+| **Live Disruption Feed** | `IntelFeed` / `LiveAlerts` | Real-time scrolling ticker of maritime, conflict, and regulatory events |
+| **Entity Dossier** | `OsintPanel` / `ScmPanel` | High-density slide-out drawer with risk breakdown, ownership, and EDRM citations |
+| **Executive Command Deck** | Manara Compliance Matrix | Slide-up glassmorphic deck for CSDD/LkSG regulatory audit & executive scorecard |
+| **View Dock** | `ViewPresets` | Instant toggles between Geospatial Command, 3D Orbital Graph, and Chain Hierarchy |
 
 ### E1 — Environment Config Layer *(prerequisite — do this first)*
 - **E1.1** `docs/config.js` → `window.UC4_CONFIG = { NEO4J_HOST, NEO4J_PASS, NEO4J_DB }` — single source of truth
 - **E1.2** Auto-detect: try `localhost:7474` on load, fall back to server IP on fail; show badge which is active
 - **E1.3** Replace all hardcoded IPs/passwords in `supply_chain_geo.html`, `supply_chain_map.html`, `supplylens_3d.html` with `window.UC4_CONFIG`
 - **E1.4** `scripts/serve.sh [local|server]` — writes correct `config.js` and starts HTTP server
-- Status: ⛔ NOT BUILT
+- Status: ✅ DONE (2026-10-05) — `docs/config.js` live; all 3 HTML files read `window.UC4_CONFIG`; `docker/config.js.template` ready for envsubst injection at container startup
 
 ### E2 — MapLibre GL Globe *(replaces D3 flat map — copy OSIRIS map init)*
 - **E2.1** Port `supply_chain_geo.html` to MapLibre GL JS — same Neo4j query, WebGL globe renderer
@@ -137,7 +136,7 @@ flag violations, and produce EDRM-compliant evidence for regulatory enforcement.
 - **E7.4** Risk & Events pillar: live incident queue — pull `Event` nodes from Neo4j, show `LABOR_VIOLATION` / `SANCTIONS_HIT` / `GEOPOLITICAL_RISK` cards with evidence links
 - **E7.5** Embed existing views (globe, 3D, geo map) as iframe panels inside Supply Graph pillar — no rewrite needed
 - **E7.6** Link `docs/index.html` launcher card to `supplylens.html` as "SupplyLens HQ" (primary entry point)
-- Status: ⛔ NOT BUILT
+- Status: ✅ DONE (2026-10-05) — `docs/supplylens.html` live; 7-pillar sidebar, Command Center (live Neo4j stats), Risk Events panel, Compliance matrix, Data Sources, Admin config view, iframe embeds for all 3 visualizations
 
 ### E6 — Docker Portable Package
 - **E6.1** nginx container serving `docs/` on port 8090; env var `UC4_NEO4J_HOST` injected into `config.js` at startup

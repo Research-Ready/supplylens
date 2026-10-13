@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UC4 Supply Chain — Geographic Map</title>
+<script src="config.js"></script>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="https://d3js.org/topojson.v3.min.js"></script>
 <style>
@@ -129,7 +130,10 @@
 </head>
 <body>
 
-<div id="header">
+<div id="header" style="display:flex;align-items:center;gap:16px;">
+  <button onclick="returnToOsiris()" title="Return to OSIRIS Home Screen" style="display:inline-flex;align-items:center;gap:6px;background:rgba(212,175,55,0.18);border:1px solid #D4AF37;color:#D4AF37;font-family:monospace;font-size:12px;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer;white-space:nowrap;box-shadow:0 0 8px rgba(212,175,55,0.25);">
+    ◈ OSIRIS HOME
+  </button>
   <div><h1>UC4 Supply Chain — Geographic Overview</h1>
   <div class="sub">Scania R-series · supplier footprint by country · risk overlay</div></div>
 </div>
@@ -192,9 +196,10 @@
 </div>
 
 <script>
-const NEO4J_HTTP = "http://localhost:7474";
-const NEO4J_USER = "neo4j";
-let NEO4J_PASS = window.UC4_CONFIG?.NEO4J_PASS || "changeme";
+const _cfg       = window.UC4_CONFIG || {};
+const NEO4J_HTTP = _cfg.NEO4J_HOST || "http://localhost:7474";
+const NEO4J_USER = _cfg.NEO4J_USER || "neo4j";
+let   NEO4J_PASS = _cfg.NEO4J_PASS || "changeme";
 
 // Country ISO2 → approximate lon/lat centroid (for pin placement)
 const COUNTRY_COORDS = {
@@ -206,6 +211,8 @@ const COUNTRY_COORDS = {
   CZ: [15.5, 49.8], HU: [19.5, 47.2], SK: [19.7, 48.7], RO: [25.0, 45.9],
   CD: [23.7, -2.9], ZA: [25.1, -29.0], AU: [133.8, -25.3], MX: [-102.5, 23.6],
   CA: [-96.8, 60.0], NO: [8.5, 60.5], DK: [10.0, 56.3], IE: [-8.2, 53.1],
+  CH: [8.2, 46.8], TW: [121.0, 23.7], UA: [31.2, 48.4], IL: [34.8, 31.0],
+  LU: [6.1, 49.8], MZ: [35.5, -18.7], ZM: [27.8, -13.1]
 };
 
 // ISO2 → ISO numeric (for topojson matching)
@@ -214,7 +221,33 @@ const ISO2_TO_NUM = {
   FI:"246",AT:"040",TH:"764",IN:"356",RU:"643",GB:"826",JP:"392",KR:"410",
   BE:"056",IT:"380",ES:"724",PL:"616",CZ:"203",HU:"348",SK:"703",RO:"642",
   CD:"180",ZA:"710",AU:"036",MX:"484",CA:"124",NO:"578",DK:"208",IE:"372",
+  CH:"756",TW:"158",UA:"804",IL:"376",LU:"442",MZ:"508",ZM:"894"
 };
+
+const COUNTRY_MAP = {
+  "BELGIUM": "BE", "CHILE": "CL", "CHILE/AUSTRALIA": "CL",
+  "CHINA": "CN", "CHINA / BELGIUM": "CN", "DR CONGO": "CD",
+  "DRC": "CD", "DENMARK": "DK", "LUXEMBOURG": "LU",
+  "MOZAMBIQUE": "MZ", "SWITZERLAND": "CH", "THAILAND": "TH",
+  "ZAMBIA": "ZM"
+};
+
+function normalizeCountry(raw) {
+  if (!raw) return "?";
+  const s = raw.trim();
+  return COUNTRY_MAP[s.toUpperCase()] || s;
+}
+
+function getRiskScore(d) {
+  if (d.risk_score != null && !isNaN(d.risk_score)) return d.risk_score;
+  const flags = d.risk_flags || [];
+  if (!flags.length) return 0.1;
+  const highFlags = ["SANCTIONS_RISK", "CONFLICT_MINERAL", "UFLPA_RISK", "LABOR_VIOLATION", "TAILINGS_RISK"];
+  const hasHigh = flags.some(f => highFlags.includes(f));
+  if (hasHigh || flags.length >= 3) return 0.85;
+  if (flags.length >= 1) return 0.45;
+  return 0.1;
+}
 
 async function neo4jQuery(cypher) {
   if (!NEO4J_PASS) { NEO4J_PASS = prompt("Neo4j password:"); sessionStorage.setItem("neo4j_pass", NEO4J_PASS); }
@@ -234,8 +267,8 @@ async function neo4jQuery(cypher) {
   }) || [];
 }
 
-let allSuppliers = [], currentView = "all";
-let svg, projection, path, zoom;
+let allSuppliers = [], currentView = "all", currentFiltered = [];
+let svg, projection, path, zoom, currentZoomScale = 1, container;
 
 function riskColor(score) {
   if (score == null) return "#64748b";
@@ -270,7 +303,11 @@ async function loadData() {
            n.website       AS website,
            n.material_type AS material_type
   `);
-  return rows.filter(r => COUNTRY_COORDS[r.country]);
+  rows.forEach(r => {
+    r.country = normalizeCountry(r.country);
+    r.risk_score = getRiskScore(r);
+  });
+  return rows;
 }
 
 async function init() {
@@ -283,7 +320,7 @@ async function init() {
   updateStats(allSuppliers);
   buildSidebar(allSuppliers);
 
-  const container = document.getElementById("map-container");
+  container = document.getElementById("map-container");
   const W = container.clientWidth, H = container.clientHeight;
 
   svg = d3.select("#svg").attr("viewBox", [0, 0, W, H]);
@@ -293,10 +330,28 @@ async function init() {
   path = d3.geoPath().projection(projection);
 
   zoom = d3.zoom().scaleExtent([0.8, 12]).on("zoom", e => {
+    currentZoomScale = e.transform.k;
     d3.select("#countries-g").attr("transform", e.transform);
     d3.select("#pins-g").attr("transform", e.transform);
+    d3.selectAll(".pin-label").style("display", function() {
+      const d = d3.select(this.parentNode).datum();
+      if (!d) return "none";
+      if (d.label === "Product" || d.risk_score >= 0.6) return "block";
+      if (currentZoomScale >= 2.0) return "block";
+      if (d.tier === 1 && currentZoomScale >= 1.4) return "block";
+      return "none";
+    });
   });
   svg.call(zoom);
+
+  window.addEventListener("resize", () => {
+    const W = container.clientWidth, H = container.clientHeight;
+    if (!W || !H) return;
+    svg.attr("viewBox", [0, 0, W, H]);
+    projection.scale(W / 6.2).translate([W / 2, H / 2]);
+    countriesG.selectAll("path").attr("d", path);
+    renderPins(currentFiltered.length ? currentFiltered : allSuppliers);
+  });
 
   // Country risk level lookup
   const countryRisk = {};
@@ -339,6 +394,7 @@ async function init() {
 }
 
 function renderPins(data) {
+  currentFiltered = data;
   const pinsG = d3.select("#pins-g");
   pinsG.selectAll("*").remove();
 
@@ -364,7 +420,7 @@ function renderPins(data) {
         .on("click", (_, d) => showDetail(d))
         .on("mouseover", (event, d) => {
           const tt = document.getElementById("tooltip");
-          const flags = (d.risk_flags || []).slice(0,2).join(", ");
+          const flags = (d.risk_flags || []).slice(0,3).join(", ");
           tt.innerHTML = `<strong>${d.name}</strong><br>
             ${d.label}${d.tier ? ` · T${d.tier}` : ""} · ${d.country}<br>
             ${d.risk_score != null ? `Risk: <span style="color:${riskColor(d.risk_score)}">${(d.risk_score*100).toFixed(0)}/100</span>` : ""}
@@ -392,11 +448,11 @@ function renderPins(data) {
         .attr("stroke", d3.color(color).darker(0.5))
         .attr("style", `color:${color}`);
 
-      if (pinRadius(s) >= 7) {
-        g.append("text").attr("class", "pin-label")
-          .attr("dy", pinRadius(s) + 9).attr("text-anchor", "middle")
-          .text(s.name.length > 16 ? s.name.slice(0,14)+"…" : s.name);
-      }
+      const shouldShowLabel = s.label === "Product" || s.risk_score >= 0.6 || (s.tier === 1 && currentZoomScale >= 1.4) || currentZoomScale >= 2.0;
+      const lbl = g.append("text").attr("class", "pin-label")
+        .attr("dy", pinRadius(s) + 9).attr("text-anchor", "middle")
+        .style("display", shouldShowLabel ? "block" : "none")
+        .text(s.name.length > 16 ? s.name.slice(0,14)+"…" : s.name);
     });
   });
 }
@@ -427,7 +483,17 @@ function showDetail(d) {
     + (flags ? `<div style="margin-top:8px">${flags}</div>` : "");
   document.getElementById("detail").style.display = "block";
   // highlight pin
-  d3.selectAll(".pin-circle").attr("stroke-width", n => n.name === d.name ? 3 : 1.5);
+  d3.selectAll(".pin-circle").attr("stroke-width", n => n && n.name === d.name ? 3.5 : 1.5);
+  // Pan and zoom to pin if coords exist
+  const base = COUNTRY_COORDS[d.country];
+  if (base && projection && container) {
+    const [bx, by] = projection(base);
+    const W = container.clientWidth, H = container.clientHeight;
+    svg.transition().duration(600).call(
+      zoom.transform,
+      d3.zoomIdentity.translate(W / 2, H / 2).scale(Math.max(currentZoomScale, 2.5)).translate(-bx, -by)
+    );
+  }
 }
 function closeDetail() {
   document.getElementById("detail").style.display = "none";
@@ -436,7 +502,7 @@ function closeDetail() {
 
 function updateStats(data) {
   const sup = data.filter(d => d.label === "Supplier");
-  const countries = new Set(data.map(d => d.country).filter(Boolean));
+  const countries = new Set(data.map(d => d.country).filter(c => c && c !== "?"));
   const hi  = sup.filter(d => (d.risk_score||0) >= 0.6).length;
   const med = sup.filter(d => (d.risk_score||0) >= 0.3 && (d.risk_score||0) < 0.6).length;
   const flags = data.reduce((a,d) => a + (d.risk_flags?.length||0), 0);
@@ -474,6 +540,20 @@ function setView(v, btn) {
 }
 
 function resetZoom() { svg.transition().duration(500).call(zoom.transform, d3.zoomIdentity); }
+
+// ── Return to OSIRIS Home ─────────────────────────────────────────────────────
+function returnToOsiris() {
+  if (window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage('returnToOsiris', '*');
+      if (typeof window.parent.switchView === 'function') {
+        window.parent.switchView('geo');
+        return;
+      }
+    } catch (e) {}
+  }
+  window.location.href = 'index.html';
+}
 
 init().catch(err => {
   document.getElementById("loading").innerHTML =

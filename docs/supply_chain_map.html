@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>UC4 Supply Chain Map — Scania R-series</title>
+<script src="config.js"></script>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -154,10 +155,13 @@
 </head>
 <body>
 
-<div id="header">
+<div id="header" style="display:flex;align-items:center;gap:16px;">
+  <button onclick="returnToOsiris()" title="Return to OSIRIS Home Screen" style="display:inline-flex;align-items:center;gap:6px;background:rgba(212,175,55,0.18);border:1px solid #D4AF37;color:#D4AF37;font-family:monospace;font-size:12px;font-weight:700;padding:6px 14px;border-radius:6px;cursor:pointer;white-space:nowrap;box-shadow:0 0 8px rgba(212,175,55,0.25);">
+    ◈ OSIRIS HOME
+  </button>
   <div>
     <h1>UC4 Supply Chain Map</h1>
-    <div class="sub">Scania R-series Heavy Truck &amp; Button 12mm — Neo4j CT114</div>
+    <div class="sub">Scania R-series Heavy Truck &amp; Button 12mm — Neo4j</div>
   </div>
 </div>
 
@@ -231,11 +235,11 @@
 </div>
 
 <script>
-// ── Config ──────────────────────────────────────────────────────────────────
-const NEO4J_HTTP = "http://localhost:7474";
-const NEO4J_USER = "neo4j";
-// Password via prompt if not set — avoids hardcoding
-let NEO4J_PASS = window.UC4_CONFIG?.NEO4J_PASS || "changeme";
+// ── Config (reads from docs/config.js → window.UC4_CONFIG) ──────────────────
+const _cfg       = window.UC4_CONFIG || {};
+const NEO4J_HTTP = _cfg.NEO4J_HOST || "http://localhost:7474";
+const NEO4J_USER = _cfg.NEO4J_USER || "neo4j";
+let   NEO4J_PASS = _cfg.NEO4J_PASS || "changeme";
 
 document.getElementById("neo4j-url-display").textContent = NEO4J_HTTP;
 
@@ -622,6 +626,20 @@ function reheat() { if (simulation) simulation.alpha(0.5).restart(); }
 window.addEventListener("resize", () => {
   if (allNodes.length) applyFilter();
 });
+
+// ── Return to OSIRIS Home ─────────────────────────────────────────────────────
+function returnToOsiris() {
+  if (window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage('returnToOsiris', '*');
+      if (typeof window.parent.switchView === 'function') {
+        window.parent.switchView('geo');
+        return;
+      }
+    } catch (e) {}
+  }
+  window.location.href = 'index.html';
+}
 
 loadGraph();
 </script>

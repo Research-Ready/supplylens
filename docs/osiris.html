@@ -1,0 +1,1531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OSIRIS // SupplyLens — Tactical Supply Chain Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://d3js.org/topojson.v3.min.js"></script>
+<style>
+  /* ── OSIRIS Design System Tokens ── */
+  :root {
+    --bg-void:      #04040A;
+    --bg-primary:   #06060C;
+    --bg-secondary: #0C0E1A;
+    --bg-card:      rgba(10, 14, 26, 0.88);
+    --border:       rgba(212, 175, 55, 0.22);
+    --border-dim:   rgba(255, 255, 255, 0.08);
+    --gold:         #D4AF37;
+    --gold-glow:    rgba(212, 175, 55, 0.4);
+    --gold-dim:     #8C7426;
+    --cyan:         #00E5FF;
+    --cyan-dim:     rgba(0, 229, 255, 0.2);
+    --green:        #10B981;
+    --amber:        #F59E0B;
+    --red:          #EF4444;
+    --text-primary: #F1F5F9;
+    --text-mid:     #94A3B8;
+    --text-dim:     #475569;
+    --font-hud:     'JetBrains Mono', monospace;
+    --font-ui:      'Inter', system-ui, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%; overflow: hidden;
+    background: var(--bg-void); color: var(--text-primary);
+    font-family: var(--font-ui); font-size: 13px;
+  }
+
+  /* Engineering Grid Background */
+  #viewport {
+    position: absolute; inset: 0; overflow: hidden;
+    background: radial-gradient(circle at 50% 50%, #0a0d1d 0%, #04040a 100%);
+  }
+  #viewport::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 1;
+    background-image:
+      linear-gradient(rgba(212, 175, 55, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(212, 175, 55, 0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* ── Map Canvas ── */
+  #map-svg { width: 100%; height: 100%; position: absolute; inset: 0; z-index: 2; cursor: grab; }
+  #map-svg:active { cursor: grabbing; }
+
+  /* ── 3D Globe Elements ── */
+  .ocean {
+    fill: url(#globe-ocean);
+    stroke: rgba(212, 175, 55, 0.4);
+    stroke-width: 1.5px;
+    filter: drop-shadow(0 0 35px rgba(0, 229, 255, 0.2));
+  }
+  .atmosphere-halo {
+    fill: url(#globe-halo);
+    pointer-events: none;
+  }
+  .sphere-shade {
+    fill: url(#globe-shade);
+    pointer-events: none;
+  }
+  .graticule {
+    fill: none;
+    stroke: rgba(0, 229, 255, 0.08);
+    stroke-width: 0.5px;
+    pointer-events: none;
+  }
+
+  /* Projection Switcher */
+  .proj-switcher {
+    display: flex; gap: 4px; background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--border-dim); border-radius: 4px; padding: 2px;
+  }
+  .btn-proj {
+    font-family: var(--font-hud); font-size: 0.65rem; padding: 4px 10px;
+    background: transparent; border: none; color: var(--text-dim);
+    border-radius: 3px; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-proj:hover { color: #fff; }
+  .btn-proj.active {
+    background: rgba(212, 175, 55, 0.22); color: var(--gold); font-weight: 600;
+    box-shadow: 0 0 8px rgba(212, 175, 55, 0.25);
+  }
+
+  .country { fill: #0b1122; stroke: #182238; stroke-width: 0.5px; transition: fill 0.2s; }
+  .country:hover { fill: #131d36; }
+  .country.country-hi { fill: #2b1115; stroke: #451a22; }
+  .country.country-med { fill: #2b1d0e; stroke: #452d15; }
+  .country.country-low { fill: #112019; stroke: #19382b; }
+
+  /* Supply Arcs */
+  .arc-path {
+    fill: none; stroke-linecap: round; pointer-events: stroke;
+    stroke-dasharray: 4, 8;
+    animation: flowDash 2.4s linear infinite;
+    cursor: pointer;
+  }
+  .arc-path:hover { stroke-width: 3px !important; stroke: var(--gold) !important; filter: drop-shadow(0 0 6px var(--gold)); }
+  .arc-path.tier1 { stroke: rgba(0, 229, 255, 0.45); stroke-width: 1.5px; }
+  .arc-path.tier2 { stroke: rgba(16, 185, 129, 0.35); stroke-width: 1.2px; }
+  .arc-path.raw   { stroke: rgba(245, 158, 11, 0.4); stroke-width: 1.2px; }
+  .arc-path.risk  { stroke: rgba(239, 68, 68, 0.65); stroke-width: 2px; }
+
+  @keyframes flowDash {
+    from { stroke-dashoffset: 48; }
+    to { stroke-dashoffset: 0; }
+  }
+
+  /* Pins */
+  .pin-group { cursor: pointer; }
+  .pin-circle {
+    transition: r 0.15s, stroke-width 0.15s;
+    stroke-width: 1.5px;
+  }
+  .pin-circle:hover { r: 12 !important; stroke-width: 2.5px !important; }
+  .pin-pulse {
+    animation: pulseRadar 2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+    transform-origin: center; pointer-events: none;
+  }
+  @keyframes pulseRadar {
+    0% { r: 6; opacity: 0.8; }
+    100% { r: 24; opacity: 0; }
+  }
+  .pin-label {
+    font-family: var(--font-hud); font-size: 8.5px; fill: #E2E8F0;
+    pointer-events: none; text-shadow: 0 1px 4px #000, 0 0 6px #000;
+  }
+
+  /* HQ Södertälje Beacon */
+  .hq-beacon {
+    animation: hqPulse 3s ease-out infinite;
+    transform-origin: center; pointer-events: none;
+  }
+  @keyframes hqPulse {
+    0% { r: 8; opacity: 0.9; stroke: var(--gold); }
+    100% { r: 36; opacity: 0; stroke: var(--gold); }
+  }
+
+  /* ── OSIRIS HUD Card Base ── */
+  .hud-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), inset 0 0 16px rgba(212, 175, 55, 0.03);
+  }
+  .hud-card::before {
+    content: ''; position: absolute; inset: -1px; pointer-events: none;
+    background:
+      linear-gradient(var(--gold), var(--gold)) top left / 8px 1px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) top left / 1px 8px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) top right / 8px 1px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) top right / 1px 8px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) bottom left / 8px 1px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) bottom left / 1px 8px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) bottom right / 8px 1px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) bottom right / 1px 8px no-repeat;
+    opacity: 0.85;
+  }
+
+  /* ── Top Bar: GlobalStatusBar ── */
+  #status-bar {
+    position: absolute; top: 12px; left: 16px; right: 16px; height: 50px;
+    z-index: 100; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px; border-radius: 4px;
+  }
+  .sb-brand { display: flex; align-items: center; gap: 12px; }
+  .sb-emblem {
+    font-family: var(--font-hud); font-size: 1.1rem; color: var(--gold);
+    text-shadow: 0 0 10px var(--gold-glow); font-weight: 700;
+  }
+  .sb-title { font-family: var(--font-hud); font-size: 0.75rem; letter-spacing: 0.12em; text-transform: uppercase; }
+  .sb-title span { color: var(--gold); font-weight: 700; }
+  .sb-target {
+    font-family: var(--font-hud); font-size: 0.62rem; color: var(--cyan);
+    background: var(--cyan-dim); border: 1px solid rgba(0, 229, 255, 0.3);
+    padding: 2px 8px; border-radius: 2px; letter-spacing: 0.08em;
+  }
+
+  /* Search */
+  .search-wrap { position: relative; width: 340px; }
+  .search-input {
+    width: 100%; background: rgba(6, 8, 16, 0.9); border: 1px solid var(--border-dim);
+    color: var(--text-primary); font-family: var(--font-hud); font-size: 0.72rem;
+    padding: 6px 12px 6px 30px; border-radius: 3px; outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .search-input:focus { border-color: var(--gold); box-shadow: 0 0 10px var(--gold-glow); }
+  .search-icon { position: absolute; left: 10px; top: 7px; font-size: 0.7rem; color: var(--gold-dim); }
+  .search-results {
+    position: absolute; top: 38px; left: 0; right: 0; background: var(--bg-card);
+    border: 1px solid var(--border); border-radius: 4px; max-height: 280px; overflow-y: auto;
+    display: none; z-index: 200; backdrop-filter: blur(16px);
+  }
+  .sr-item {
+    padding: 8px 12px; cursor: pointer; border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .sr-item:hover { background: rgba(212, 175, 55, 0.1); }
+  .sr-name { font-weight: 500; font-size: 0.75rem; color: #fff; }
+  .sr-meta { font-family: var(--font-hud); font-size: 0.62rem; color: var(--text-dim); }
+
+  /* Telemetry Status Right */
+  .sb-telemetry { display: flex; align-items: center; gap: 16px; font-family: var(--font-hud); font-size: 0.68rem; }
+  .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); display: inline-block; }
+  .live-pill { display: flex; align-items: center; gap: 6px; color: var(--green); letter-spacing: 0.06em; }
+  .time-hud { color: var(--text-mid); font-variant-numeric: tabular-nums; }
+  .coords-hud { color: var(--gold); font-size: 0.65rem; }
+
+  /* ── Floating Left: LayerPanel ── */
+  #layer-panel {
+    position: absolute; top: 74px; left: 16px; width: 260px;
+    z-index: 90; padding: 14px 16px; border-radius: 4px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .panel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border-dim); padding-bottom: 6px;
+  }
+  .panel-title {
+    font-family: var(--font-hud); font-size: 0.68rem; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--gold); font-weight: 600;
+  }
+  .panel-badge {
+    font-family: var(--font-hud); font-size: 0.58rem; color: var(--cyan);
+    background: var(--cyan-dim); padding: 1px 5px; border-radius: 2px;
+  }
+
+  .layer-list { display: flex; flex-direction: column; gap: 6px; }
+  .layer-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 8px; border-radius: 3px; cursor: pointer; user-select: none;
+    background: rgba(255, 255, 255, 0.02); border: 1px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .layer-item:hover { background: rgba(212, 175, 55, 0.06); border-color: rgba(212, 175, 55, 0.2); }
+  .layer-item.active { background: rgba(212, 175, 55, 0.08); border-color: rgba(212, 175, 55, 0.3); }
+  .layer-label { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; }
+  .layer-box {
+    width: 12px; height: 12px; border: 1px solid var(--gold-dim); border-radius: 2px;
+    display: flex; align-items: center; justify-content: center; font-size: 9px; color: var(--gold);
+  }
+  .layer-item.active .layer-box { background: var(--gold); color: #000; border-color: var(--gold); font-weight: bold; }
+  .layer-count { font-family: var(--font-hud); font-size: 0.65rem; color: var(--text-dim); }
+
+  .filter-presets { display: flex; gap: 4px; margin-top: 4px; }
+  .btn-hud {
+    flex: 1; padding: 4px 6px; font-family: var(--font-hud); font-size: 0.62rem;
+    background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-dim);
+    color: var(--text-mid); border-radius: 2px; cursor: pointer; text-align: center;
+    transition: all 0.15s;
+  }
+  .btn-hud:hover, .btn-hud.active { background: rgba(212, 175, 55, 0.15); border-color: var(--gold); color: #fff; }
+
+  /* ── Right Drawer: Entity Dossier ── */
+  #dossier-drawer {
+    position: absolute; top: 74px; right: 16px; bottom: 58px; width: 340px;
+    z-index: 95; padding: 18px 20px; border-radius: 4px; display: flex;
+    flex-direction: column; gap: 14px; overflow-y: auto;
+    transform: translateX(380px); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  #dossier-drawer.open { transform: translateX(0); }
+
+  .dossier-head { display: flex; justify-content: space-between; align-items: flex-start; }
+  .dossier-name { font-size: 1.05rem; font-weight: 700; color: #fff; line-height: 1.2; }
+  .dossier-sub { font-family: var(--font-hud); font-size: 0.68rem; color: var(--text-dim); margin-top: 4px; }
+  .btn-close {
+    background: none; border: none; color: var(--text-dim); cursor: pointer;
+    font-family: var(--font-hud); font-size: 1rem; padding: 0 4px;
+  }
+  .btn-close:hover { color: var(--gold); }
+
+  .risk-gauge {
+    background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-dim);
+    border-radius: 4px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .rg-header { display: flex; justify-content: space-between; align-items: baseline; }
+  .rg-label { font-family: var(--font-hud); font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; }
+  .rg-val { font-family: var(--font-hud); font-size: 1.2rem; font-weight: 700; }
+  .rg-bar-bg { width: 100%; height: 5px; background: rgba(255, 255, 255, 0.08); border-radius: 3px; overflow: hidden; }
+  .rg-bar-fill { height: 100%; width: 0%; transition: width 0.4s ease; border-radius: 3px; }
+
+  .dossier-grid { display: flex; flex-direction: column; gap: 6px; }
+  .dg-row {
+    display: flex; justify-content: space-between; padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 0.72rem;
+  }
+  .dg-k { color: var(--text-dim); }
+  .dg-v { font-family: var(--font-hud); color: var(--text-primary); font-weight: 500; text-align: right; }
+
+  .dossier-flags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .flag-chip {
+    font-family: var(--font-hud); font-size: 0.6rem; padding: 2px 6px; border-radius: 2px;
+    background: rgba(239, 68, 68, 0.15); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  .dossier-edrm {
+    background: rgba(212, 175, 55, 0.04); border: 1px solid rgba(212, 175, 55, 0.2);
+    border-radius: 4px; padding: 10px; font-size: 0.68rem; line-height: 1.4;
+  }
+  .edrm-label { font-family: var(--font-hud); font-size: 0.6rem; color: var(--gold); text-transform: uppercase; margin-bottom: 4px; }
+
+  /* ── Bottom Intel Ticker: IntelFeed ── */
+  #intel-ticker {
+    position: absolute; bottom: 10px; left: 16px; right: 16px; height: 34px;
+    z-index: 100; display: flex; align-items: center; border-radius: 3px;
+    overflow: hidden; padding: 0 12px;
+  }
+  .ticker-badge {
+    flex-shrink: 0;
+    font-family: var(--font-hud); font-size: 0.65rem; color: var(--red); font-weight: 700;
+    display: flex; align-items: center; gap: 6px; white-space: nowrap; margin-right: 14px;
+    padding-right: 12px; border-right: 1px solid var(--border-dim);
+    z-index: 2;
+  }
+  .ticker-pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 6px var(--red); animation: pulseRadar 1.5s infinite; }
+  .ticker-btn {
+    background: rgba(239, 68, 68, 0.18); border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #ff9999; border-radius: 3px; padding: 1px 6px; font-size: 0.62rem;
+    cursor: pointer; font-family: var(--font-hud); transition: all 0.2s; margin-left: 6px;
+  }
+  .ticker-btn:hover { background: rgba(239, 68, 68, 0.4); color: #fff; }
+  .ticker-track {
+    flex: 1; overflow: hidden; white-space: nowrap; position: relative;
+  }
+  .ticker-content {
+    display: inline-block; white-space: nowrap; font-family: var(--font-hud); font-size: 0.68rem;
+    color: var(--text-mid); animation: tickerScroll 160s linear infinite;
+  }
+  #intel-ticker:hover .ticker-content {
+    animation-play-state: paused;
+  }
+  @keyframes tickerScroll {
+    0%   { transform: translateX(0%); }
+    100% { transform: translateX(-50%); }
+  }
+  .ticker-content span { color: var(--gold); margin-right: 8px; font-weight: 600; }
+  .ticker-content b { color: #fff; margin-right: 36px; font-weight: normal; }
+
+  /* ── Bottom Center: Floating View Dock (Always visible & on top) ── */
+  #view-dock {
+    position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
+    z-index: 300; display: flex; gap: 6px; padding: 6px 12px; border-radius: 4px;
+    background: rgba(8, 11, 22, 0.94); border: 1px solid var(--border);
+    backdrop-filter: blur(16px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8), 0 0 16px rgba(212, 175, 55, 0.12);
+  }
+  .dock-btn {
+    font-family: var(--font-hud); font-size: 0.66rem; letter-spacing: 0.08em;
+    padding: 6px 14px; background: rgba(6, 8, 16, 0.7); border: 1px solid var(--border-dim);
+    color: var(--text-mid); border-radius: 3px; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .dock-btn:hover { background: rgba(212, 175, 55, 0.12); border-color: var(--gold); color: #fff; }
+  .dock-btn.active {
+    background: rgba(212, 175, 55, 0.2); border-color: var(--gold); color: var(--gold);
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.25); font-weight: 600;
+  }
+
+  /* ── Slide-up Modal Deck (Executive / 3D / Chain Map) ── */
+  #modal-deck {
+    position: absolute; top: 66px; bottom: 94px; left: 16px; right: 16px;
+    z-index: 200; border-radius: 6px; display: none; flex-direction: column; overflow: hidden;
+    background: rgba(5, 7, 14, 0.98); border: 1px solid var(--border);
+    backdrop-filter: blur(24px); box-shadow: 0 16px 64px rgba(0, 0, 0, 0.95);
+  }
+  #modal-deck.open { display: flex; animation: deckUp 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
+  @keyframes deckUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .deck-header {
+    height: 44px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px; border-bottom: 1px solid var(--border); background: rgba(10, 14, 26, 0.85);
+    gap: 12px;
+  }
+  .deck-title { font-family: var(--font-hud); font-size: 0.75rem; color: var(--gold); text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; }
+  .deck-nav-tabs { display: flex; gap: 6px; }
+  .deck-tab-btn {
+    font-family: var(--font-hud); font-size: 0.65rem; padding: 5px 12px;
+    background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-dim);
+    color: var(--text-mid); border-radius: 3px; cursor: pointer; transition: all 0.2s;
+  }
+  .deck-tab-btn:hover { background: rgba(212, 175, 55, 0.15); color: #fff; border-color: var(--gold); }
+  .deck-tab-btn.active {
+    background: rgba(212, 175, 55, 0.2); color: var(--gold); border-color: var(--gold); font-weight: 600;
+  }
+  .btn-return-home {
+    background: rgba(212, 175, 55, 0.16);
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    font-family: var(--font-hud);
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.25);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-return-home:hover {
+    background: var(--gold);
+    color: #000;
+    box-shadow: 0 0 18px rgba(212, 175, 55, 0.5);
+    transform: translateY(-1px);
+  }
+  .deck-body { flex: 1; position: relative; overflow: hidden; }
+  .deck-iframe { width: 100%; height: 100%; border: none; background: transparent; }
+
+  /* Tooltip */
+  #tooltip {
+    position: absolute; pointer-events: none; opacity: 0; transition: opacity 0.1s;
+    background: rgba(6, 8, 16, 0.95); border: 1px solid var(--gold);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.8), 0 0 10px var(--gold-glow);
+    padding: 8px 12px; font-family: var(--font-hud); font-size: 11px; z-index: 400;
+    border-radius: 3px; max-width: 260px;
+  }
+
+  /* Loading Screen */
+  #loading-screen {
+    position: absolute; inset: 0; z-index: 500; background: var(--bg-void);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    font-family: var(--font-hud);
+  }
+  .osiris-spinner {
+    width: 44px; height: 44px; border: 2px solid rgba(212, 175, 55, 0.2);
+    border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div id="viewport">
+
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="osiris-spinner"></div>
+    <div style="color:var(--gold);font-size:0.85rem;letter-spacing:0.15em">INITIALIZING OSIRIS PLATFORM...</div>
+    <div style="color:var(--text-dim);font-size:0.65rem" id="load-msg">CONNECTING TO NEO4J KNOWLEDGE GRAPH</div>
+  </div>
+
+  <!-- Map Canvas -->
+  <svg id="map-svg">
+    <defs>
+      <!-- Dark 3D Ocean Gradient -->
+      <radialGradient id="globe-ocean" cx="40%" cy="35%" r="65%">
+        <stop offset="0%" stop-color="#0f1933" />
+        <stop offset="50%" stop-color="#080e1c" />
+        <stop offset="85%" stop-color="#04060c" />
+        <stop offset="100%" stop-color="#020306" />
+      </radialGradient>
+      <!-- Atmosphere Rim Glow -->
+      <radialGradient id="globe-halo" cx="50%" cy="50%" r="50%">
+        <stop offset="82%" stop-color="rgba(0, 229, 255, 0)" />
+        <stop offset="94%" stop-color="rgba(0, 229, 255, 0.22)" />
+        <stop offset="99%" stop-color="rgba(212, 175, 55, 0.45)" />
+        <stop offset="100%" stop-color="rgba(212, 175, 55, 0)" />
+      </radialGradient>
+      <!-- Planet Surface Shading -->
+      <radialGradient id="globe-shade" cx="30%" cy="30%" r="70%">
+        <stop offset="0%" stop-color="rgba(255, 255, 255, 0.04)" />
+        <stop offset="55%" stop-color="rgba(0, 0, 0, 0)" />
+        <stop offset="88%" stop-color="rgba(0, 0, 0, 0.55)" />
+        <stop offset="100%" stop-color="rgba(0, 0, 0, 0.85)" />
+      </radialGradient>
+    </defs>
+    <g id="map-stars-g"></g>
+    <g id="map-sphere-bg-g">
+      <path id="ocean-sphere" class="ocean"></path>
+    </g>
+    <g id="map-graticule-g">
+      <path id="graticule-path" class="graticule"></path>
+    </g>
+    <g id="map-world-g"></g>
+    <g id="map-arcs-g"></g>
+    <g id="map-pins-g"></g>
+    <g id="map-sphere-fg-g">
+      <circle id="sphere-halo" class="atmosphere-halo"></circle>
+      <path id="sphere-shade" class="sphere-shade"></path>
+    </g>
+  </svg>
+
+  <!-- ── Top Status Bar: GlobalStatusBar ── -->
+  <div id="status-bar" class="hud-card">
+    <div class="sb-brand" onclick="switchView('geo')" style="cursor: pointer;" title="Return to OSIRIS Home (3D Globe)">
+      <span class="sb-emblem">◈ OSIRIS</span>
+      <div class="sb-title">SUPPLYLENS // <span>SCM INTELLIGENCE</span></div>
+      <div class="sb-target">TARGET: SCANIA R-SERIES</div>
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="search-box" class="search-input" placeholder="SEARCH SUPPLIER / COUNTRY / HS-CODE..." autocomplete="off">
+      <div id="search-results" class="search-results"></div>
+    </div>
+
+    <!-- Projection Switcher -->
+    <div class="proj-switcher">
+      <button class="btn-proj active" id="btn-proj-globe" onclick="setProjectionMode('globe')" title="3D Spherical OSIRIS Globe">🌐 3D GLOBE</button>
+      <button class="btn-proj" id="btn-proj-flat" onclick="setProjectionMode('flat')" title="2D Planar World Map">🗺 2D FLAT</button>
+    </div>
+
+    <div class="sb-telemetry">
+      <div class="live-pill"><span class="live-dot" id="neo-dot"></span> <span id="neo-text">NEO4J: ONLINE (251 NODES)</span></div>
+      <div class="coords-hud">59°11'N 17°38'E [SÖDERTÄLJE HQ]</div>
+      <div class="time-hud" id="utc-clock">00:00:00 UTC</div>
+    </div>
+  </div>
+
+  <!-- ── Floating Left: LayerPanel ── -->
+  <div id="layer-panel" class="hud-card">
+    <div class="panel-header">
+      <div class="panel-title">Intelligence Layers</div>
+      <div class="panel-badge" id="layer-active-badge">6/6 ACTIVE</div>
+    </div>
+
+    <div class="layer-list">
+      <div class="layer-item active" data-layer="arcs" onclick="toggleLayer('arcs')">
+        <div class="layer-label"><div class="layer-box">✓</div> Trade Flow Arcs</div>
+        <div class="layer-count" id="count-arcs">—</div>
+      </div>
+      <div class="layer-item active" data-layer="t1" onclick="toggleLayer('t1')">
+        <div class="layer-label"><div class="layer-box">✓</div> Tier 1 Direct Assembly</div>
+        <div class="layer-count" id="count-t1">—</div>
+      </div>
+      <div class="layer-item active" data-layer="t2" onclick="toggleLayer('t2')">
+        <div class="layer-label"><div class="layer-box">✓</div> Tier 2+ Sub-Tier Suppliers</div>
+        <div class="layer-count" id="count-t2">—</div>
+      </div>
+      <div class="layer-item active" data-layer="raw" onclick="toggleLayer('raw')">
+        <div class="layer-label"><div class="layer-box">✓</div> Mines &amp; Raw Materials</div>
+        <div class="layer-count" id="count-raw">—</div>
+      </div>
+      <div class="layer-item active" data-layer="risk" onclick="toggleLayer('risk')">
+        <div class="layer-label"><div class="layer-box">✓</div> High Threat Beacons (≥0.6)</div>
+        <div class="layer-count" id="count-risk">—</div>
+      </div>
+      <div class="layer-item active" data-layer="choro" onclick="toggleLayer('choro')">
+        <div class="layer-label"><div class="layer-box">✓</div> Country Risk Heatmap</div>
+        <div class="layer-count" id="count-countries">—</div>
+      </div>
+    </div>
+
+    <div class="filter-presets">
+      <button class="btn-hud active" onclick="setPreset('all', this)">ALL</button>
+      <button class="btn-hud" onclick="setPreset('threats', this)">THREATS</button>
+      <button class="btn-hud" onclick="setPreset('tier1', this)">TIER 1</button>
+      <button class="btn-hud" onclick="setPreset('mines', this)">MINES</button>
+      <button class="btn-hud" onclick="resetMapCamera()">RESET</button>
+    </div>
+  </div>
+
+  <!-- ── Right Slide-out: Entity Dossier ── -->
+  <div id="dossier-drawer" class="hud-card">
+    <div class="dossier-head">
+      <div>
+        <div class="dossier-name" id="dos-name">—</div>
+        <div class="dossier-sub" id="dos-sub">—</div>
+      </div>
+      <button class="btn-close" onclick="closeDossier()">✕</button>
+    </div>
+
+    <div class="risk-gauge">
+      <div class="rg-header">
+        <span class="rg-label">Composite Risk Rating</span>
+        <span class="rg-val" id="dos-score">—</span>
+      </div>
+      <div class="rg-bar-bg">
+        <div class="rg-bar-fill" id="dos-bar"></div>
+      </div>
+    </div>
+
+    <div class="dossier-grid">
+      <div class="dg-row"><span class="dg-k">Facility Country</span><span class="dg-v" id="dos-country">—</span></div>
+      <div class="dg-row"><span class="dg-k">Supply Tier</span><span class="dg-v" id="dos-tier">—</span></div>
+      <div class="dg-row"><span class="dg-k">Component / Material</span><span class="dg-v" id="dos-mat">—</span></div>
+      <div class="dg-row"><span class="dg-k">Destination Hub</span><span class="dg-v" id="dos-dest">Scania Södertälje (SE)</span></div>
+      <div class="dg-row"><span class="dg-k">Regulatory Audit</span><span class="dg-v" id="dos-audit">EU CSDD / LkSG</span></div>
+    </div>
+
+    <div>
+      <div style="font-family:var(--font-hud);font-size:0.62rem;color:var(--text-dim);text-transform:uppercase;margin-bottom:6px">Active Risk Flags</div>
+      <div class="dossier-flags" id="dos-flags"></div>
+    </div>
+
+    <div class="dossier-edrm">
+      <div class="edrm-label">Chain of Custody Evidence</div>
+      <div id="dos-edrm" style="color:var(--text-mid)">Verified via OpenCorporates registry &amp; Scania AB Tier 1 disclosure. Ground truth confirmed.</div>
+    </div>
+  </div>
+
+  <!-- ── Bottom Center: Floating View Dock (Always visible & interactive) ── -->
+  <div id="view-dock" class="hud-card">
+    <button class="dock-btn active" id="btn-dock-geo" onclick="switchView('geo')" title="Return to OSIRIS 3D Globe Home Screen">
+      <span>◈</span> OSIRIS HOME
+    </button>
+    <button class="dock-btn" id="btn-dock-3d" onclick="switchView('3d')" title="Open 3D Force Graph">
+      <span>◎</span> 3D ORBIT GRAPH
+    </button>
+    <button class="dock-btn" id="btn-dock-map" onclick="switchView('map')" title="Open Hierarchical Chain Map">
+      <span>⋮</span> RELATIONSHIP MAP
+    </button>
+    <button class="dock-btn" id="btn-dock-deck" onclick="switchView('deck')" title="Open Executive Compliance Deck">
+      <span>▦</span> EXECUTIVE DECK
+    </button>
+    <button class="dock-btn" id="btn-dock-code" onclick="switchView('code')" title="Open Codebase Knowledge Graph">
+      <span>🧠</span> CODE GRAPH
+    </button>
+    <button class="dock-btn" id="btn-dock-reports" onclick="switchView('reports')" title="Open Architecture & Reports Site">
+      <span>📋</span> REPORTS
+    </button>
+  </div>
+
+  <!-- ── Bottom: IntelFeed Ticker ── -->
+  <div id="intel-ticker" class="hud-card">
+    <div class="ticker-badge">
+      <span class="ticker-pulse"></span> LIVE INTEL FEED
+      <button id="ticker-pause-btn" class="ticker-btn" onclick="toggleTickerPlay(event)" title="Pause / Play Ticker">⏸</button>
+    </div>
+    <div class="ticker-track">
+      <div class="ticker-content" id="ticker-text">
+        <span>[CONNECTING]</span> <b>Streaming live disruption telemetry from Neo4j intelligence graph...</b>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Slide-up Modal Deck (for 3D / Chain / Deck / Code / Reports) ── -->
+  <div id="modal-deck" class="hud-card">
+    <div class="deck-header">
+      <div class="deck-title" id="deck-modal-title">OPERATIONAL VIEW</div>
+      <div class="deck-nav-tabs">
+        <button class="deck-tab-btn" id="tab-btn-home" onclick="switchView('geo')" title="Return to OSIRIS Home Screen">◈ OSIRIS HOME</button>
+        <button class="deck-tab-btn" id="tab-btn-3d" onclick="switchView('3d')">◎ 3D GRAPH</button>
+        <button class="deck-tab-btn" id="tab-btn-map" onclick="switchView('map')">⋮ RELATIONSHIP MAP</button>
+        <button class="deck-tab-btn" id="tab-btn-deck" onclick="switchView('deck')">▦ EXECUTIVE DECK</button>
+        <button class="deck-tab-btn" id="tab-btn-code" onclick="switchView('code')">🧠 CODE GRAPH</button>
+        <button class="deck-tab-btn" id="tab-btn-reports" onclick="switchView('reports')">📋 REPORTS</button>
+      </div>
+      <button class="btn-return-home" onclick="switchView('geo')" title="Return to OSIRIS Home Screen">
+        ◈ RETURN TO OSIRIS HOME
+      </button>
+    </div>
+    <div class="deck-body">
+      <iframe id="deck-iframe" class="deck-iframe" src=""></iframe>
+    </div>
+  </div>
+
+  <div id="tooltip"></div>
+
+</div>
+
+<script>
+// ── Config Layer ──────────────────────────────────────────────────────────────
+const _cfg       = window.UC4_CONFIG || {};
+const NEO4J_HTTP = _cfg.NEO4J_HOST || "http://localhost:7474";
+const NEO4J_USER = _cfg.NEO4J_USER || "neo4j";
+let   NEO4J_PASS = _cfg.NEO4J_PASS || "bmtKQuCO9vOzyBwyVvt2LrFU";
+
+// Scania Assembly HQ Centroid (Södertälje, Sweden)
+const SCANIA_HQ_COORDS = [17.63, 59.19];
+
+// Comprehensive Centroids for Supply Chain Nodes
+const COUNTRY_COORDS = {
+  SE: [17.6, 59.2], DE: [10.4, 51.1], NL: [5.3, 52.3], FR: [2.3, 46.2],
+  US: [-95.7, 37.1], CN: [104.2, 35.8], BR: [-51.9, -14.2], CL: [-71.5, -35.6],
+  FI: [26.0, 64.9], AT: [14.5, 47.5], TH: [101.0, 15.8], IN: [78.9, 20.6],
+  RU: [105.3, 61.5], GB: [-3.4, 55.4], JP: [138.2, 36.2], KR: [127.8, 36.5],
+  BE: [4.5, 50.5], IT: [12.6, 42.5], ES: [-3.7, 40.4], PL: [19.1, 51.9],
+  CZ: [15.5, 49.8], HU: [19.5, 47.2], SK: [19.7, 48.7], RO: [25.0, 45.9],
+  CD: [23.7, -2.9], ZA: [25.1, -29.0], AU: [133.8, -25.3], MX: [-102.5, 23.6],
+  CA: [-96.8, 60.0], NO: [8.5, 60.5], DK: [10.0, 56.3], IE: [-8.2, 53.1],
+  CH: [8.2, 46.8], TW: [121.0, 23.7], UA: [31.2, 48.4], IL: [34.8, 31.0],
+  LU: [6.1, 49.8], MZ: [35.5, -18.7], ZM: [27.8, -13.1]
+};
+
+const ISO2_TO_NUM = {
+  SE:"752",DE:"276",NL:"528",FR:"250",US:"840",CN:"156",BR:"076",CL:"152",
+  FI:"246",AT:"040",TH:"764",IN:"356",RU:"643",GB:"826",JP:"392",KR:"410",
+  BE:"056",IT:"380",ES:"724",PL:"616",CZ:"203",HU:"348",SK:"703",RO:"642",
+  CD:"180",ZA:"710",AU:"036",MX:"484",CA:"124",NO:"578",DK:"208",IE:"372",
+  CH:"756",TW:"158",UA:"804",IL:"376",LU:"442",MZ:"508",ZM:"894"
+};
+
+const COUNTRY_MAP = {
+  "BELGIUM": "BE", "CHILE": "CL", "CHILE/AUSTRALIA": "CL",
+  "CHINA": "CN", "CHINA / BELGIUM": "CN", "DR CONGO": "CD",
+  "DRC": "CD", "DENMARK": "DK", "LUXEMBOURG": "LU",
+  "MOZAMBIQUE": "MZ", "SWITZERLAND": "CH", "THAILAND": "TH",
+  "ZAMBIA": "ZM"
+};
+
+function normalizeCountry(raw) {
+  if (!raw) return "?";
+  const s = raw.trim();
+  return COUNTRY_MAP[s.toUpperCase()] || s;
+}
+
+function getRiskScore(d) {
+  if (d.risk_score != null && !isNaN(d.risk_score)) return d.risk_score;
+  const flags = d.risk_flags || [];
+  if (!flags.length) return 0.1;
+  const highFlags = ["SANCTIONS_RISK", "CONFLICT_MINERAL", "UFLPA_RISK", "LABOR_VIOLATION", "TAILINGS_RISK"];
+  const hasHigh = flags.some(f => highFlags.includes(f));
+  if (hasHigh || flags.length >= 3) return 0.85;
+  if (flags.length >= 1) return 0.45;
+  return 0.1;
+}
+
+function riskColor(score) {
+  if (score == null) return "#64748b";
+  if (score >= 0.6) return "#ef4444";
+  if (score >= 0.3) return "#f59e0b";
+  return "#10b981";
+}
+
+// ── State Variables ───────────────────────────────────────────────────────────
+let allNodes = [];
+let layers = { arcs: true, t1: true, t2: true, raw: true, risk: true, choro: true };
+let currentPreset = 'all';
+let projectionMode = 'globe'; // 'globe' or 'flat' (3D globe default)
+let globeRotation = [-17.63, -59.20, 0]; // Centered on Scania Södertälje HQ, Sweden
+let globeScale = 380;
+let flatScale = 1;
+let isAutoRotating = true;
+let isDragging = false;
+let autoRotateTimer = null;
+let animFrameId = null;
+let v0, r0;
+let svg, projection, path, zoom, currentZoomScale = 1;
+let worldData = null;
+
+// ── Neo4j Query Engine ────────────────────────────────────────────────────────
+async function queryNeo4j(cypher) {
+  const auth = btoa(`${NEO4J_USER}:${NEO4J_PASS}`);
+  const resp = await fetch(`${NEO4J_HTTP}/db/neo4j/tx/commit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Basic ${auth}` },
+    body: JSON.stringify({ statements: [{ statement: cypher }] }),
+  });
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const data = await resp.json();
+  if (data.errors && data.errors.length) throw new Error(data.errors[0].message);
+  return data.results[0]?.data?.map(r => {
+    const o = {};
+    data.results[0].columns.forEach((c, i) => o[c] = r.row[i]);
+    return o;
+  }) || [];
+}
+
+// ── Clock & Coordinates ───────────────────────────────────────────────────────
+function updateClock() {
+  const now = new Date();
+  document.getElementById('utc-clock').textContent = now.toUTCString().slice(17, 25) + ' UTC';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Data Ingestion ────────────────────────────────────────────────────────────
+async function loadGraphData() {
+  const rows = await queryNeo4j(`
+    MATCH (n) WHERE n.demo = true OR n.inferred = true
+    WITH n, CASE labels(n)[0]
+      WHEN 'Supplier'    THEN coalesce(n.country, '?')
+      WHEN 'RawMaterial' THEN coalesce(n.origin, '?')
+      WHEN 'Product'     THEN 'SE'
+      ELSE '?' END AS country
+    RETURN labels(n)[0]   AS label,
+           n.name          AS name,
+           n.tier          AS tier,
+           country         AS country,
+           n.risk_score    AS risk_score,
+           n.risk_flags    AS risk_flags,
+           n.inferred      AS inferred,
+           n.website       AS website,
+           n.material_type AS material_type
+  `);
+
+  rows.forEach(r => {
+    r.country = normalizeCountry(r.country);
+    r.risk_score = getRiskScore(r);
+  });
+  return rows;
+}
+
+async function loadIntelEvents() {
+  try {
+    const rows = await queryNeo4j(`
+      MATCH (e:Event)
+      RETURN e.name AS name, e.description AS desc, e.date AS date, e.impact AS impact
+      ORDER BY e.date DESC LIMIT 15
+    `);
+    if (rows.length) {
+      const items = rows.map(r => {
+        const title = r.name || 'DISRUPTION INCIDENT';
+        const body = r.desc || r.impact || 'Supply chain delay flagged by OSINT sensors.';
+        return `<span>[${title}]</span> <b>${body}</b>`;
+      }).join(' ');
+      document.getElementById('ticker-text').innerHTML = items + ' &nbsp;&nbsp;&nbsp;&nbsp; ' + items;
+    }
+  } catch (e) {
+    console.warn("Using fallback intel ticker:", e);
+    const fallback = `
+      <span>[MARITIME DISRUPTION]</span> <b>Bab el-Mandeb / Red Sea Houthi transit threat forces 14-day reroute via Cape of Good Hope for Asian automotive components.</b>
+      <span>[COLTART AUDIT]</span> <b>DR Congo artisanal cobalt audits flag child labor risk; Tier 1 battery cathode suppliers review source certifications.</b>
+      <span>[REGULATORY ALERT]</span> <b>EU CSDD Directive requires end-to-end auditability across Tier 1–3 for all European heavy transport manufacturers.</b>
+      <span>[TRADE CONTROLS]</span> <b>US UFLPA customs detentions expand to polysilicon & sensor hardware from Xinjiang facilities.</b>
+      <span>[TAIWAN STRAIT]</span> <b>Maritime exclusion drills prompt dual-sourcing contingency for autonomous driving radar modules.</b>
+    `;
+    document.getElementById('ticker-text').innerHTML = fallback + ' &nbsp;&nbsp;&nbsp;&nbsp; ' + fallback;
+  }
+}
+
+let isTickerPaused = false;
+function toggleTickerPlay(e) {
+  if (e) e.stopPropagation();
+  const content = document.getElementById('ticker-text');
+  const btn = document.getElementById('ticker-pause-btn');
+  isTickerPaused = !isTickerPaused;
+  content.style.animationPlayState = isTickerPaused ? 'paused' : 'running';
+  btn.textContent = isTickerPaused ? '▶' : '⏸';
+}
+
+// ── Map Initialization ────────────────────────────────────────────────────────
+// ── Projection & Map Coordinates Setup ─────────────────────────────────────────
+function setupProjection() {
+  const viewport = document.getElementById("viewport");
+  const W = viewport.clientWidth, H = viewport.clientHeight;
+
+  if (projectionMode === 'globe') {
+    projection = d3.geoOrthographic()
+      .scale(globeScale)
+      .translate([W / 2, H / 2])
+      .clipAngle(90)
+      .rotate(globeRotation);
+  } else {
+    projection = d3.geoNaturalEarth1()
+      .scale((W / 5.8) * flatScale)
+      .translate([W / 2, H / 1.85]);
+  }
+  path = d3.geoPath().projection(projection);
+}
+
+function getGreatCircleCoords(source, target = SCANIA_HQ_COORDS, numPoints = 40) {
+  const interpolate = d3.geoInterpolate(source, target);
+  const coords = [];
+  for (let i = 0; i <= numPoints; i++) {
+    coords.push(interpolate(i / numPoints));
+  }
+  return coords;
+}
+
+function isCoordVisible(coord) {
+  if (projectionMode === 'flat') return true;
+  const rot = projection.rotate();
+  const center = [-rot[0], -rot[1]];
+  const dist = d3.geoDistance(coord, center);
+  return dist <= (Math.PI / 2) - 0.03;
+}
+
+// ── Map Initialization ────────────────────────────────────────────────────────
+async function initOSIRIS() {
+  try {
+    // 1. Fetch TopoJSON World
+    worldData = await d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json");
+
+    // 2. Fetch Graph from Neo4j
+    allNodes = await loadGraphData();
+    document.getElementById("loading-screen").style.display = "none";
+    document.getElementById("neo-dot").style.background = "var(--green)";
+    document.getElementById("neo-text").textContent = `NEO4J: ONLINE (${allNodes.length} NODES)`;
+
+    // 3. Load Intel Events Ticker
+    loadIntelEvents();
+
+    // 4. Update Layer Counters
+    updateLayerCounts();
+
+    // 5. Build D3 Canvas & Projection
+    const viewport = document.getElementById("viewport");
+    const W = viewport.clientWidth, H = viewport.clientHeight;
+    svg = d3.select("#map-svg").attr("viewBox", [0, 0, W, H]);
+
+    setupProjection();
+    setupInteractions();
+
+    window.addEventListener("resize", () => {
+      const w = viewport.clientWidth, h = viewport.clientHeight;
+      if (!w || !h) return;
+      svg.attr("viewBox", [0, 0, w, h]);
+      setupProjection();
+      updateMapPositions();
+    });
+
+    renderWorld();
+    renderArcs();
+    renderPins();
+    setupSearch();
+    startAutoRotationLoop();
+
+  } catch (err) {
+    document.getElementById("loading-screen").innerHTML = `
+      <div style="color:var(--red);font-size:1.1rem;font-weight:700">OSIRIS ENGINE FAILED TO INITIALIZE</div>
+      <div style="color:var(--text-dim);font-size:0.75rem;max-width:400px;text-align:center">${err.message}</div>
+      <button class="btn-hud" style="margin-top:12px;padding:8px 16px" onclick="location.reload()">RETRY CONNECTION</button>
+    `;
+    document.getElementById("neo-dot").style.background = "var(--red)";
+    document.getElementById("neo-text").textContent = "NEO4J: OFFLINE";
+  }
+}
+
+// ── Render World Countries & Spherical Base ───────────────────────────────────
+function renderWorld() {
+  const viewport = document.getElementById("viewport");
+  const W = viewport.clientWidth, H = viewport.clientHeight;
+
+  if (projectionMode === 'globe') {
+    d3.select('#ocean-sphere').style('display', 'block').attr('d', path({type: 'Sphere'}));
+    d3.select('#graticule-path').style('display', 'block').attr('d', path(d3.geoGraticule10()));
+    d3.select('#sphere-shade').style('display', 'block').attr('d', path({type: 'Sphere'}));
+    d3.select('#sphere-halo').style('display', 'block').attr('cx', W / 2).attr('cy', H / 2).attr('r', globeScale + 2);
+  } else {
+    d3.select('#ocean-sphere').style('display', 'none');
+    d3.select('#graticule-path').style('display', 'none');
+    d3.select('#sphere-shade').style('display', 'none');
+    d3.select('#sphere-halo').style('display', 'none');
+  }
+
+  const worldG = d3.select("#map-world-g");
+  worldG.selectAll("*").remove();
+
+  const countryRisk = {};
+  allNodes.forEach(s => {
+    const c = s.country;
+    const score = s.risk_score || 0;
+    if (!countryRisk[c] || score > countryRisk[c]) countryRisk[c] = score;
+  });
+
+  const countries = topojson.feature(worldData, worldData.objects.countries);
+  worldG.selectAll("path")
+    .data(countries.features)
+    .join("path")
+    .attr("d", path)
+    .attr("class", d => {
+      if (!layers.choro) return "country";
+      const iso2 = Object.entries(ISO2_TO_NUM).find(([,v]) => v === String(d.id))?.[0];
+      if (!iso2) return "country";
+      const score = countryRisk[iso2];
+      if (score == null) return "country";
+      if (score >= 0.6) return "country country-hi";
+      if (score >= 0.3) return "country country-med";
+      return "country country-low";
+    })
+    .on("mouseover", (event, d) => {
+      const iso2 = Object.entries(ISO2_TO_NUM).find(([,v]) => v === String(d.id))?.[0];
+      if (!iso2 || !countryRisk[iso2]) return;
+      const count = allNodes.filter(n => n.country === iso2).length;
+      showTooltip(event, `<strong>${iso2} REGION</strong><br>Entities: ${count}<br>Threat Score: ${(countryRisk[iso2]*100).toFixed(0)}/100`);
+    })
+    .on("mousemove", moveTooltip)
+    .on("mouseout", hideTooltip);
+}
+
+// ── Render Animated Great-Circle Supply Arcs ──────────────────────────────────
+function renderArcs() {
+  const arcsG = d3.select("#map-arcs-g");
+  arcsG.selectAll("*").remove();
+  if (!layers.arcs) return;
+
+  const visibleNodes = getFilteredNodes().filter(d => COUNTRY_COORDS[d.country] && d.name !== 'Scania R-series Heavy Truck');
+
+  visibleNodes.forEach(node => {
+    const coords = COUNTRY_COORDS[node.country];
+    if (!coords) return;
+
+    let arcCls = 'tier2';
+    if (node.risk_score >= 0.6) arcCls = 'risk';
+    else if (node.tier === 1) arcCls = 'tier1';
+    else if (node.label === 'RawMaterial') arcCls = 'raw';
+
+    const geoLine = {
+      type: "LineString",
+      coordinates: getGreatCircleCoords(coords, SCANIA_HQ_COORDS)
+    };
+
+    arcsG.append("path")
+      .attr("class", `arc-path ${arcCls}`)
+      .attr("d", path(geoLine))
+      .datum({ ...node, geoLine })
+      .on("click", (event, d) => openDossier(d))
+      .on("mouseover", (event, d) => {
+        showTooltip(event, `<strong>FLOW: ${d.name} → SCANIA HQ</strong><br>Tier ${d.tier||'Raw'} · ${d.country}<br>Risk: ${(d.risk_score*100).toFixed(0)}/100`);
+      })
+      .on("mousemove", moveTooltip)
+      .on("mouseout", hideTooltip);
+  });
+}
+
+// ── Render Supplier Pins ──────────────────────────────────────────────────────
+function renderPins() {
+  const pinsG = d3.select("#map-pins-g");
+  pinsG.selectAll("*").remove();
+
+  const nodes = getFilteredNodes();
+  const byCountry = d3.group(nodes, d => d.country);
+
+  byCountry.forEach((suppliers, country) => {
+    const base = COUNTRY_COORDS[country];
+    if (!base) return;
+
+    suppliers.forEach((s, i) => {
+      s._pinIdx = i;
+      s._pinTotal = suppliers.length;
+      s._countryCoords = base;
+
+      const g = pinsG.append("g")
+        .attr("class", "pin-group")
+        .datum(s)
+        .on("click", (event, d) => openDossier(d))
+        .on("mouseover", (event, d) => {
+          const flags = (d.risk_flags || []).slice(0, 3).join(", ");
+          showTooltip(event, `
+            <strong>${d.name}</strong><br>
+            ${d.label}${d.tier ? ` · TIER ${d.tier}` : ""} · ${d.country}<br>
+            Threat Rating: <span style="color:${riskColor(d.risk_score)}">${(d.risk_score*100).toFixed(0)}/100</span>
+            ${flags ? `<br><span style="color:var(--red);font-size:9px">${flags}</span>` : ""}
+          `);
+        })
+        .on("mousemove", moveTooltip)
+        .on("mouseout", hideTooltip);
+
+      const color = s.label === "Product"    ? "#D4AF37" :
+                    s.label === "RawMaterial" ? "#f472b6" :
+                    riskColor(s.risk_score);
+
+      const r = s.label === "Product" ? 9 : (s.tier === 1 ? 8 : (s.tier === 2 ? 6.5 : 5.5));
+
+      // Pulse ring for high risk
+      if (layers.risk && s.risk_score >= 0.6) {
+        g.append("circle").attr("class", "pin-pulse")
+          .attr("r", r).attr("fill", color);
+      }
+
+      // Solid pin
+      const strokeColor = d3.color(color) ? d3.color(color).darker(0.8) : "#000";
+      g.append("circle")
+        .attr("class", "pin-circle")
+        .attr("r", r)
+        .attr("fill", color)
+        .attr("fill-opacity", s.inferred ? 0.6 : 0.95)
+        .attr("stroke", strokeColor);
+
+      // Label
+      g.append("text")
+        .attr("class", "pin-label")
+        .attr("dy", r + 10).attr("text-anchor", "middle")
+        .text(s.name.length > 15 ? s.name.slice(0, 13) + "…" : s.name);
+    });
+  });
+
+  // Render Scania Assembly HQ Beacon
+  const hqG = pinsG.append("g").attr("id", "hq-beacon-g");
+  hqG.append("circle").attr("class", "hq-beacon");
+  hqG.append("circle").attr("r", 10).attr("fill", "var(--gold)").attr("stroke", "#fff").attr("stroke-width", 2);
+  hqG.append("text").attr("class", "pin-label")
+    .attr("dy", 22).attr("text-anchor", "middle")
+    .style("fill", "var(--gold)").style("font-weight", "bold")
+    .text("SCANIA SÖDERTÄLJE HQ");
+
+  updateMapPositions();
+}
+
+// ── Update Positions of Globe/Map Elements ────────────────────────────────────
+function updateMapPositions() {
+  const viewport = document.getElementById("viewport");
+  const W = viewport.clientWidth, H = viewport.clientHeight;
+
+  if (projectionMode === 'globe') {
+    d3.select('#ocean-sphere').attr('d', path({type: 'Sphere'}));
+    d3.select('#graticule-path').attr('d', path(d3.geoGraticule10()));
+    d3.select('#sphere-shade').attr('d', path({type: 'Sphere'}));
+    d3.select('#sphere-halo').attr('cx', W / 2).attr('cy', H / 2).attr('r', globeScale + 2);
+  }
+
+  // Update country paths
+  d3.select('#map-world-g').selectAll('path').attr('d', path);
+
+  // Update arcs
+  d3.select('#map-arcs-g').selectAll('path').attr('d', d => (d && d.geoLine) ? path(d.geoLine) : null);
+
+  // Update pin positions & visibility
+  d3.selectAll('.pin-group').each(function(d) {
+    if (!d || !d._countryCoords) return;
+    if (!isCoordVisible(d._countryCoords)) {
+      d3.select(this).style('display', 'none');
+    } else {
+      const base = projection(d._countryCoords);
+      if (!base) { d3.select(this).style('display', 'none'); return; }
+      const angle = (d._pinIdx / d._pinTotal) * 2 * Math.PI;
+      const dist  = d._pinTotal > 1 ? 14 : 0;
+      const x = base[0] + Math.cos(angle) * dist;
+      const y = base[1] + Math.sin(angle) * dist;
+      d3.select(this).style('display', 'block').attr('transform', `translate(${x},${y})`);
+    }
+  });
+
+  // Update HQ Beacon
+  const hqG = d3.select('#hq-beacon-g');
+  if (isCoordVisible(SCANIA_HQ_COORDS)) {
+    const hqPos = projection(SCANIA_HQ_COORDS);
+    if (hqPos) {
+      hqG.style('display', 'block').attr('transform', `translate(${hqPos[0]},${hqPos[1]})`);
+    } else {
+      hqG.style('display', 'none');
+    }
+  } else {
+    hqG.style('display', 'none');
+  }
+
+  adjustPinLabels();
+}
+
+// ── Interactive Drag & Zoom Controls ──────────────────────────────────────────
+function setupInteractions() {
+  const drag = d3.drag()
+    .on("start", (event) => {
+      if (projectionMode !== 'globe') return;
+      isAutoRotating = false;
+      isDragging = true;
+      v0 = [event.x, event.y];
+      r0 = projection.rotate();
+    })
+    .on("drag", (event) => {
+      if (projectionMode !== 'globe') return;
+      const dx = event.x - v0[0];
+      const dy = event.y - v0[1];
+      const k = 70 / projection.scale();
+      const yaw = r0[0] + dx * k;
+      const pitch = Math.max(-85, Math.min(85, r0[1] - dy * k));
+      globeRotation = [yaw, pitch, 0];
+      projection.rotate(globeRotation);
+      updateMapPositions();
+    })
+    .on("end", () => {
+      isDragging = false;
+      resetAutoRotateTimer();
+    });
+
+  svg.call(drag);
+
+  svg.on("wheel", (event) => {
+    event.preventDefault();
+    isAutoRotating = false;
+    const factor = event.deltaY < 0 ? 1.08 : 0.92;
+    if (projectionMode === 'globe') {
+      globeScale = Math.max(180, Math.min(1400, globeScale * factor));
+      projection.scale(globeScale);
+      updateMapPositions();
+    } else {
+      flatScale = Math.max(0.6, Math.min(6, flatScale * factor));
+      setupProjection();
+      updateMapPositions();
+    }
+    resetAutoRotateTimer();
+  });
+
+  svg.on("mouseenter", () => { isAutoRotating = false; })
+     .on("mouseleave", () => { resetAutoRotateTimer(); });
+}
+
+function startAutoRotationLoop() {
+  function tick() {
+    if (isAutoRotating && projectionMode === 'globe' && !isDragging) {
+      globeRotation[0] = (globeRotation[0] + 0.05) % 360;
+      projection.rotate(globeRotation);
+      updateMapPositions();
+    }
+    animFrameId = requestAnimationFrame(tick);
+  }
+  animFrameId = requestAnimationFrame(tick);
+}
+
+function resetAutoRotateTimer() {
+  if (autoRotateTimer) clearTimeout(autoRotateTimer);
+  autoRotateTimer = setTimeout(() => {
+    isAutoRotating = true;
+  }, 6000);
+}
+
+function setProjectionMode(mode) {
+  projectionMode = mode;
+  document.getElementById('btn-proj-globe').classList.toggle('active', mode === 'globe');
+  document.getElementById('btn-proj-flat').classList.toggle('active', mode === 'flat');
+  setupProjection();
+  renderWorld();
+  renderArcs();
+  renderPins();
+}
+
+let activeDossierNode = null;
+
+function pinStrokeColor(s) {
+  if (!s) return "#000";
+  const c = s.label === "Product" ? "#D4AF37" : (s.label === "RawMaterial" ? "#f472b6" : riskColor(s.risk_score));
+  return d3.color(c) ? d3.color(c).darker(0.8) : "#000";
+}
+
+function adjustPinLabels() {
+  const k = (projectionMode === 'globe' ? globeScale / 380 : flatScale);
+  d3.selectAll(".pin-label")
+    .style("font-size", `${Math.max(5.5, Math.min(8.5, 9.5 / Math.sqrt(k)))}px`)
+    .style("display", function() {
+      const d = d3.select(this.parentNode).datum();
+      if (!d) return "block"; // HQ beacon label
+      if (activeDossierNode && activeDossierNode.name === d.name) return "block";
+      if (d.label === "Product") return "block";
+      if (d.risk_score >= 0.6) return "block";
+      if ((d.country === 'SE' || d.country === 'DE') && d.tier > 1 && k < 1.8) return "none";
+      if (d.tier === 1 && k >= 1.2) return "block";
+      if (k >= 2.0) return "block";
+      return "none";
+    });
+}
+
+// ── Filtering Logic ───────────────────────────────────────────────────────────
+function getFilteredNodes() {
+  return allNodes.filter(d => {
+    if (d.label === 'Product') return true;
+    if (d.risk_score >= 0.6 && !layers.risk) return false;
+    if (d.label === 'RawMaterial' && !layers.raw) return false;
+    if (d.tier === 1 && !layers.t1) return false;
+    if (d.tier >= 2 && !layers.t2) return false;
+
+    if (currentPreset === 'threats') return d.risk_score >= 0.6 || (d.risk_flags && d.risk_flags.length);
+    if (currentPreset === 'tier1') return d.tier === 1;
+    if (currentPreset === 'mines') return d.label === 'RawMaterial';
+    return true;
+  });
+}
+
+function toggleLayer(layerKey) {
+  layers[layerKey] = !layers[layerKey];
+  const el = document.querySelector(`.layer-item[data-layer="${layerKey}"]`);
+  if (el) el.classList.toggle('active', layers[layerKey]);
+
+  const activeCount = Object.values(layers).filter(Boolean).length;
+  document.getElementById('layer-active-badge').textContent = `${activeCount}/6 ACTIVE`;
+
+  if (layerKey === 'choro') renderWorld();
+  else if (layerKey === 'arcs') renderArcs();
+  else { renderArcs(); renderPins(); }
+}
+
+function setPreset(preset, btn) {
+  currentPreset = preset;
+  document.querySelectorAll('.filter-presets .btn-hud').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderArcs();
+  renderPins();
+}
+
+function resetMapCamera() {
+  if (projectionMode === 'globe') {
+    isAutoRotating = false;
+    const startR = projection.rotate();
+    const endR = [-17.63, -59.20, 0];
+    const startS = projection.scale();
+    const endS = 380;
+
+    const interpR = d3.interpolate(startR, endR);
+    const interpS = d3.interpolate(startS, endS);
+
+    d3.transition().duration(800).ease(d3.easeCubicOut)
+      .tween("reset", () => t => {
+        globeRotation = interpR(t);
+        globeScale = interpS(t);
+        projection.rotate(globeRotation).scale(globeScale);
+        updateMapPositions();
+      })
+      .on("end", () => resetAutoRotateTimer());
+  } else {
+    flatScale = 1;
+    setupProjection();
+    updateMapPositions();
+  }
+}
+
+function updateLayerCounts() {
+  const t1 = allNodes.filter(n => n.tier === 1).length;
+  const t2 = allNodes.filter(n => n.tier >= 2).length;
+  const raw = allNodes.filter(n => n.label === 'RawMaterial').length;
+  const risk = allNodes.filter(n => n.risk_score >= 0.6).length;
+  const countries = new Set(allNodes.map(n => n.country).filter(c => c && c !== '?')).size;
+
+  document.getElementById('count-arcs').textContent = allNodes.filter(n => COUNTRY_COORDS[n.country]).length;
+  document.getElementById('count-t1').textContent = t1;
+  document.getElementById('count-t2').textContent = t2;
+  document.getElementById('count-raw').textContent = raw;
+  document.getElementById('count-risk').textContent = risk;
+  document.getElementById('count-countries').textContent = `${countries} NATIONS`;
+}
+
+// ── Search & Autocomplete ─────────────────────────────────────────────────────
+function setupSearch() {
+  const input = document.getElementById('search-box');
+  const results = document.getElementById('search-results');
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q) { results.style.display = 'none'; return; }
+
+    const matches = allNodes.filter(n =>
+      (n.name && n.name.toLowerCase().includes(q)) ||
+      (n.country && n.country.toLowerCase().includes(q)) ||
+      (n.material_type && n.material_type.toLowerCase().includes(q))
+    ).slice(0, 10);
+
+    if (!matches.length) {
+      results.innerHTML = `<div style="padding:10px;color:var(--text-dim);font-size:0.7rem">No matching entities found.</div>`;
+      results.style.display = 'block';
+      return;
+    }
+
+    window._searchMatches = matches;
+    results.innerHTML = matches.map((m, idx) => `
+      <div class="sr-item" data-idx="${idx}">
+        <div>
+          <div class="sr-name">${m.name || 'Unnamed'}</div>
+          <div class="sr-meta">${m.label || ''}${m.tier ? ' · T' + m.tier : ''} · ${m.country || 'N/A'}</div>
+        </div>
+        <div style="font-family:var(--font-hud);font-size:0.65rem;color:${riskColor(m.risk_score)}">
+          ${((m.risk_score || 0) * 100).toFixed(0)}/100
+        </div>
+      </div>
+    `).join('');
+    results.querySelectorAll('.sr-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.getAttribute('data-idx'), 10);
+        selectSearchResult(window._searchMatches[idx]);
+      });
+    });
+    results.style.display = 'block';
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.search-wrap')) results.style.display = 'none';
+  });
+}
+
+function selectSearchResult(node) {
+  document.getElementById('search-results').style.display = 'none';
+  document.getElementById('search-box').value = node.name;
+  openDossier(node);
+
+  const coords = COUNTRY_COORDS[node.country];
+  if (!coords) return;
+
+  if (projectionMode === 'globe') {
+    isAutoRotating = false;
+    const startR = projection.rotate();
+    const endR = [-coords[0], -Math.max(-75, Math.min(75, coords[1])), 0];
+    const startS = projection.scale();
+    const endS = Math.max(startS, 480);
+
+    const interpR = d3.interpolate(startR, endR);
+    const interpS = d3.interpolate(startS, endS);
+
+    d3.transition().duration(900).ease(d3.easeCubicOut)
+      .tween("fly", () => t => {
+        globeRotation = interpR(t);
+        globeScale = interpS(t);
+        projection.rotate(globeRotation).scale(globeScale);
+        updateMapPositions();
+      })
+      .on("end", () => resetAutoRotateTimer());
+  } else {
+    flatScale = 2.0;
+    setupProjection();
+    updateMapPositions();
+  }
+}
+
+// ── Entity Dossier Drawer ─────────────────────────────────────────────────────
+function openDossier(d) {
+  activeDossierNode = d;
+  document.getElementById('dos-name').textContent = d.name;
+  document.getElementById('dos-sub').textContent = `${d.label.toUpperCase()}${d.tier ? ` // TIER ${d.tier}` : ''} · ${d.country}`;
+
+  const score = ((d.risk_score || 0) * 100).toFixed(0);
+  const scoreEl = document.getElementById('dos-score');
+  scoreEl.textContent = `${score} / 100`;
+  scoreEl.style.color = riskColor(d.risk_score);
+
+  const barEl = document.getElementById('dos-bar');
+  barEl.style.width = `${score}%`;
+  barEl.style.background = riskColor(d.risk_score);
+
+  document.getElementById('dos-country').textContent = d.country || 'Unknown';
+  document.getElementById('dos-tier').textContent = d.tier ? `Tier ${d.tier}` : 'Raw Origin';
+  document.getElementById('dos-mat').textContent = d.material_type || (d.label === 'Product' ? 'Finished Vehicle' : 'Automotive Component');
+
+  const flags = d.risk_flags || [];
+  const flagsContainer = document.getElementById('dos-flags');
+  if (flags.length) {
+    flagsContainer.innerHTML = flags.map(f => `<span class="flag-chip">${f.replace(/_/g, ' ')}</span>`).join('');
+  } else {
+    flagsContainer.innerHTML = `<span style="font-family:var(--font-hud);font-size:0.62rem;color:var(--green)">✓ NOMINAL · NO RECORDED VIOLATIONS</span>`;
+  }
+
+  // Highlight active pin
+  d3.selectAll(".pin-circle")
+    .attr("stroke", n => n && n.name === d.name ? "#FFD700" : (n ? pinStrokeColor(n) : "#000"))
+    .attr("stroke-width", n => n && n.name === d.name ? 3.5 : 1);
+
+  adjustPinLabels();
+  document.getElementById('dossier-drawer').classList.add('open');
+}
+
+function closeDossier() {
+  activeDossierNode = null;
+  document.getElementById('dossier-drawer').classList.remove('open');
+  d3.selectAll(".pin-circle")
+    .attr("stroke", n => n ? pinStrokeColor(n) : "#000")
+    .attr("stroke-width", 1);
+  adjustPinLabels();
+}
+
+// ── Operational Views Switcher (Smooth switching, no reload needed) ───────────
+function switchView(view) {
+  const deck = document.getElementById('modal-deck');
+  const iframe = document.getElementById('deck-iframe');
+  const titleEl = document.getElementById('deck-modal-title');
+
+  document.querySelectorAll('#view-dock .dock-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.deck-tab-btn').forEach(b => b.classList.remove('active'));
+
+  if (view === 'geo') {
+    deck.classList.remove('open');
+    iframe.src = '';
+    document.getElementById('btn-dock-geo')?.classList.add('active');
+    document.getElementById('tab-btn-home')?.classList.add('active');
+    return;
+  }
+
+  deck.classList.add('open');
+  if (view === '3d') {
+    titleEl.textContent = 'SUPPLYLENS // 3D ORBIT FORCE GRAPH';
+    if (!iframe.src.endsWith('supplylens_3d.html')) iframe.src = 'supplylens_3d.html';
+    document.getElementById('btn-dock-3d')?.classList.add('active');
+    document.getElementById('tab-btn-3d')?.classList.add('active');
+  } else if (view === 'map') {
+    titleEl.textContent = 'SUPPLYLENS // HIERARCHICAL RELATIONSHIP MAP';
+    if (!iframe.src.endsWith('supply_chain_map.html')) iframe.src = 'supply_chain_map.html';
+    document.getElementById('btn-dock-map')?.classList.add('active');
+    document.getElementById('tab-btn-map')?.classList.add('active');
+  } else if (view === 'deck') {
+    titleEl.textContent = 'SUPPLYLENS // EXECUTIVE COMPLIANCE DECK';
+    if (!iframe.src.endsWith('supplylens.html')) iframe.src = 'supplylens.html';
+    document.getElementById('btn-dock-deck')?.classList.add('active');
+    document.getElementById('tab-btn-deck')?.classList.add('active');
+  } else if (view === 'code') {
+    titleEl.textContent = 'SUPPLYLENS // CODEBASE KNOWLEDGE GRAPH';
+    if (!iframe.src.endsWith('graph.html')) iframe.src = 'graphify-out/graph.html';
+    document.getElementById('btn-dock-code')?.classList.add('active');
+    document.getElementById('tab-btn-code')?.classList.add('active');
+  } else if (view === 'reports') {
+    titleEl.textContent = 'SUPPLYLENS // ARCHITECTURE & REPORTS SITE';
+    if (!iframe.src.includes('reports')) iframe.src = 'reports/_site/index.html';
+    document.getElementById('btn-dock-reports')?.classList.add('active');
+    document.getElementById('tab-btn-reports')?.classList.add('active');
+  }
+}
+
+// Global listener so embedded child iframes can postMessage to return home
+window.addEventListener('message', function(event) {
+  if (event.data === 'returnToOsiris' || event.data === 'goHome') {
+    switchView('geo');
+  }
+});
+
+// Backwards compatibility aliases
+function openDeckModal(type, title) { switchView(type); }
+function closeDeckModal() { switchView('geo'); }
+function switchMainView(view) { switchView(view); }
+
+// ── Tooltips ──────────────────────────────────────────────────────────────────
+function showTooltip(event, html) {
+  const tt = document.getElementById("tooltip");
+  tt.innerHTML = html;
+  tt.style.opacity = 1;
+  moveTooltip(event);
+}
+function moveTooltip(event) {
+  const tt = document.getElementById("tooltip");
+  tt.style.left = (event.clientX + 14) + "px";
+  tt.style.top  = (event.clientY - 12) + "px";
+}
+function hideTooltip() {
+  document.getElementById("tooltip").style.opacity = 0;
+}
+
+// ── Keyboard Shortcuts ────────────────────────────────────────────────────────
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeDossier();
+    switchView('geo');
+  }
+});
+
+// Boot OSIRIS
+initOSIRIS();
+</script>
+</body>
+</html>

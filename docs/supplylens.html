@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SupplyLens HQ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+  /* ── OSIRIS Design System — Egyptian Mythology × Dark Ops × Glassmorphism ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --gold-rgb:    212, 175, 55;
+    --cyan-rgb:    0, 229, 255;
+
+    /* Backgrounds */
+    --bg-void:     #04040A;
+    --bg-primary:  #06060C;
+    --bg-secondary:#0C0E1A;
+    --bg-panel:    rgba(8, 10, 20, 0.92);
+    --bg-hover:    rgba(212, 175, 55, 0.06);
+
+    /* Gold accent (Eye of Horus) */
+    --gold:        #D4AF37;
+    --gold-light:  #F0D060;
+    --gold-dim:    #8B7325;
+    --gold-glow:   rgba(212, 175, 55, 0.25);
+
+    /* Cyan intel stream */
+    --cyan:        #00E5FF;
+    --cyan-dim:    #006B7A;
+
+    /* Borders */
+    --border:      rgba(212, 175, 55, 0.15);
+    --border-active: rgba(212, 175, 55, 0.45);
+
+    /* Text */
+    --text:        #E8E6E0;
+    --text-mid:    #9B978E;
+    --text-dim:    #5C5A54;
+    --text-gold:   #D4AF37;
+    --text-cyan:   #00E5FF;
+
+    /* Alerts */
+    --green:       #00E676;
+    --amber:       #FF9500;
+    --red:         #FF3D3D;
+
+    /* Fonts */
+    --font-hud:    'JetBrains Mono', 'Courier New', monospace;
+    --font-body:   'Inter', system-ui, sans-serif;
+
+    --sidebar-w:   224px;
+    --header-h:    44px;
+  }
+  html, body { height: 100%; background: var(--bg-void); color: var(--text); font-family: var(--font-body); overflow: hidden; }
+
+  /* ── Layout ── */
+  #shell   { display: flex; height: 100vh; }
+  #sidebar { width: var(--sidebar-w); min-width: var(--sidebar-w); height: 100vh; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 10; }
+  #main    { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  #topbar  { height: var(--header-h); min-height: var(--header-h); background: var(--bg-panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 20px; gap: 16px; }
+  #content { flex: 1; overflow: hidden; position: relative; }
+
+  /* Engineering grid overlay — OSIRIS signature */
+  #content::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(212, 175, 55, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(212, 175, 55, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Sidebar logo ── */
+  .sb-logo { padding: 16px 16px 12px; border-bottom: 1px solid var(--border); }
+  .sb-logo-name {
+    font-family: var(--font-hud);
+    font-size: 0.92rem; font-weight: 700;
+    color: var(--gold); letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .sb-logo-sub { font-family: var(--font-hud); font-size: 0.6rem; color: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px; }
+
+  .sb-home-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 10px 12px 4px;
+    padding: 8px 12px;
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid var(--gold);
+    border-radius: 4px;
+    color: var(--gold);
+    cursor: pointer;
+    font-family: var(--font-hud);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    transition: all 0.2s;
+  }
+  .sb-home-banner:hover {
+    background: var(--gold);
+    color: #000;
+    box-shadow: 0 0 14px rgba(212, 175, 55, 0.4);
+  }
+
+  .tb-home-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid var(--gold);
+    border-radius: 4px;
+    color: var(--gold);
+    cursor: pointer;
+    font-family: var(--font-hud);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    transition: all 0.2s;
+    white-space: nowrap;
+    margin-right: 8px;
+  }
+  .tb-home-btn:hover {
+    background: var(--gold);
+    color: #000;
+    box-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+  }
+
+  /* ── Nav pillars ── */
+  .sb-nav { flex: 1; padding: 8px 0; overflow-y: auto; }
+  .sb-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 16px; cursor: pointer; border-radius: 0;
+    font-size: 0.8rem; color: var(--text-mid);
+    transition: background 0.12s, color 0.12s;
+    border-left: 2px solid transparent;
+    user-select: none;
+  }
+  .sb-item:hover  { background: var(--bg-hover); color: var(--text); }
+  .sb-item.active { background: var(--bg-hover); color: var(--gold); border-left-color: var(--gold); }
+  .sb-icon { font-size: 1rem; width: 18px; text-align: center; flex-shrink: 0; }
+  .sb-section {
+    font-family: var(--font-hud);
+    font-size: 0.58rem; color: var(--gold-dim);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 14px 16px 4px;
+  }
+
+  /* ── Sidebar footer ── */
+  .sb-footer { padding: 12px 16px; border-top: 1px solid var(--border); }
+  .env-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--font-hud);
+    font-size: 0.62rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 4px;
+    background: rgba(212, 175, 55, 0.08); color: var(--gold);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+  }
+  .env-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+
+  /* ── Topbar ── */
+  .tb-title { font-size: 0.85rem; font-weight: 600; color: var(--text); flex: 1; }
+  .tb-pill {
+    font-family: var(--font-hud);
+    font-size: 0.62rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 4px;
+  }
+  .tb-pill.live   { background: rgba(0, 230, 118, 0.1); color: var(--green); border: 1px solid rgba(0,230,118,0.2); }
+  .tb-pill.static { background: rgba(212, 175, 55, 0.06); color: var(--gold-dim); border: 1px solid rgba(212,175,55,0.12); }
+  #tb-time {
+    font-family: var(--font-hud);
+    font-size: 0.72rem; color: var(--text-dim);
+    font-variant-numeric: tabular-nums; letter-spacing: 0.04em;
+  }
+
+  /* ── Panels ── */
+  #content { position: relative; }
+  .panel { display: none; position: absolute; inset: 0; overflow: hidden; }
+  .panel.active { display: flex; flex-direction: column; }
+
+  /* iframe panels: block + 100% so D3/Three.js get real clientWidth/Height */
+  .panel iframe { display: block; width: 100%; height: 100%; border: none; flex: 1; min-height: 0; position: relative; z-index: 1; }
+
+  /* ── Command Center ── */
+  #panel-command { padding: 24px; gap: 20px; overflow-y: auto; flex-wrap: wrap; align-content: flex-start; position: relative; z-index: 1; }
+  .cc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; width: 100%; }
+
+  /* Instrument card with OSIRIS corner brackets */
+  .cc-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 18px 20px;
+    position: relative;
+  }
+  .cc-card::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 8px;
+    background:
+      linear-gradient(var(--gold), var(--gold)) top left / 10px 1px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) top left / 1px 10px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) top right / 10px 1px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) top right / 1px 10px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) bottom left / 10px 1px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) bottom left / 1px 10px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) bottom right / 10px 1px no-repeat,
+      linear-gradient(var(--gold), var(--gold)) bottom right / 1px 10px no-repeat;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .cc-label {
+    font-family: var(--font-hud);
+    font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--gold-dim); margin-bottom: 10px;
+  }
+  .cc-value { font-size: 1.8rem; font-weight: 700; color: var(--text); line-height: 1; }
+  .cc-value.green { color: var(--green); }
+  .cc-value.amber { color: var(--amber); }
+  .cc-value.red   { color: var(--red); }
+  .cc-sub { font-size: 0.7rem; color: var(--text-dim); margin-top: 5px; }
+
+  .cc-section {
+    font-family: var(--font-hud);
+    font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--gold-dim); width: 100%; margin-top: 4px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  }
+
+  /* compliance matrix */
+  .comp-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+  .comp-table th {
+    font-family: var(--font-hud);
+    text-align: left; padding: 8px 10px;
+    color: var(--gold-dim); font-weight: 500;
+    font-size: 0.62rem; letter-spacing: 0.06em; text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .comp-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text-mid); }
+  .comp-table tr:hover td { background: var(--bg-hover); }
+  .pill {
+    display: inline-block; font-family: var(--font-hud);
+    font-size: 0.62rem; font-weight: 600; padding: 2px 7px;
+    border-radius: 3px; letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .pill.pass    { background: rgba(0, 230, 118, 0.1); color: var(--green); }
+  .pill.partial { background: rgba(255, 149, 0, 0.1); color: var(--amber); }
+  .pill.gap     { background: rgba(255, 61, 61, 0.1); color: var(--red); }
+
+  /* risk events */
+  .event-list { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+  .event-card {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px;
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .event-type {
+    font-family: var(--font-hud);
+    font-size: 0.58rem; font-weight: 700; letter-spacing: 0.07em;
+    text-transform: uppercase; padding: 2px 7px; border-radius: 3px;
+    white-space: nowrap; margin-top: 1px;
+  }
+  .event-type.sev-high   { background: rgba(255, 61, 61, 0.12); color: var(--red); }
+  .event-type.sev-medium { background: rgba(255, 149, 0, 0.12); color: var(--amber); }
+  .event-type.sev-low    { background: rgba(212, 175, 55, 0.08); color: var(--gold-dim); }
+  .event-body { flex: 1; }
+  .event-title { font-size: 0.8rem; color: var(--text); font-weight: 500; }
+  .event-meta  { font-family: var(--font-hud); font-size: 0.62rem; color: var(--text-dim); margin-top: 3px; }
+
+  /* sources grid */
+  .src-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; width: 100%; }
+  .src-card {
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .src-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .src-dot.ok      { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .src-dot.pending { background: var(--amber); }
+  .src-dot.off     { background: var(--text-dim); }
+  .src-name { font-size: 0.78rem; color: var(--text); font-weight: 500; }
+  .src-meta { font-family: var(--font-hud); font-size: 0.6rem; color: var(--text-dim); margin-top: 2px; }
+
+  /* panel inner content sits above the engineering grid */
+  #panel-risk, #panel-compliance, #panel-sources, #panel-admin { position: relative; z-index: 1; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div id="shell">
+
+  <!-- ── Sidebar ── -->
+  <nav id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-name">SupplyLens</div>
+      <div class="sb-logo-sub">Scania AB · Tier 1–4</div>
+    </div>
+
+    <div class="sb-home-banner" onclick="returnToOsiris()" title="Return to OSIRIS Home Screen">
+      <span class="sb-home-icon">◈</span>
+      <span class="sb-home-text">OSIRIS HOME</span>
+      <span class="sb-home-arrow">↵</span>
+    </div>
+
+    <div class="sb-nav">
+      <div class="sb-section">Overview</div>
+      <div class="sb-item active" data-panel="command">
+        <span class="sb-icon">◈</span> Command Center
+      </div>
+
+      <div class="sb-section">Visualize</div>
+      <div class="sb-item" data-panel="graph3d">
+        <span class="sb-icon">◎</span> Supply Graph 3D
+      </div>
+      <div class="sb-item" data-panel="geo">
+        <span class="sb-icon">⬡</span> Geo Map
+      </div>
+      <div class="sb-item" data-panel="map">
+        <span class="sb-icon">⋮</span> Chain Map
+      </div>
+
+      <div class="sb-section">Intelligence</div>
+      <div class="sb-item" data-panel="risk">
+        <span class="sb-icon">◬</span> Risk &amp; Events
+      </div>
+      <div class="sb-item" data-panel="compliance">
+        <span class="sb-icon">▦</span> Compliance
+      </div>
+      <div class="sb-item" data-panel="sources">
+        <span class="sb-icon">⊕</span> Data Sources
+      </div>
+
+      <div class="sb-section">System</div>
+      <div class="sb-item" data-panel="admin">
+        <span class="sb-icon">⊞</span> Administration
+      </div>
+    </div>
+
+    <div class="sb-footer">
+      <div class="env-badge">
+        <span class="env-dot" id="env-dot"></span>
+        <span id="env-label">LOCAL</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Main ── -->
+  <div id="main">
+    <div id="topbar">
+      <button class="tb-home-btn" onclick="returnToOsiris()" title="Return to OSIRIS Home Screen">
+        ◈ RETURN TO OSIRIS
+      </button>
+      <div class="tb-title" id="tb-title">Command Center</div>
+      <span class="tb-pill live" id="tb-badge">LIVE NEO4J</span>
+      <div id="tb-time" title="UTC clock"></div>
+    </div>
+
+    <div id="content">
+
+      <!-- Command Center -->
+      <div class="panel active" id="panel-command">
+        <div class="cc-grid" id="cc-stats">
+          <div class="cc-card">
+            <div class="cc-label">Supplier nodes</div>
+            <div class="cc-value" id="stat-suppliers">—</div>
+            <div class="cc-sub">across 20+ countries</div>
+          </div>
+          <div class="cc-card">
+            <div class="cc-label">Risk flags</div>
+            <div class="cc-value amber" id="stat-risk">—</div>
+            <div class="cc-sub">SINGLE_SOURCE · GEOPOLITICAL</div>
+          </div>
+          <div class="cc-card">
+            <div class="cc-label">Total graph nodes</div>
+            <div class="cc-value" id="stat-total">—</div>
+            <div class="cc-sub">suppliers · materials · events · certs</div>
+          </div>
+          <div class="cc-card">
+            <div class="cc-label">Neo4j status</div>
+            <div class="cc-value green" id="stat-neo4j">—</div>
+            <div class="cc-sub" id="stat-neo4j-host"></div>
+          </div>
+        </div>
+
+        <div class="cc-section">Regulatory compliance snapshot</div>
+        <div class="cc-grid" style="grid-template-columns:1fr">
+          <div class="cc-card" style="padding:0;overflow:hidden">
+            <table class="comp-table">
+              <thead>
+                <tr>
+                  <th>Framework</th>
+                  <th>Coverage</th>
+                  <th>Evidence nodes</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="comp-tbody">
+                <tr><td>EU CSDD</td><td>Tier 1–3 mapped</td><td>—</td><td><span class="pill partial">Partial</span></td></tr>
+                <tr><td>LkSG (Germany)</td><td>Tier 1–2 mapped</td><td>—</td><td><span class="pill partial">Partial</span></td></tr>
+                <tr><td>UK Modern Slavery Act</td><td>Tier 1 mapped</td><td>—</td><td><span class="pill pass">Pass</span></td></tr>
+                <tr><td>REACH</td><td>Raw materials flagged</td><td>—</td><td><span class="pill partial">Partial</span></td></tr>
+                <tr><td>CBAM</td><td>Carbon nodes seeded</td><td>—</td><td><span class="pill gap">Gap</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Supply Graph 3D -->
+      <div class="panel" id="panel-graph3d">
+        <iframe data-src="supplylens_3d.html" title="SupplyLens 3D"></iframe>
+      </div>
+
+      <!-- Geo Map -->
+      <div class="panel" id="panel-geo">
+        <iframe data-src="supply_chain_geo.html" title="Geo Map"></iframe>
+      </div>
+
+      <!-- Chain Map -->
+      <div class="panel" id="panel-map">
+        <iframe data-src="supply_chain_map.html" title="Chain Map"></iframe>
+      </div>
+
+      <!-- Risk & Events -->
+      <div class="panel" id="panel-risk" style="padding:24px;overflow-y:auto;gap:16px">
+        <div class="cc-section">Active risk flags from Neo4j</div>
+        <div class="event-list" id="event-list">
+          <div style="color:var(--text-dim);font-size:0.8rem">Loading events from Neo4j…</div>
+        </div>
+      </div>
+
+      <!-- Compliance -->
+      <div class="panel" id="panel-compliance" style="padding:24px;overflow-y:auto;gap:16px">
+        <div class="cc-section">Framework × Supplier evidence matrix</div>
+        <div class="cc-card" style="padding:0;overflow:hidden">
+          <table class="comp-table" id="comp-full">
+            <thead>
+              <tr>
+                <th>Supplier</th>
+                <th>EU CSDD</th>
+                <th>LkSG</th>
+                <th>UK MSA</th>
+                <th>REACH</th>
+                <th>CBAM</th>
+              </tr>
+            </thead>
+            <tbody id="comp-full-tbody">
+              <tr><td colspan="6" style="color:var(--text-dim);padding:16px">Loading from Neo4j…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Data Sources -->
+      <div class="panel" id="panel-sources" style="padding:24px;overflow-y:auto;gap:16px">
+        <div class="cc-section">OSINT sources</div>
+        <div class="src-grid" id="src-grid"></div>
+      </div>
+
+      <!-- Administration -->
+      <div class="panel" id="panel-admin" style="padding:24px;overflow-y:auto;gap:16px">
+        <div class="cc-section">Runtime config (docs/config.js)</div>
+        <div class="cc-card">
+          <pre id="admin-config" style="font-size:0.75rem;color:var(--text-mid);line-height:1.6;white-space:pre-wrap"></pre>
+        </div>
+        <div class="cc-section">Service health</div>
+        <div class="src-grid" id="admin-services"></div>
+      </div>
+
+    </div><!-- #content -->
+  </div><!-- #main -->
+</div><!-- #shell -->
+
+<script>
+// ── Navigation ────────────────────────────────────────────────────────────────
+const PANEL_META = {
+  command:    { title: 'Command Center',   badge: 'LIVE NEO4J', badgeCls: 'live' },
+  graph3d:    { title: 'Supply Graph 3D',  badge: 'LIVE NEO4J', badgeCls: 'live' },
+  geo:        { title: 'Geo Map',          badge: 'LIVE NEO4J', badgeCls: 'live' },
+  map:        { title: 'Chain Map',        badge: 'LIVE NEO4J', badgeCls: 'live' },
+  risk:       { title: 'Risk & Events',    badge: 'LIVE NEO4J', badgeCls: 'live' },
+  compliance: { title: 'Compliance',       badge: 'LIVE NEO4J', badgeCls: 'live' },
+  sources:    { title: 'Data Sources',     badge: 'STATIC',     badgeCls: 'static' },
+  admin:      { title: 'Administration',   badge: 'CONFIG',     badgeCls: 'static' },
+};
+
+let activePanel = 'command';
+
+function navigate(id) {
+  document.querySelectorAll('.sb-item').forEach(el => el.classList.toggle('active', el.dataset.panel === id));
+  document.querySelectorAll('.panel').forEach(el => el.classList.toggle('active', el.id === 'panel-' + id));
+  // Lazy-load iframe panels: set src only after panel is visible so D3/Three.js get real dimensions
+  const panel = document.getElementById('panel-' + id);
+  if (panel) {
+    const iframe = panel.querySelector('iframe[data-src]');
+    if (iframe) { iframe.src = iframe.dataset.src; iframe.removeAttribute('data-src'); }
+  }
+  const meta = PANEL_META[id] || {};
+  document.getElementById('tb-title').textContent = meta.title || id;
+  const badge = document.getElementById('tb-badge');
+  badge.textContent = meta.badge || '';
+  badge.className = 'tb-pill ' + (meta.badgeCls || 'static');
+  activePanel = id;
+  if (id === 'risk')       loadRiskEvents();
+  if (id === 'compliance') loadComplianceFull();
+}
+
+document.querySelectorAll('.sb-item').forEach(el => {
+  el.addEventListener('click', () => navigate(el.dataset.panel));
+});
+
+// ── Clock ─────────────────────────────────────────────────────────────────────
+function tick() {
+  document.getElementById('tb-time').textContent =
+    new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+tick(); setInterval(tick, 1000);
+
+// ── Config badge ──────────────────────────────────────────────────────────────
+const cfg = window.UC4_CONFIG || {};
+document.getElementById('env-label').textContent = (cfg.APP_ENV || 'LOCAL').toUpperCase();
+document.getElementById('stat-neo4j-host').textContent = cfg.NEO4J_HOST || 'localhost:7474';
+
+// Admin config display
+document.getElementById('admin-config').textContent = JSON.stringify({
+  NEO4J_HOST: cfg.NEO4J_HOST,
+  NEO4J_USER: cfg.NEO4J_USER,
+  NEO4J_PASS: cfg.NEO4J_PASS ? '***' : '(not set)',
+  NEO4J_DB:   cfg.NEO4J_DB,
+  APP_ENV:    cfg.APP_ENV
+}, null, 2);
+
+// ── Neo4j helper ──────────────────────────────────────────────────────────────
+const NEO4J_URL = (cfg.NEO4J_HOST || 'http://localhost:7474') + '/db/' + (cfg.NEO4J_DB || 'neo4j') + '/tx/commit';
+const NEO4J_AUTH = 'Basic ' + btoa((cfg.NEO4J_USER || 'neo4j') + ':' + (cfg.NEO4J_PASS || 'changeme'));
+
+async function cypher(query, params = {}) {
+  const r = await fetch(NEO4J_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: NEO4J_AUTH },
+    body: JSON.stringify({ statements: [{ statement: query, parameters: params }] })
+  });
+  if (!r.ok) throw new Error('Neo4j ' + r.status);
+  const d = await r.json();
+  if (d.errors && d.errors.length) throw new Error(d.errors[0].message);
+  return d.results[0];
+}
+
+// ── Command Center stats ───────────────────────────────────────────────────────
+async function loadCommandCenter() {
+  try {
+    const [totRes, supRes, riskRes] = await Promise.all([
+      cypher('MATCH (n) RETURN count(n) AS c'),
+      cypher('MATCH (n:Supplier) RETURN count(n) AS c'),
+      cypher('MATCH (n) WHERE size(n.risk_flags) > 0 RETURN count(n) AS c'),
+    ]);
+    document.getElementById('stat-total').textContent     = totRes.data[0].row[0];
+    document.getElementById('stat-suppliers').textContent = supRes.data[0].row[0];
+    document.getElementById('stat-risk').textContent      = riskRes.data[0].row[0];
+    document.getElementById('stat-neo4j').textContent     = 'ONLINE';
+    document.getElementById('env-dot').style.background   = 'var(--green)';
+  } catch(e) {
+    document.getElementById('stat-neo4j').textContent   = 'OFFLINE';
+    document.getElementById('stat-neo4j').className     = 'cc-value red';
+    document.getElementById('env-dot').style.background = 'var(--red)';
+    console.warn('Neo4j unreachable:', e.message);
+  }
+}
+
+// ── Risk events ───────────────────────────────────────────────────────────────
+const FLAG_SEV = {
+  SANCTIONS_HIT: 'high', LABOR_VIOLATION: 'high', CONFLICT_MINERAL: 'high',
+  GEOPOLITICAL_RISK: 'medium', SINGLE_SOURCE: 'medium', CLIMATE_RISK: 'low',
+  ESG_RISK: 'low', DEFORESTATION_RISK: 'low'
+};
+
+async function loadRiskEvents() {
+  const el = document.getElementById('event-list');
+  el.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem">Loading…</div>';
+  try {
+    const res = await cypher(
+      'MATCH (n) WHERE size(n.risk_flags) > 0 RETURN n.name AS name, n.risk_flags AS flags, labels(n)[0] AS type ORDER BY n.name LIMIT 40'
+    );
+    if (!res.data.length) { el.innerHTML = '<div style="color:var(--text-dim);font-size:0.8rem">No risk flags found.</div>'; return; }
+    el.innerHTML = res.data.map(r => {
+      const [name, flags, type] = r.row;
+      return (flags || []).map(flag => {
+        const sev = FLAG_SEV[flag] || 'low';
+        return `<div class="event-card">
+          <span class="event-type sev-${sev}">${flag.replace(/_/g,' ')}</span>
+          <div class="event-body">
+            <div class="event-title">${name || '(unnamed)'}</div>
+            <div class="event-meta">${type} · ${flag}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--red);font-size:0.8rem">Neo4j error: ${e.message}</div>`;
+  }
+}
+
+// ── Compliance matrix ────────────────────────────────────────────────────────
+const FRAMEWORKS = ['EU_CSDD','LkSG','UK_MSA','REACH','CBAM'];
+const FW_LABEL   = { EU_CSDD:'EU CSDD', LkSG:'LkSG', UK_MSA:'UK MSA', REACH:'REACH', CBAM:'CBAM' };
+
+async function loadComplianceFull() {
+  const tbody = document.getElementById('comp-full-tbody');
+  tbody.innerHTML = '<tr><td colspan="6" style="color:var(--text-dim);padding:16px">Loading…</td></tr>';
+  try {
+    const res = await cypher(
+      'MATCH (s:Supplier)-[:CERTIFIED_BY]->(c:Certificate) RETURN s.name AS supplier, collect(c.name) AS certs ORDER BY s.name LIMIT 30'
+    );
+    if (!res.data.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:var(--text-dim);padding:16px">No certificate data found in graph.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = res.data.map(r => {
+      const [name, certs] = r.row;
+      const certStr = (certs || []).join(' ').toUpperCase();
+      const cells = FRAMEWORKS.map(fw => {
+        const hasIt = certStr.includes(fw.replace('_',' ')) || certStr.includes(fw);
+        const cls = hasIt ? 'pass' : 'gap';
+        const lbl = hasIt ? 'Pass' : 'Gap';
+        return `<td><span class="pill ${cls}">${lbl}</span></td>`;
+      }).join('');
+      return `<tr><td>${name}</td>${cells}</tr>`;
+    }).join('');
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--red);padding:16px">Neo4j error: ${e.message}</td></tr>`;
+  }
+}
+
+// ── Data sources ──────────────────────────────────────────────────────────────
+const SOURCES = [
+  { name: 'OpenCorporates',  meta: 'Company registration',    status: 'pending' },
+  { name: 'OpenSanctions',   meta: 'OFAC/EU sanctions',       status: 'pending' },
+  { name: 'GLEIF',           meta: 'Legal entity IDs (LEI)',   status: 'pending' },
+  { name: 'USGS Minerals',   meta: 'Mine locations',           status: 'pending' },
+  { name: 'ACLED',           meta: 'Armed conflict events',    status: 'pending' },
+  { name: 'GDACS',           meta: 'Natural disaster alerts',  status: 'pending' },
+  { name: 'ImportYeti',      meta: 'US import records',        status: 'pending' },
+  { name: 'TradeMap ITC',    meta: 'Trade flows by HS code',   status: 'pending' },
+  { name: 'Companies House', meta: 'UK director/ownership',    status: 'pending' },
+  { name: 'OSM Overpass',    meta: 'Factory locations',        status: 'pending' },
+  { name: 'MarineTraffic',   meta: 'Vessel positions',         status: 'pending' },
+  { name: 'Neo4j graph',     meta: '251 nodes seeded',         status: 'ok'      },
+];
+
+document.getElementById('src-grid').innerHTML = SOURCES.map(s =>
+  `<div class="src-card">
+    <div class="src-dot ${s.status}"></div>
+    <div><div class="src-name">${s.name}</div><div class="src-meta">${s.meta}</div></div>
+  </div>`
+).join('');
+
+// ── Admin services ────────────────────────────────────────────────────────────
+const SERVICES = [
+  { name: 'Neo4j',     url: (cfg.NEO4J_HOST||'http://localhost:7474') },
+  { name: 'LiteLLM',  url: 'http://localhost:4000' },
+  { name: 'Qdrant',   url: 'http://localhost:6333' },
+  { name: 'LangGraph',url: 'http://localhost:8000' },
+  { name: 'n8n',      url: 'http://localhost:5678' },
+];
+
+document.getElementById('admin-services').innerHTML = SERVICES.map(s =>
+  `<div class="src-card" id="svc-${s.name}">
+    <div class="src-dot pending" id="dot-${s.name}"></div>
+    <div><div class="src-name">${s.name}</div><div class="src-meta">${s.url}</div></div>
+  </div>`
+).join('');
+
+async function probeService(svc) {
+  const dot = document.getElementById('dot-' + svc.name);
+  try {
+    const r = await fetch(svc.url, { method: 'GET', mode: 'cors', signal: AbortSignal.timeout(2000) });
+    dot.className = r.ok ? 'src-dot ok' : 'src-dot pending';
+  } catch {
+    // CORS-blocked or offline — try no-cors just to detect TCP connectivity
+    try {
+      await fetch(svc.url, { method: 'GET', mode: 'no-cors', signal: AbortSignal.timeout(2000) });
+      dot.className = 'src-dot ok';
+    } catch { dot.className = 'src-dot off'; }
+  }
+}
+SERVICES.forEach(probeService);
+
+// ── Return to OSIRIS Home ─────────────────────────────────────────────────────
+function returnToOsiris() {
+  if (window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage('returnToOsiris', '*');
+      if (typeof window.parent.switchView === 'function') {
+        window.parent.switchView('geo');
+        return;
+      }
+    } catch (e) {}
+  }
+  window.location.href = 'index.html';
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+loadCommandCenter();
+</script>
+</body>
+</html>
